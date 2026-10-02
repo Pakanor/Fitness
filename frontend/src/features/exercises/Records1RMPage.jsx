@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import Header from "../../components/layout/Header";
 
-const API_BASE = "";
+const API_BASE = "http://localhost:8000";
 
 const LIFT_COLORS = {
   0: "#c8f542",

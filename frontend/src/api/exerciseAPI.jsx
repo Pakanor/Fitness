@@ -34,13 +34,13 @@ export const deleteUserExercise = async (userExerciseId) => {
 };
 
 export const getRecordsByExercise = async (exerciseId) => {
-  const res = await fetch(`/api/records/exercise/${exerciseId}`, { credentials: 'include' });
+  const res = await fetch(`${RECORDS_URL}/exercise/${exerciseId}`, { credentials: 'include' });
   if (!res.ok) throw new Error('Błąd pobierania rekordów');
   return await res.json();
 };
 
 export const searchExercises = async (query) => {
-  const res = await fetch(`/api/records/search?query=${encodeURIComponent(query)}`, { credentials: 'include' });
+  const res = await fetch(`${RECORDS_URL}/search?query=${encodeURIComponent(query)}`, { credentials: 'include' });
   if (!res.ok) throw new Error('Błąd wyszukiwania');
   return await res.json();
 };

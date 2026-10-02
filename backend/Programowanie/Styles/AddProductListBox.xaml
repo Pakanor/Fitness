@@ -1,0 +1,24 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:BackendLogicApi.Models;assembly=BackendLogicApi"
+>
+
+    <!-- Styl ogólny dla ListBoxa -->
+    <Style TargetType="ListBox" x:Key="ProductListBoxStyle">
+        <Setter Property="Margin" Value="10,50,10,10"/>
+        <Setter Property="Height" Value="350"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Background" Value="#F5F5F5"/>
+    </Style>
+
+    <!-- Szablon elementu (ItemTemplate) -->
+    <DataTemplate x:Key="ProductItemTemplate">
+        <StackPanel Orientation="Vertical" Margin="0 0 0 10">
+            <TextBlock Text="{Binding ProductName}" FontWeight="Bold" FontSize="16" Foreground="#212121"/>
+            <TextBlock Text="{Binding Brands}" FontStyle="Italic" Foreground="#757575"/>
+            <TextBlock Text="{Binding Nutriments.Energy}" Foreground="#009688"/>
+        </StackPanel>
+    </DataTemplate>
+
+</ResourceDictionary>

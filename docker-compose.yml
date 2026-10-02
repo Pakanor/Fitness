@@ -1,0 +1,84 @@
+version: '3.9'
+
+services:
+  authapi:
+    build:
+      context: ./backend/AuthAPI
+    ports:
+      - "5010:5010"
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is not set - copy .env.example to .env}
+    depends_on:
+      - db_auth
+
+  exerciseapi:
+    build:
+      context: ./backend/ExerciseAPI
+    ports:
+      - "5185:5185"
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is not set - copy .env.example to .env}
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY:?RAPIDAPI_KEY is not set - copy .env.example to .env}
+    depends_on:
+      - db_exercise
+
+  backendlogicapi:
+    build:
+      context: ./backend/BackendLogicApi
+    ports:
+      - "5142:5142"
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is not set - copy .env.example to .env}
+    depends_on:
+      - db_products
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - authapi
+      - exerciseapi
+      - backendlogicapi
+
+  db_auth:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: fitnessapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set - copy .env.example to .env}
+      POSTGRES_DB: auth
+    ports:
+      - "5442:5432"
+    volumes:
+      - auth_data:/var/lib/postgresql/data
+
+  db_exercise:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: fitnessapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set - copy .env.example to .env}
+      POSTGRES_DB: exercise
+    ports:
+      - "5443:5432"
+    volumes:
+      - exercise_data:/var/lib/postgresql/data
+
+  db_products:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: fitnessapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set - copy .env.example to .env}
+      POSTGRES_DB: products
+    ports:
+      - "5444:5432"
+    volumes:
+      - products_data:/var/lib/postgresql/data
+
+volumes:
+  auth_data:
+  exercise_data:
+  products_data:

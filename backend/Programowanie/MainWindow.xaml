@@ -1,0 +1,85 @@
+﻿<Window x:Class="FitnessApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:FitnessApp.ViewModels"
+        
+        Title="MainWindow" Height="550" Width="1000">
+    
+  
+    <Grid Margin="0,31,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        
+        
+
+        <!-- Strona startowa (przyciski) -->
+        <!-- Strona startowa (przyciski) -->
+        <StackPanel x:Name="startPanel" Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="0" Visibility="{Binding UIStateManager.StartPanelVisibility}">
+            <Button Content="Start Scanning" Command="{Binding StartScanningCommand}"/>
+            <Button Content="Wpisz nazwę produktu"  Command="{Binding AddProductCommand}"  Margin="10,0,0,0"/>
+        </StackPanel>
+        <!-- Strona z formularzem do dodania produktu -->
+        <StackPanel x:Name="InputPanel" Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="1" Visibility="Visible">
+            <TextBox Width="200" Height="40" Margin="10" Name="ProductNameChange" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"   Visibility="{Binding UIStateManager.InputVisibility}"/>
+        </StackPanel>
+
+
+        <!-- Strzałka w lewym górnym rogu (tylko widoczna na formularzu) -->
+        <Button x:Name="BackButton" Content="←" Command="{Binding BackToStartCommand}"
+            HorizontalAlignment="Left" VerticalAlignment="Top" FontSize="20" Background="Transparent" BorderBrush="Transparent" Visibility="{Binding UIStateManager.BackButtonVisibility}"/>
+
+        <!-- Strona dla kamery -->
+        <Grid Grid.Row="2">
+            <Image Source="{Binding CameraViewModel.CameraPreviewImage}" Width="640" Height="480" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="10,80,10,10"  Visibility="{Binding UIStateManager.ScanVisibility}"/>
+        </Grid>
+
+        <!-- Wynik zeskanowanego kodu -->
+        <TextBlock Text="{Binding CameraViewModel.BarcodeResult}" FontSize="16" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="10,10,10,50"  Visibility="{Binding UIStateManager.ScanVisibility}"/>
+
+        <TextBlock Name="ErrorTextBlock" FontSize="12" Foreground="Red"
+   VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="10"
+   Text="{Binding ErrorMessage}" Visibility="{Binding ErrorMessage}"/>
+        <Grid Grid.Row="2">
+        </Grid>
+
+
+
+
+        <Grid Grid.Row="3">
+            <ListBox x:Name="ProductList"
+         Style="{StaticResource ProductListBoxStyle}"
+         ItemTemplate="{StaticResource ProductItemTemplate}"
+         ItemsSource="{Binding ProductViewModel.Products}" 
+         SelectedItem="{Binding ProductViewModel.SelectedProduct, Mode=TwoWay}"
+         Visibility="{Binding UIStateManager.InputVisibility}">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="ProductListItem_PreviewMouseLeftButtonDown"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
+        </Grid>
+        
+        
+       
+        <Grid Grid.Row="3" >
+                <ListBox ItemsSource="{Binding ProductLogs}" 
+ ItemTemplate="{StaticResource ProductLogItemTemplate}"
+ Margin="10,50,10,10"
+ Height="350"
+ ScrollViewer.VerticalScrollBarVisibility="Auto"
+ Visibility="{Binding UIStateManager.StartPanelVisibility}"
+             />
+        </Grid>
+
+    </Grid>
+
+    <Window.Resources>
+      
+    </Window.Resources>
+</Window>

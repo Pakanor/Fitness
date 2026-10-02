@@ -1,0 +1,28 @@
+﻿<Window x:Class="FitnessApp.ProductDetailsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Szczegóły Produktu" Height="300" Width="400">
+    <Grid>
+        <StackPanel Margin="20">
+            <!-- Binding do ProductDetailsViewModel -->
+            <TextBlock Text="{Binding Product.ProductName, StringFormat='Produkt: {0}'}"
+               FontSize="16" FontWeight="Bold"/>
+            <TextBlock Text="{Binding Product.Brands}" FontStyle="Italic"/>
+            <TextBlock Text="{Binding Product.Nutriments.Energy}" FontStyle="Italic"/>
+
+            <TextBlock Text="Wpisz ilość (gramy):" FontSize="14"/>
+            <TextBox Text="{Binding UserWeight, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Width="100"/>
+
+            <Button x:Name="AddProductButton" Content="Add Product"
+                    Command="{Binding SaveCommand}" 
+                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
+                    VerticalAlignment="Bottom" Margin="10"/>
+
+            <TextBlock Text="{Binding CalculatedNutriments.Energy, StringFormat='Kalorie: {0:F1} kcal'}"/>
+            <TextBlock Text="{Binding CalculatedNutriments.Proteins, StringFormat='Białko: {0:F1} g'}"/>
+            <TextBlock Text="{Binding CalculatedNutriments.Carbs, StringFormat='Węglowodany: {0:F1} g'}"/>
+            <TextBlock Text="{Binding CalculatedNutriments.Fat, StringFormat='Tłuszcz: {0:F1} g'}"/>
+            <TextBlock Text="{Binding CalculatedNutriments.Salt, StringFormat='Sól: {0:F1} g'}"/>
+        </StackPanel>
+    </Grid>
+</Window>

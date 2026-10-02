@@ -1,0 +1,47 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+## Visual Studio
+.vs/
+*.csproj.user
+*.dbmdl
+*.jfm
+
+## JetBrains Rider
+.idea/
+*.sln.iml
+
+## Node / React
+node_modules/
+build/
+dist/
+npm-debug.log*
+
+## Secrets
+**/appsettings.json
+**/appsettings.Development.json
+.env
+*.env
+
+## Logs
+*.log
+
+## OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+## Generated / downloaded
+**/wwwroot/
+
+## EF Core Migrations (schema managed locally)
+**/Migrations/
+
+## Docker
+docker-compose.override.yml

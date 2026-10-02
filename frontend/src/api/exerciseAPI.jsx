@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const API_URL = 'http://localhost:8000/api/ExerciseDb';
+const RECORDS_URL = 'http://localhost:8000/api/records';
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -43,3 +44,17 @@ export const searchExercises = async (query) => {
   if (!res.ok) throw new Error('Błąd wyszukiwania');
   return await res.json();
 };
+
+export async function getExerciseProgress(exerciseId, startDate, endDate) {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+
+  const query = params.toString();
+  const res = await fetch(
+    `${RECORDS_URL}/exercise/${exerciseId}/progress${query ? `?${query}` : ''}`,
+    { credentials: 'include' }
+  );
+  if (!res.ok) throw new Error('Blad pobierania progresji cwiczenia');
+  return await res.json();
+}

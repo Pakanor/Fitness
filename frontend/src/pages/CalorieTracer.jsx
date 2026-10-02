@@ -25,7 +25,6 @@ const CalorieTracer = () => {
   const [profile, setProfile] = useState(null);
   const [isTrainingDay, setIsTrainingDay] = useState(false);
   const [workoutStatus, setWorkoutStatus] = useState(null);
-  const [carbDecision, setCarbDecision] = useState(null);
   // 'suggested' | 'confirmed' | 'dismissed' for each peri meal
   const [periStatus, setPeriStatus] = useState({ pre: 'suggested', post: 'suggested' });
 
@@ -75,21 +74,6 @@ const CalorieTracer = () => {
       .catch(() => setIsTrainingDay(false));
   }, [selectedDate, isToday]);
 
-  // Dynamic post-workout carb decision (1.0 or 1.4 g/kg) from workload + ACWR.
-  useEffect(() => {
-    if (!isTrainingDay || !isToday || !profile?.currentWeight) {
-      setCarbDecision(null);
-      return;
-    }
-    const fetchDecision = async () => {
-      try {
-        const res = await fetch(`http://localhost:8000/api/workload-nutrition/carbs?bodyWeight=${profile.currentWeight}&date=${selectedDate}`, { credentials: 'include' });
-        if (res.ok) setCarbDecision(await res.json());
-      } catch { setCarbDecision(null); }
-    };
-    fetchDecision();
-  }, [isTrainingDay, isToday, profile?.currentWeight, selectedDate]);
-
   const pal = JOB_TYPES.find(j => j.value === profile?.jobType)?.pal || 1.2;
   const baseBmr = profile?.bmr || 0;
   const baseTdee = baseBmr ? Math.round(baseBmr * pal) : 0;
@@ -135,21 +119,9 @@ const CalorieTracer = () => {
   }, [localTdee, isTrainingDay, goal]);
 
   // Post-workout carbs scaled by workout intensity (1.0 vs 1.4 g/kg).
-  const postCarbs = useMemo(() => {
-    if (carbDecision?.recommendedCarbs) return Math.round(carbDecision.recommendedCarbs);
-    return Math.round(bodyWeight * 1.0);
-  }, [carbDecision, bodyWeight]);
+  const postCarbs = useMemo(() => Math.round(bodyWeight * 1.0), [bodyWeight]);
 
-  const isHeavy = !!carbDecision?.isHeavyWorkout;
-
-  // Proportional redistribution: when the post-workout dose is raised to 1.4 g/kg,
-  // the surplus (0.4 g/kg) is subtracted from the other peri meal (pre-workout)
-  // so the daily total stays constant. Clamped at 0.
-  const preCarbs = useMemo(() => {
-    const baseline = Math.round(bodyWeight * 1.0);
-    const surplus = isHeavy ? Math.round(bodyWeight * 0.4) : 0;
-    return Math.max(0, baseline - surplus);
-  }, [isHeavy, bodyWeight]);
+  const preCarbs = useMemo(() => Math.round(bodyWeight * 1.0), [bodyWeight]);
 
   const isWorkoutActive = workoutStatus === 'Active';
 
@@ -183,12 +155,12 @@ const CalorieTracer = () => {
         fat: Math.round(bodyWeight * 0.05),
         sugars: postCarbs,
         status: periStatus.post,
-        heavy: isHeavy,
+        heavy: false,
       });
     }
 
     return meals;
-  }, [isTrainingDay, isToday, isWorkoutActive, periStatus, preCarbs, postCarbs, isHeavy, bodyWeight]);
+  }, [isTrainingDay, isToday, isWorkoutActive, periStatus, preCarbs, postCarbs, bodyWeight]);
 
   // Only CONFIRMED peri meals count toward the daily balance.
   const confirmedPeri = useMemo(

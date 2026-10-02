@@ -117,5 +117,18 @@ namespace ExerciseAPI.Controllers
             var result = await _recordsService.Get1RMProgression(CurrentUserId);
             return Ok(result);
         }
+
+        [HttpGet("exercise/{exerciseId}/progress")]
+        public async Task<IActionResult> GetExerciseProgress(
+            int exerciseId,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            if (!HasCurrentUser)
+                return Unauthorized();
+
+            var result = await _recordsService.GetExerciseProgress(CurrentUserId, exerciseId, startDate, endDate);
+            return Ok(result);
+        }
     }
 }

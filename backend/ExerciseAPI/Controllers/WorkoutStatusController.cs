@@ -11,13 +11,11 @@ namespace ExerciseAPI.Controllers
     public class WorkoutStatusController : FitnessControllerBase
     {
         private readonly IWorkoutStatusService _workoutStatusService;
-        private readonly IMuscleDamageService _muscleDamageService;
 
-        public WorkoutStatusController(IWorkoutStatusService workoutStatusService, IMuscleDamageService muscleDamageService, IHttpContextAccessor httpContextAccessor)
+        public WorkoutStatusController(IWorkoutStatusService workoutStatusService, IHttpContextAccessor httpContextAccessor)
             : base(httpContextAccessor)
         {
             _workoutStatusService = workoutStatusService;
-            _muscleDamageService = muscleDamageService;
         }
 
         [HttpGet]
@@ -42,10 +40,6 @@ namespace ExerciseAPI.Controllers
                 return BadRequest("Invalid status");
 
             await _workoutStatusService.UpdateWorkoutStatus(CurrentUserId, dto.Date, status);
-
-            // A newly completed session changes the damage baseline -> rebuild it.
-            if (status == WorkoutStatus.Completed)
-                await _muscleDamageService.RecordSessionDamageAsync(CurrentUserId, dto.Date);
 
             return Ok();
         }

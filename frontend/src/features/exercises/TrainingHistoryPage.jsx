@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getExercisesByDate } from "../../api/exerciseAPI";
 import Header from "../../components/layout/Header";
+import ExerciseProgressChart from "./ExerciseProgressChart";
 
 const historyStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
@@ -81,6 +82,39 @@ const historyStyles = `
   .history-day-exercises {
     font-size: 13px;
     color: #888;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .history-exercise-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(200, 245, 66, 0.08);
+    border: 1px solid rgba(200, 245, 66, 0.25);
+    color: #c8f542;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .history-exercise-chip:hover {
+    background: rgba(200, 245, 66, 0.16);
+    border-color: rgba(200, 245, 66, 0.5);
+  }
+
+  .history-exercise-chip-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #0d0d0f;
+    background: #c8f542;
+    border-radius: 999px;
+    padding: 1px 5px;
   }
 
   .empty-state {
@@ -116,6 +150,7 @@ const historyStyles = `
 export default function TrainingHistoryPage() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [progressExercise, setProgressExercise] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -177,9 +212,11 @@ export default function TrainingHistoryPage() {
               month: "long",
               year: "numeric",
             });
-            const exerciseNames = [
-              ...new Set(day.exercises.map((e) => e.name)),
-            ].join(", ");
+            const uniqueExercises = [
+              ...new Map(
+                day.exercises.map((e) => [e.exerciseId, e])
+              ).values(),
+            ];
 
             return (
               <div
@@ -198,13 +235,37 @@ export default function TrainingHistoryPage() {
                     {day.exercises.length === 1 ? "ćwiczenie" : "ćwiczeń"}
                   </div>
                 </div>
-                <div className="history-day-exercises">{exerciseNames}</div>
+                <div className="history-day-exercises">
+                  {uniqueExercises.map((e) => (
+                    <button
+                      key={e.exerciseId}
+                      className="history-exercise-chip"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        setProgressExercise({
+                          exerciseId: e.exerciseId,
+                          exerciseName: e.name,
+                        });
+                      }}
+                    >
+                      {e.name}
+                      <span className="history-exercise-chip-badge">1RM</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             );
           })
         )}
         </div>
       </div>
+
+      <ExerciseProgressChart
+        open={!!progressExercise}
+        exerciseId={progressExercise?.exerciseId}
+        exerciseName={progressExercise?.exerciseName ?? ""}
+        onClose={() => setProgressExercise(null)}
+      />
     </>
   );
 }

@@ -62,17 +62,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ExerciseDbImportService>();
 builder.Services.AddHostedService<ExerciseStartupSeeder>();
-builder.Services.AddScoped<HeatmapService>();
 builder.Services.AddScoped<OneRepMaxCalculator>();
+builder.Services.AddScoped<ExerciseAPI.Interfaces.IE1RMCalculatorService, ExerciseAPI.Services.E1RMCalculatorService>();
 builder.Services.AddScoped<RecordsService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.ITemplateService, ExerciseAPI.Services.TemplateService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutStartModeService, ExerciseAPI.Services.WorkoutStartModeService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutStatusService, ExerciseAPI.Services.WorkoutStatusService>();
-builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkloadCalculationService, ExerciseAPI.Services.WorkloadCalculationService>();
-builder.Services.AddScoped<ExerciseAPI.Interfaces.ICarbohydrateScalingService, ExerciseAPI.Services.CarbohydrateScalingService>();
-builder.Services.AddScoped<ExerciseAPI.Interfaces.IAcwrService, ExerciseAPI.Services.AcwrService>();
-builder.Services.AddScoped<ExerciseAPI.Interfaces.IMuscleRecoveryService, ExerciseAPI.Services.MuscleRecoveryService>();
-builder.Services.AddScoped<ExerciseAPI.Interfaces.IMuscleDamageService, ExerciseAPI.Services.MuscleDamageService>();
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 

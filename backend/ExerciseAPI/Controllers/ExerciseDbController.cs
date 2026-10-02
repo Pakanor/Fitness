@@ -16,17 +16,13 @@ namespace ExerciseAPI.Controllers
     {
         private readonly ExerciseDbImportService _importService;
         private readonly AppDbContext _context;
-        private readonly IMuscleDamageService _muscleDamageService;
 
 
-        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, IMuscleDamageService muscleDamageService, IHttpContextAccessor httpContextAccessor)
+        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, IHttpContextAccessor httpContextAccessor)
             : base(httpContextAccessor)
         {
             _importService = importService;
             _context = context;
-            _muscleDamageService = muscleDamageService;
-
-
         }
         //[Authorize(Roles = "Admin")]
 
@@ -367,9 +363,6 @@ namespace ExerciseAPI.Controllers
 
             _context.UserExercise.Remove(entry);
             await _context.SaveChangesAsync();
-
-            // Editing/deleting a session changes the damage baseline -> rebuild it.
-            await _muscleDamageService.RecordSessionDamageAsync(CurrentUserId, entry.Date);
 
             return NoContent();
         }

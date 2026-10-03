@@ -33,7 +33,7 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
           flex-direction: column;
           padding: 32px 20px 0;
           font-family: 'DM Sans', sans-serif;
-          color: #f0ede8;
+          color: var(--color-fg-primary);
           max-width: 960px;
           margin: 0 auto;
           box-sizing: border-box;
@@ -46,15 +46,15 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
           width: 100%;
           margin: 0 auto;
           box-sizing: border-box;
-          border-top: 1px solid #1e1e22;
-          background: #0d0d0f;
+          border-top: 1px solid var(--color-border-subtle);
+          background: var(--color-bg-base);
         }
  
         .pi-title {
           font-family: 'Syne', sans-serif;
           font-size: 22px;
           font-weight: 700;
-          color: #f0ede8;
+          color: var(--color-fg-primary);
           margin-bottom: 16px;
           flex-shrink: 0;
         }
@@ -72,11 +72,11 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
 
         .pi-list::-webkit-scrollbar { width: 4px; }
         .pi-list::-webkit-scrollbar-track { background: transparent; }
-        .pi-list::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 2px; }
+        .pi-list::-webkit-scrollbar-thumb { background: var(--color-border-default); border-radius: 2px; }
  
         .pi-item {
-          background: #16161a;
-          border: 1px solid #1e1e22;
+          background: var(--color-bg-card);
+          border: 1px solid var(--color-border-subtle);
           border-radius: 12px;
           padding: 16px;
           display: flex;
@@ -90,12 +90,12 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
           font-family: 'Syne', sans-serif;
           font-size: 15px;
           font-weight: 600;
-          color: #f0ede8;
+          color: var(--color-fg-primary);
         }
  
         .pi-item-brand {
           font-size: 12px;
-          color: #555;
+          color: var(--color-fg-muted);
           margin-bottom: 4px;
         }
  
@@ -116,15 +116,15 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
           font-family: 'Syne', sans-serif;
           font-size: 15px;
           font-weight: 700;
-          color: #f0ede8;
+          color: var(--color-fg-primary);
           line-height: 1;
         }
  
-        .pi-nutrient-value.accent { color: #c8f542; }
+        .pi-nutrient-value.accent { color: var(--color-accent); }
  
         .pi-nutrient-label {
           font-size: 10px;
-          color: #555;
+          color: var(--color-fg-muted);
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
@@ -138,17 +138,17 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
         .pi-btn {
           padding: 6px 14px;
           border-radius: 8px;
-          border: 1px solid #2a2a30;
+          border: 1px solid var(--color-border-default);
           background: none;
           font-family: 'DM Sans', sans-serif;
           font-size: 12px;
           font-weight: 500;
           cursor: pointer;
-          color: #888;
+          color: var(--color-fg-muted);
           transition: color 0.15s, border-color 0.15s, background 0.15s;
         }
  
-        .pi-btn:hover { color: #f0ede8; border-color: #444; background: #1e1e22; }
+        .pi-btn:hover { color: var(--color-fg-primary); border-color: var(--color-fg-muted); background: var(--color-border-subtle); }
         .pi-btn.danger:hover { color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06); }
  
         .pi-add-btn {
@@ -157,8 +157,8 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
           gap: 10px;
           width: 100%;
           padding: 16px 20px;
-          background: #c8f542;
-          color: #0d0d0f;
+          background: var(--color-accent);
+          color: var(--color-bg-base);
           border: none;
           border-radius: 12px;
           font-family: 'Syne', sans-serif;
@@ -168,19 +168,19 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
           transition: background 0.15s, transform 0.1s;
         }
  
-        .pi-add-btn:hover { background: #d4f55a; transform: translateY(-1px); }
+        .pi-add-btn:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
         .pi-add-btn:active { transform: translateY(0); }
  
         .pi-add-icon {
           width: 26px;
           height: 26px;
-          background: #0d0d0f;
+          background: var(--color-bg-base);
           border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 18px;
-          color: #c8f542;
+          color: var(--color-accent);
           flex-shrink: 0;
         }
  
@@ -191,7 +191,7 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
           align-items: center;
           justify-content: center;
           gap: 8px;
-          color: #2a2a2f;
+          color: var(--color-fg-disabled);
         }
  
         .pi-empty-icon { font-size: 36px; opacity: 0.4; }
@@ -200,7 +200,7 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
           font-family: 'Syne', sans-serif;
           font-size: 15px;
           font-weight: 600;
-          color: #3a3a40;
+          color: var(--color-fg-disabled);
         }
       `}</style>
 
@@ -217,8 +217,8 @@ function ProductItem({ logs = [], onDelete, onProductUpdated, selectedDate, setS
           ) : (
             <div className="pi-list">
               {logs.map((log) => (
-                <div key={log.id} className="pi-item" style={log.isPeri ? { background: 'rgba(200,245,66,0.05)', border: '1px solid rgba(200,245,66,0.2)' } : undefined}>
-                  <div className="pi-item-name" style={log.isPeri ? { color: '#c8f542' } : undefined}>{log.productName}</div>
+                <div key={log.id} className="pi-item" style={log.isPeri ? { background: 'rgba(252,76,2,0.05)', border: '1px solid rgba(252,76,2,0.2)' } : undefined}>
+                  <div className="pi-item-name" style={log.isPeri ? { color: 'var(--color-accent)' } : undefined}>{log.productName}</div>
                   {log.brands && <div className="pi-item-brand">{log.brands}</div>}
                   <div className="pi-nutrients">
                     <div className="pi-nutrient">

@@ -16,8 +16,8 @@ const editorStyles = `
   }
 
   .template-editor {
-    background: #16161a;
-    border: 1px solid #1e1e22;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
     border-radius: 16px;
     width: 100%;
     max-width: 600px;
@@ -29,7 +29,7 @@ const editorStyles = `
 
   .template-editor-header {
     padding: 20px 24px;
-    border-bottom: 1px solid #1e1e22;
+    border-bottom: 1px solid var(--color-border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -39,21 +39,21 @@ const editorStyles = `
     font-family: 'Syne', sans-serif;
     font-size: 18px;
     font-weight: 600;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     margin: 0;
   }
 
   .template-editor-close {
     background: none;
     border: none;
-    color: #666;
+    color: var(--color-fg-muted);
     cursor: pointer;
     font-size: 20px;
     padding: 4px;
   }
 
   .template-editor-close:hover {
-    color: #f0ede8;
+    color: var(--color-fg-primary);
   }
 
   .template-editor-body {
@@ -69,24 +69,24 @@ const editorStyles = `
   .template-editor-label {
     display: block;
     font-size: 14px;
-    color: #999;
+    color: var(--color-fg-muted);
     margin-bottom: 8px;
   }
 
   .template-editor-input {
     width: 100%;
-    background: #0d0d0f;
-    border: 1px solid #2a2a30;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border-default);
     border-radius: 8px;
     padding: 12px 16px;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     font-size: 14px;
     font-family: 'DM Sans', sans-serif;
   }
 
   .template-editor-input:focus {
     outline: none;
-    border-color: #c8f542;
+    border-color: var(--color-accent);
   }
 
   .template-editor-exercises {
@@ -98,27 +98,27 @@ const editorStyles = `
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: #0d0d0f;
-    border: 1px solid #2a2a30;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border-default);
     border-radius: 8px;
     margin-bottom: 8px;
   }
 
   .template-editor-exercise-handle {
-    color: #666;
+    color: var(--color-fg-muted);
     cursor: grab;
   }
 
   .template-editor-exercise-name {
     flex: 1;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     font-size: 14px;
   }
 
   .template-editor-exercise-remove {
     background: none;
     border: none;
-    color: #666;
+    color: var(--color-fg-muted);
     cursor: pointer;
     padding: 4px;
   }
@@ -129,11 +129,11 @@ const editorStyles = `
 
   .template-editor-add {
     width: 100%;
-    background: #0d0d0f;
-    border: 1px dashed #2a2a30;
+    background: var(--color-bg-base);
+    border: 1px dashed var(--color-border-default);
     border-radius: 8px;
     padding: 12px;
-    color: #666;
+    color: var(--color-fg-muted);
     cursor: pointer;
     font-size: 14px;
     font-family: 'DM Sans', sans-serif;
@@ -141,13 +141,13 @@ const editorStyles = `
   }
 
   .template-editor-add:hover {
-    border-color: #c8f542;
-    color: #c8f542;
+    border-color: var(--color-accent);
+    color: var(--color-accent);
   }
 
   .template-editor-footer {
     padding: 20px 24px;
-    border-top: 1px solid #1e1e22;
+    border-top: 1px solid var(--color-border-subtle);
     display: flex;
     justify-content: flex-end;
     gap: 12px;
@@ -164,29 +164,29 @@ const editorStyles = `
 
   .template-editor-btn.cancel {
     background: transparent;
-    border: 1px solid #2a2a30;
-    color: #999;
+    border: 1px solid var(--color-border-default);
+    color: var(--color-fg-muted);
   }
 
   .template-editor-btn.cancel:hover {
-    border-color: #666;
-    color: #f0ede8;
+    border-color: var(--color-fg-muted);
+    color: var(--color-fg-primary);
   }
 
   .template-editor-btn.save {
-    background: #c8f542;
+    background: var(--color-accent);
     border: none;
-    color: #0d0d0f;
+    color: var(--color-bg-base);
     font-weight: 500;
   }
 
   .template-editor-btn.save:hover {
-    background: #d4ff5c;
+    background: var(--color-accent);
   }
 
   .template-editor-btn.save:disabled {
-    background: #2a2a30;
-    color: #666;
+    background: var(--color-border-default);
+    color: var(--color-fg-muted);
     cursor: not-allowed;
   }
 
@@ -196,39 +196,39 @@ const editorStyles = `
 
   .template-editor-search-input {
     width: 100%;
-    background: #0d0d0f;
-    border: 1px solid #2a2a30;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border-default);
     border-radius: 8px;
     padding: 10px 16px;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     font-size: 14px;
     font-family: 'DM Sans', sans-serif;
   }
 
   .template-editor-search-input:focus {
     outline: none;
-    border-color: #c8f542;
+    border-color: var(--color-accent);
   }
 
   .template-editor-search-results {
     max-height: 200px;
     overflow-y: auto;
     margin-top: 8px;
-    background: #0d0d0f;
-    border: 1px solid #2a2a30;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border-default);
     border-radius: 8px;
   }
 
   .template-editor-search-result {
     padding: 10px 16px;
     cursor: pointer;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     font-size: 14px;
-    border-bottom: 1px solid #1e1e22;
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .template-editor-search-result:hover {
-    background: #1e1e22;
+    background: var(--color-border-subtle);
   }
 
   .template-editor-search-result:last-child {

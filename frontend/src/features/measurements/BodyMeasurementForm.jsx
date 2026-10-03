@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { createBodyMeasurement } from '../../api/authAPI';
+import { createBodyMeasurement, updateUserProfile } from '../../api/authAPI';
+import '../../styles/tokens.css';
 
 const ACTIVITY_LEVELS = [
   { value: 'sedentary', label: 'Siedzący (biuro)' },
@@ -34,8 +35,124 @@ const MEASUREMENT_FIELDS = [
   { name: 'shoulders', label: 'Barki (cm)' },
 ];
 
-const inputStyle = { width: '100%', padding: '5px 8px', background: '#0d0d0f', border: '1px solid #2a2a30', borderRadius: 6, color: '#f0ede8', fontSize: 12, boxSizing: 'border-box' };
-const labelStyle = { fontSize: 10, color: '#888', display: 'block', marginBottom: 2 };
+const MeasurementFormStyles = `
+  .mf {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--compact, 20px);
+    max-width: 100%;
+  }
+
+  .mf-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-fg-primary);
+    margin: 0 0 var(--space-4);
+  }
+
+  .mf-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .mf-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  .mf-label {
+    font-size: 10px;
+    color: var(--color-fg-secondary);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .mf-input {
+    width: 100%;
+    padding: 6px 10px;
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--color-fg-primary);
+    font-size: 13px;
+    box-sizing: border-box;
+    font-family: var(--font-body);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+  }
+
+  .mf-input::placeholder {
+    color: var(--color-fg-disabled);
+  }
+
+  .mf-input:hover:not(:disabled):not(:read-only) {
+    border-color: var(--color-border-default);
+  }
+
+  .mf-input:focus {
+    outline: none;
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 3px var(--color-accent-dim);
+    background: var(--color-bg-card);
+  }
+
+  .mf-divider {
+    height: 1px;
+    background: var(--color-border-subtle);
+    border: none;
+    margin: var(--space-2) 0;
+  }
+
+  .mf-section-label {
+    font-size: 11px;
+    color: var(--color-fg-muted);
+    margin-bottom: var(--space-2);
+  }
+
+  .mf-grid-circumferences {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .mf-submit {
+    padding: 8px 16px;
+    background: var(--color-accent);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-bg-deep);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: var(--space-1);
+    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .mf-submit:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    box-shadow: 0 0 0 3px var(--color-accent-dim);
+  }
+
+  .mf-submit:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .mf-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 500px) {
+    .mf-grid-2,
+    .mf-grid-circumferences {
+      grid-template-columns: 1fr;
+    }
+  }
+`;
 
 export default function BodyMeasurementForm({ onSave, compact }) {
   const [form, setForm] = useState({
@@ -64,10 +181,7 @@ export default function BodyMeasurementForm({ onSave, compact }) {
         Goal: form.goal,
       };
 
-      const updateUser = (await import('../../api/authAPI')).updateUserProfile;
-      if (updateUser) {
-        await updateUser(payload);
-      }
+      await updateUserProfile(payload);
 
       const measurements = {
         height: parseFloat(form.height) || 0,
@@ -91,74 +205,128 @@ export default function BodyMeasurementForm({ onSave, compact }) {
     setSaving(false);
   };
 
+  const requiredFields = MEASUREMENT_FIELDS.filter(f => f.required);
+
   return (
-    <div style={{ background: '#16161a', border: '1px solid #1e1e22', borderRadius: 12, padding: compact ? 16 : 20, maxWidth: '100%' }}>
-      {!compact && <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: '#f0ede8', margin: '0 0 16px' }}>Pomiary ciała</h3>}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <div>
-            <label style={labelStyle}>Waga (kg) *</label>
-            <input name="weight" value={form.weight} onChange={handleChange} placeholder="80" style={inputStyle} required />
+    <>
+      <style>{MeasurementFormStyles}</style>
+      <div
+        className="mf"
+        style={{ '--compact': compact ? '16px' : '20px' }}
+      >
+        {!compact && <h3 className="mf-title">Pomiary ciała</h3>}
+        <form onSubmit={handleSubmit} className="mf-form">
+          <div className="mf-grid-2">
+            <div className="form-field">
+              <label className="mf-label" htmlFor="weight">Waga (kg) *</label>
+              <input
+                id="weight"
+                name="weight"
+                className="mf-input"
+                value={form.weight}
+                onChange={handleChange}
+                placeholder="80"
+                required
+                inputMode="decimal"
+              />
+            </div>
+            <div className="form-field">
+              <label className="mf-label" htmlFor="height">Wzrost (cm) *</label>
+              <input
+                id="height"
+                name="height"
+                className="mf-input"
+                value={form.height}
+                onChange={handleChange}
+                placeholder="180"
+                required
+                inputMode="decimal"
+              />
+            </div>
           </div>
-          <div>
-            <label style={labelStyle}>Wzrost (cm) *</label>
-            <input name="height" value={form.height} onChange={handleChange} placeholder="180" style={inputStyle} required />
+          <div className="mf-grid-2">
+            <div className="form-field">
+              <label className="mf-label" htmlFor="birthDate">Data urodzenia *</label>
+              <input
+                id="birthDate"
+                name="birthDate"
+                type="date"
+                className="mf-input"
+                value={form.birthDate}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label className="mf-label" htmlFor="gender">Płeć *</label>
+              <select
+                id="gender"
+                name="gender"
+                className="mf-input"
+                value={form.gender}
+                onChange={handleChange}
+              >
+                <option value="male">Mężczyzna</option>
+                <option value="female">Kobieta</option>
+              </select>
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <div>
-            <label style={labelStyle}>Data urodzenia *</label>
-            <input name="birthDate" type="date" value={form.birthDate} onChange={handleChange} style={inputStyle} required />
-          </div>
-          <div>
-            <label style={labelStyle}>Płeć *</label>
-            <select name="gender" value={form.gender} onChange={handleChange} style={inputStyle}>
-              <option value="male">Mężczyzna</option>
-              <option value="female">Kobieta</option>
+          <div className="form-field">
+            <label className="mf-label" htmlFor="activityLevel">Poziom aktywności *</label>
+            <select
+              id="activityLevel"
+              name="activityLevel"
+              className="mf-input"
+              value={form.activityLevel}
+              onChange={handleChange}
+            >
+              {ACTIVITY_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
           </div>
-        </div>
-        <div>
-          <label style={labelStyle}>Poziom aktywności *</label>
-          <select name="activityLevel" value={form.activityLevel} onChange={handleChange} style={inputStyle}>
-            {ACTIVITY_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle}>Cel treningowy *</label>
-          <select name="goal" value={form.goal} onChange={handleChange} style={inputStyle}>
-            {GOALS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
-          </select>
-        </div>
+          <div className="form-field">
+            <label className="mf-label" htmlFor="goal">Cel treningowy *</label>
+            <select
+              id="goal"
+              name="goal"
+              className="mf-input"
+              value={form.goal}
+              onChange={handleChange}
+            >
+              {GOALS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
+            </select>
+          </div>
 
-        {!compact && (
-          <>
-            <div style={{ height: 1, background: '#1e1e22', margin: '4px 0' }} />
-            <div style={{ fontSize: 11, color: '#555', marginBottom: 4 }}>Opcjonalne pomiary obwodów (cm)</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-              <div><label style={labelStyle}>Klatka</label><input name="chest" value={form.chest} onChange={handleChange} placeholder="110" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Biceps L</label><input name="bicepsLeft" value={form.bicepsLeft} onChange={handleChange} placeholder="38" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Biceps P</label><input name="bicepsRight" value={form.bicepsRight} onChange={handleChange} placeholder="38" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Przedramię L</label><input name="forearmLeft" value={form.forearmLeft} onChange={handleChange} placeholder="30" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Przedramię P</label><input name="forearmRight" value={form.forearmRight} onChange={handleChange} placeholder="30" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Pas</label><input name="waist" value={form.waist} onChange={handleChange} placeholder="85" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Brzuch</label><input name="belly" value={form.belly} onChange={handleChange} placeholder="90" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Biodra</label><input name="hips" value={form.hips} onChange={handleChange} placeholder="100" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Udo L</label><input name="thighLeft" value={form.thighLeft} onChange={handleChange} placeholder="58" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Udo P</label><input name="thighRight" value={form.thighRight} onChange={handleChange} placeholder="58" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Łydka L</label><input name="calfLeft" value={form.calfLeft} onChange={handleChange} placeholder="38" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Łydka P</label><input name="calfRight" value={form.calfRight} onChange={handleChange} placeholder="38" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Szyja</label><input name="neck" value={form.neck} onChange={handleChange} placeholder="40" style={inputStyle} /></div>
-              <div><label style={labelStyle}>Barki</label><input name="shoulders" value={form.shoulders} onChange={handleChange} placeholder="120" style={inputStyle} /></div>
-            </div>
-          </>
-        )}
+          {!compact && (
+            <>
+              <hr className="mf-divider" />
+              <div className="mf-section-label">Opcjonalne pomiary obwodów (cm)</div>
+              <div className="mf-grid-circumferences">
+                {MEASUREMENT_FIELDS.slice(2).map(f => (
+                  <div key={f.name} className="form-field">
+                    <label className="mf-label" htmlFor={f.name}>{f.label}</label>
+                    <input
+                      id={f.name}
+                      name={f.name}
+                      className="mf-input"
+                      value={form[f.name]}
+                      onChange={handleChange}
+                      placeholder={f.label.replace(' (cm)', '')}
+                      inputMode="decimal"
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
-        <button type="submit" disabled={saving}
-          style={{ padding: '8px 16px', background: '#c8f542', border: 'none', borderRadius: 6, color: '#0d0d0f', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 12, cursor: 'pointer', marginTop: 4 }}>
-          {saving ? 'Zapisywanie...' : 'Zapisz pomiary'}
-        </button>
-      </form>
-    </div>
+          <button type="submit" disabled={saving} className="mf-submit">
+            {saving ? 'Zapisywanie...' : 'Zapisz pomiary'}
+          </button>
+          {requiredFields.length > 0 && !compact && (
+            <p className="form-hint">Pola oznaczone * są wymagane.</p>
+          )}
+        </form>
+      </div>
+    </>
   );
 }

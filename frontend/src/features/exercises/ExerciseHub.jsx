@@ -4,139 +4,243 @@ import { getExercisesByDate } from "../../api/exerciseAPI";
 import Header from "../../components/layout/Header";
 import WorkoutStartModal from "./WorkoutStartModal";
 import { templateAPI } from "../../api/templateAPI";
+import '../../styles/tokens.css';
 
-const hubStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+const ExerciseHubStyles = `
+  .hub-page {
+    min-height: 100vh;
+    background: var(--color-bg-base);
+    display: flex;
+    flex-direction: column;
+  }
 
-  .hub-container {
-    max-width: 600px;
+  .hub-main {
+    flex: 1;
+    max-width: var(--container-narrow);
+    width: 100%;
     margin: 0 auto;
-    padding: 40px 20px;
+    padding: var(--space-6) var(--space-4) var(--space-10);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hub-header {
+    margin-bottom: var(--space-8);
+  }
+
+  .hub-title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-2);
   }
 
   .hub-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 28px;
     font-weight: 700;
-    color: #f0ede8;
-    margin-bottom: 8px;
+    color: var(--color-fg-primary);
+  }
+
+  .hub-date {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
   }
 
   .hub-subtitle {
     font-size: 14px;
-    color: #666;
-    margin-bottom: 32px;
+    color: var(--color-fg-secondary);
+  }
+
+  .today-section {
+    margin-bottom: var(--space-8);
   }
 
   .today-card {
-    background: #16161a;
-    border: 1px solid #1e1e22;
-    border-left: 4px solid #c8f542;
-    border-radius: 14px;
-    padding: 24px;
-    margin-bottom: 32px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
     cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
+    transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-fast), box-shadow var(--transition-base);
   }
 
   .today-card:hover {
-    background: #1a1a1f;
-    border-color: #c8f542;
+    background: var(--color-bg-elevated);
+    border-color: var(--color-accent);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .today-card:active {
+    transform: translateY(0);
   }
 
   .today-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: var(--space-3);
   }
 
   .today-label {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #c8f542;
+    letter-spacing: 0.15em;
+    color: var(--color-accent);
   }
 
   .today-count {
-    font-family: 'Syne', sans-serif;
-    font-size: 22px;
+    font-family: var(--font-display);
+    font-size: 28px;
     font-weight: 800;
-    color: #c8f542;
+    color: var(--color-accent);
+    line-height: 1;
   }
 
   .today-card-body {
     font-size: 15px;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     font-weight: 500;
+    margin-bottom: var(--space-2);
   }
 
   .today-card-hint {
-    font-size: 13px;
-    color: #555;
-    margin-top: 8px;
+    font-size: 12px;
+    color: var(--color-fg-disabled);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
   }
 
-  .shortcuts-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
+  .shortcuts-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
   }
 
   .shortcut-btn {
     display: flex;
     align-items: center;
-    gap: 16px;
-    background: #16161a;
-    border: 1px solid #1e1e22;
-    border-radius: 14px;
-    padding: 20px 24px;
+    gap: var(--space-4);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
     cursor: pointer;
-    transition: border-color 0.2s, background 0.2s, transform 0.1s;
+    transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-fast), box-shadow var(--transition-base);
     text-decoration: none;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
   }
 
   .shortcut-btn:hover {
-    background: #1a1a1f;
-    border-color: #333;
-    transform: translateY(-1px);
+    background: var(--color-bg-elevated);
+    border-color: var(--color-border-default);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .shortcut-btn:active {
+    transform: translateX(0);
   }
 
   .shortcut-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 22px;
     flex-shrink: 0;
+  }
+
+  .shortcut-icon--purple {
+    background: var(--color-info-dim);
+  }
+
+  .shortcut-icon--blue {
+    background: var(--color-info-dim);
   }
 
   .shortcut-text {
     flex: 1;
+    min-width: 0;
   }
 
   .shortcut-title {
-    font-family: 'Syne', sans-serif;
+    font-family: var(--font-display);
     font-size: 15px;
     font-weight: 600;
-    color: #f0ede8;
-    margin-bottom: 2px;
+    color: var(--color-fg-primary);
+    margin-bottom: var(--space-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .shortcut-desc {
     font-size: 12px;
-    color: #666;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .shortcut-arrow {
-    color: #444;
+    color: var(--color-fg-disabled);
     font-size: 18px;
     flex-shrink: 0;
+    transition: transform var(--transition-fast), color var(--transition-fast);
+  }
+
+  .shortcut-btn:hover .shortcut-arrow {
+    transform: translateX(4px);
+    color: var(--color-accent);
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    animation: fadeIn var(--transition-base) ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @media (max-width: 600px) {
+    .hub-title {
+      font-size: 22px;
+    }
+
+    .today-count {
+      font-size: 22px;
+    }
+
+    .shortcut-btn {
+      padding: var(--space-3) var(--space-4);
+    }
+
+    .shortcut-icon {
+      width: 40px;
+      height: 40px;
+    }
   }
 `;
 
@@ -186,80 +290,86 @@ export default function ExerciseHub() {
 
   return (
     <>
-      <style>{hubStyles}</style>
-      <div style={{ minHeight: '100vh', background: '#0d0d0f' }}>
+      <style>{ExerciseHubStyles}</style>
+      <div className="hub-page">
         <Header />
-        <div className="hub-container">
-        <div className="hub-title">Ćwiczenia</div>
-        <div className="hub-subtitle">
-          {dayName}, {dateStr}
-        </div>
-
-        <div className="today-card" onClick={() => todayCount > 0 ? navigate("/exercise-start") : setShowStartModal(true)}>
-          <div className="today-card-header">
-            <span className="today-label">Dzisiejszy Trening</span>
-            {todayCount > 0 && (
-              <span className="today-count">{todayCount}</span>
-            )}
-          </div>
-          <div className="today-card-body">
-            {todayCount > 0
-              ? `Masz ${todayCount} ${todayCount === 1 ? "ćwiczenie" : todayCount < 5 ? "ćwiczenia" : "ćwiczeń"} na dziś`
-              : "Rozpocznij trening na dziś"}
-          </div>
-          <div className="today-card-hint">Kliknij aby kontynuować →</div>
-        </div>
-
-        <div className="shortcuts-grid">
-          <div
-            className="shortcut-btn"
-            onClick={() => navigate("/exercises/records")}
-          >
-            <div
-              className="shortcut-icon"
-              style={{ background: "rgba(168,85,247,0.12)" }}
-            >
-              🏆
+        <main className="hub-main" role="main">
+          <div className="hub-header">
+            <div className="hub-title-row">
+              <h1 className="hub-title">Ćwiczenia</h1>
+              <time className="hub-date" dateTime={todayDate}>
+                {dayName}, {dateStr}
+              </time>
             </div>
-            <div className="shortcut-text">
-              <div className="shortcut-title">Rekordy i 1RM</div>
-              <div className="shortcut-desc">
-                Estymator siły maksymalnej i progresja
+            <p className="hub-subtitle">Dzisiejszy plan treningowy</p>
+          </div>
+
+          <section className="today-section" aria-labelledby="today-heading">
+            <div
+              className="today-card"
+              onClick={() => todayCount > 0 ? navigate("/exercise-start") : setShowStartModal(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); todayCount > 0 ? navigate("/exercise-start") : setShowStartModal(true); }}}
+              aria-label={todayCount > 0 ? `Kontynuuj dzisiejszy trening (${todayCount} ćwiczeń)` : 'Rozpocznij dzisiejszy trening'}
+            >
+              <div className="today-card-header">
+                <span className="today-label" id="today-heading">Dzisiejszy Trening</span>
+                {todayCount > 0 && (
+                  <span className="today-count" aria-label={`${todayCount} ćwiczeń`}>{todayCount}</span>
+                )}
+              </div>
+              <div className="today-card-body">
+                {todayCount > 0
+                  ? `Masz ${todayCount} ${todayCount === 1 ? "ćwiczenie" : todayCount < 5 ? "ćwiczenia" : "ćwiczeń"} na dziś`
+                  : "Rozpocznij trening na dziś"}
+              </div>
+              <div className="today-card-hint">
+                <span aria-hidden="true">→</span> Kliknij aby kontynuować
               </div>
             </div>
-            <div className="shortcut-arrow">→</div>
-          </div>
+          </section>
 
-          <div
-            className="shortcut-btn"
-            onClick={() => navigate("/exercises/history")}
-          >
-            <div
-              className="shortcut-icon"
-              style={{ background: "rgba(59,130,246,0.12)" }}
+          <section className="shortcuts-section" aria-label="Szybkie akcje">
+            <a
+              href="/records"
+              className="shortcut-btn"
+              onClick={(e) => { e.preventDefault(); navigate("/records"); }}
             >
-              📋
-            </div>
-            <div className="shortcut-text">
-              <div className="shortcut-title">Historia Treningów</div>
-              <div className="shortcut-desc">
-                Przeglądaj poprzednie treningi
+              <div className="shortcut-icon shortcut-icon--purple" aria-hidden="true">🏆</div>
+              <div className="shortcut-text">
+                <div className="shortcut-title">Rekordy życiowe</div>
+                <div className="shortcut-desc">Najlepsze wyniki i progresja e1RM</div>
               </div>
-            </div>
-            <div className="shortcut-arrow">→</div>
-          </div>
-        </div>
-      </div>
-      </div>
+              <div className="shortcut-arrow" aria-hidden="true">→</div>
+            </a>
 
-      {showStartModal && (
-        <WorkoutStartModal
-          onStartEmpty={handleStartEmpty}
-          onStartFromTemplate={handleStartFromTemplate}
-          onCopyPreviousByTemplate={handleCopyPreviousByTemplate}
-          onClose={() => setShowStartModal(false)}
-        />
-      )}
+            <a
+              href="/exercises/history"
+              className="shortcut-btn"
+              onClick={(e) => { e.preventDefault(); navigate("/exercises/history"); }}
+            >
+              <div className="shortcut-icon shortcut-icon--blue" aria-hidden="true">📋</div>
+              <div className="shortcut-text">
+                <div className="shortcut-title">Historia Treningów</div>
+                <div className="shortcut-desc">Przeglądaj poprzednie treningi</div>
+              </div>
+              <div className="shortcut-arrow" aria-hidden="true">→</div>
+            </a>
+          </section>
+        </main>
+
+        {showStartModal && (
+          <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <WorkoutStartModal
+              onStartEmpty={handleStartEmpty}
+              onStartFromTemplate={handleStartFromTemplate}
+              onCopyPreviousByTemplate={handleCopyPreviousByTemplate}
+              onClose={() => setShowStartModal(false)}
+            />
+          </div>
+        )}
+      </div>
     </>
   );
 }

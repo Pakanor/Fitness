@@ -45,28 +45,28 @@ export default function BodyMeasurementDisplay({ refreshKey }) {
   if (!data.length) return null;
 
   return (
-    <div style={{ background: '#16161a', border: '1px solid #1e1e22', borderRadius: 12, padding: 20, overflowX: 'auto' }}>
-      <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: '#f0ede8', margin: '0 0 12px' }}>Historia pomiarów</h3>
+    <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: 12, padding: 20, overflowX: 'auto' }}>
+      <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--color-fg-primary)', margin: '0 0 12px' }}>Historia pomiarów</h3>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr>
             {COLUMNS.map(col => (
-              <th key={col.key} style={{ textAlign: 'left', padding: '6px 8px', color: '#888', borderBottom: '1px solid #2a2a30', whiteSpace: 'nowrap' }}>{col.label}</th>
+              <th key={col.key} style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)', whiteSpace: 'nowrap' }}>{col.label}</th>
             ))}
-            <th style={{ textAlign: 'left', padding: '6px 8px', color: '#888', borderBottom: '1px solid #2a2a30', width: 40 }} />
+            <th style={{ textAlign: 'left', padding: '6px 8px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)', width: 40 }} />
           </tr>
         </thead>
         <tbody>
           {data.map(m => (
             <tr key={m.id}>
               {COLUMNS.map(col => (
-                <td key={col.key} style={{ padding: '6px 8px', borderBottom: '1px solid #1e1e22', color: '#f0ede8', whiteSpace: 'nowrap' }}>
+                <td key={col.key} style={{ padding: '6px 8px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)', whiteSpace: 'nowrap' }}>
                   {col.format ? col.format(m[col.key]) : (m[col.key] != null ? `${m[col.key]}${col.suffix || ''}` : '—')}
                 </td>
               ))}
-              <td style={{ padding: '6px 8px', borderBottom: '1px solid #1e1e22' }}>
+              <td style={{ padding: '6px 8px', borderBottom: '1px solid var(--color-border-subtle)' }}>
                 <button onClick={() => handleDelete(m.id)}
-                  style={{ background: 'none', border: 'none', color: '#ff5252', cursor: 'pointer', fontSize: 13, padding: 2 }}>✕</button>
+                  style={{ background: 'none', border: 'none', color: 'var(--color-error)', cursor: 'pointer', fontSize: 13, padding: 2 }}>✕</button>
               </td>
             </tr>
           ))}

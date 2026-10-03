@@ -15,10 +15,10 @@ useEffect(() => {
         onChange={(e) => setLocalDate(e.target.value)}
         style={{
           padding: '8px 12px',
-          background: '#16161a',
-          border: '1px solid #2a2a30',
+          background: 'var(--color-bg-card)',
+          border: '1px solid var(--color-border-default)',
           borderRadius: 8,
-          color: '#f0ede8',
+          color: 'var(--color-fg-primary)',
           fontSize: 14,
           fontFamily: 'DM Sans, sans-serif',
           outline: 'none',

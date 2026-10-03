@@ -17,8 +17,8 @@ const modalStyles = `
   }
 
   .workout-start-modal {
-    background: #16161a;
-    border: 1px solid #1e1e22;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
     border-radius: 16px;
     width: 100%;
     max-width: 400px;
@@ -27,7 +27,7 @@ const modalStyles = `
 
   .workout-start-header {
     padding: 20px 24px;
-    border-bottom: 1px solid #1e1e22;
+    border-bottom: 1px solid var(--color-border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -37,21 +37,21 @@ const modalStyles = `
     font-family: 'Syne', sans-serif;
     font-size: 18px;
     font-weight: 600;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     margin: 0;
   }
 
   .workout-start-close {
     background: none;
     border: none;
-    color: #666;
+    color: var(--color-fg-muted);
     cursor: pointer;
     font-size: 20px;
     padding: 4px;
   }
 
   .workout-start-close:hover {
-    color: #f0ede8;
+    color: var(--color-fg-primary);
   }
 
   .workout-start-body {
@@ -65,8 +65,8 @@ const modalStyles = `
   }
 
   .workout-start-option {
-    background: #0d0d0f;
-    border: 1px solid #2a2a30;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border-default);
     border-radius: 12px;
     padding: 16px;
     cursor: pointer;
@@ -77,7 +77,7 @@ const modalStyles = `
   }
 
   .workout-start-option:hover {
-    border-color: #c8f542;
+    border-color: var(--color-accent);
     transform: translateY(-1px);
   }
 
@@ -88,7 +88,7 @@ const modalStyles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #16161a;
+    background: var(--color-bg-card);
     border-radius: 12px;
   }
 
@@ -100,13 +100,13 @@ const modalStyles = `
     font-family: 'Syne', sans-serif;
     font-size: 16px;
     font-weight: 600;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     margin-bottom: 4px;
   }
 
   .workout-start-option-desc {
     font-size: 13px;
-    color: #999;
+    color: var(--color-fg-muted);
   }
 `;
 

@@ -35,7 +35,7 @@ const LoginForm = () => {
 
         .lf-page {
           min-height: 100vh;
-          background: #0d0d0f;
+          background: var(--color-bg-base);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -46,8 +46,8 @@ const LoginForm = () => {
         .lf-card {
           width: 100%;
           max-width: 400px;
-          background: #16161a;
-          border: 1px solid #1e1e22;
+          background: var(--color-bg-card);
+          border: 1px solid var(--color-border-subtle);
           border-radius: 16px;
           padding: 36px 32px;
         }
@@ -56,14 +56,14 @@ const LoginForm = () => {
           font-family: 'Syne', sans-serif;
           font-size: 24px;
           font-weight: 800;
-          color: #f0ede8;
+          color: var(--color-fg-primary);
           margin-bottom: 6px;
           letter-spacing: -0.5px;
         }
 
         .lf-subtitle {
           font-size: 13px;
-          color: #555;
+          color: var(--color-fg-muted);
           margin-bottom: 28px;
         }
 
@@ -74,7 +74,7 @@ const LoginForm = () => {
           font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 1.5px;
-          color: #444;
+          color: var(--color-fg-muted);
           margin-bottom: 6px;
           font-weight: 500;
         }
@@ -82,10 +82,10 @@ const LoginForm = () => {
         .lf-input {
           width: 100%;
           padding: 12px 14px;
-          background: #0d0d0f;
-          border: 1px solid #2a2a30;
+          background: var(--color-bg-base);
+          border: 1px solid var(--color-border-default);
           border-radius: 10px;
-          color: #f0ede8;
+          color: var(--color-fg-primary);
           font-family: 'DM Sans', sans-serif;
           font-size: 14px;
           outline: none;
@@ -93,8 +93,8 @@ const LoginForm = () => {
           transition: border-color 0.15s;
         }
 
-        .lf-input::placeholder { color: #333; }
-        .lf-input:focus { border-color: #c8f542; }
+        .lf-input::placeholder { color: var(--color-fg-disabled); }
+        .lf-input:focus { border-color: var(--color-accent); }
 
         .lf-error {
           background: rgba(239,68,68,0.08);
@@ -109,8 +109,8 @@ const LoginForm = () => {
         .lf-submit {
           width: 100%;
           padding: 14px;
-          background: #c8f542;
-          color: #0d0d0f;
+          background: var(--color-accent);
+          color: var(--color-bg-base);
           border: none;
           border-radius: 12px;
           font-family: 'Syne', sans-serif;
@@ -121,18 +121,18 @@ const LoginForm = () => {
           margin-top: 8px;
         }
 
-        .lf-submit:hover { background: #d4f55a; transform: translateY(-1px); }
+        .lf-submit:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
         .lf-submit:active { transform: translateY(0); }
 
         .lf-register {
           text-align: center;
           margin-top: 20px;
           font-size: 13px;
-          color: #555;
+          color: var(--color-fg-muted);
         }
 
         .lf-register a {
-          color: #c8f542;
+          color: var(--color-accent);
           text-decoration: none;
           font-weight: 500;
         }
@@ -142,7 +142,7 @@ const LoginForm = () => {
 
       <div className="lf-page">
         <div className="lf-card">
-          <div className="lf-title">Fitness<span style={{ color: '#c8f542' }}>App</span></div>
+          <div className="lf-title">Fitness<span style={{ color: 'var(--color-accent)' }}>App</span></div>
           <div className="lf-subtitle">Zaloguj się do swojego konta</div>
 
           <form onSubmit={handleSubmit} noValidate>
@@ -178,7 +178,7 @@ const LoginForm = () => {
           </form>
 
           <div className="lf-register">
-            Nie masz konta? <button onClick={() => navigate('/register')} style={{ background: 'none', border: 'none', color: '#c8f542', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit', fontSize: 'inherit' }}>Zarejestruj się</button>
+            Nie masz konta? <button onClick={() => navigate('/register')} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', padding: 0, fontFamily: 'inherit', fontSize: 'inherit' }}>Zarejestruj się</button>
           </div>
         </div>
       </div>

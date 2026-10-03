@@ -16,8 +16,8 @@ const modalStyles = `
   }
 
   .template-modal {
-    background: #16161a;
-    border: 1px solid #1e1e22;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
     border-radius: 16px;
     width: 100%;
     max-width: 500px;
@@ -29,7 +29,7 @@ const modalStyles = `
 
   .template-modal-header {
     padding: 20px 24px;
-    border-bottom: 1px solid #1e1e22;
+    border-bottom: 1px solid var(--color-border-subtle);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -39,21 +39,21 @@ const modalStyles = `
     font-family: 'Syne', sans-serif;
     font-size: 18px;
     font-weight: 600;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     margin: 0;
   }
 
   .template-modal-close {
     background: none;
     border: none;
-    color: #666;
+    color: var(--color-fg-muted);
     cursor: pointer;
     font-size: 20px;
     padding: 4px;
   }
 
   .template-modal-close:hover {
-    color: #f0ede8;
+    color: var(--color-fg-primary);
   }
 
   .template-modal-body {
@@ -69,8 +69,8 @@ const modalStyles = `
   }
 
   .template-modal-item {
-    background: #0d0d0f;
-    border: 1px solid #2a2a30;
+    background: var(--color-bg-base);
+    border: 1px solid var(--color-border-default);
     border-radius: 12px;
     padding: 16px;
     cursor: pointer;
@@ -78,7 +78,7 @@ const modalStyles = `
   }
 
   .template-modal-item:hover {
-    border-color: #c8f542;
+    border-color: var(--color-accent);
     transform: translateY(-1px);
   }
 
@@ -86,24 +86,24 @@ const modalStyles = `
     font-family: 'Syne', sans-serif;
     font-size: 16px;
     font-weight: 600;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     margin-bottom: 8px;
   }
 
   .template-modal-item-exercises {
     font-size: 13px;
-    color: #999;
+    color: var(--color-fg-muted);
   }
 
   .template-modal-item-count {
-    color: #c8f542;
+    color: var(--color-accent);
     font-weight: 500;
   }
 
   .template-modal-empty {
     text-align: center;
     padding: 40px 20px;
-    color: #666;
+    color: var(--color-fg-muted);
   }
 
   .template-modal-empty-icon {
@@ -114,19 +114,19 @@ const modalStyles = `
   .template-modal-empty-title {
     font-size: 16px;
     font-weight: 600;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     margin-bottom: 8px;
   }
 
   .template-modal-empty-text {
     font-size: 14px;
-    color: #666;
+    color: var(--color-fg-muted);
   }
 
   .template-modal-loading {
     text-align: center;
     padding: 40px;
-    color: #666;
+    color: var(--color-fg-muted);
   }
 `;
 

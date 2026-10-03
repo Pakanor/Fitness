@@ -12,10 +12,10 @@ const JOB_TYPES = [
   { value: 'extra_active', label: 'Bardzo ciężka', pal: 1.9 },
 ];
 
-const inp = { width: '100%', padding: '8px 12px', background: '#0d0d0f', border: '1px solid #2a2a30', borderRadius: 8, color: '#f0ede8', fontSize: 13, boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif" };
+const inp = { width: '100%', padding: '8px 12px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', borderRadius: 8, color: 'var(--color-fg-primary)', fontSize: 13, boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif" };
 const sel = { ...inp, cursor: 'pointer' };
-const lbl = { fontSize: 11, color: '#888', display: 'block', marginBottom: 4 };
-const card = { background: '#16161a', border: '1px solid #1e1e22', borderRadius: 12, padding: 24 };
+const lbl = { fontSize: 11, color: 'var(--color-fg-muted)', display: 'block', marginBottom: 4 };
+const card = { background: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: 12, padding: 24 };
 
 function SettingsPage({ profile, onUpdate }) {
   const navigate = useNavigate();
@@ -127,8 +127,8 @@ function SettingsPage({ profile, onUpdate }) {
       {/* Left column: Basic data */}
       <div style={{ flex: 1, minWidth: 300, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={card}>
-          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: '#f0ede8', margin: '0 0 16px' }}>
-            Dane <span style={{ color: '#c8f542' }}>podstawowe</span>
+          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--color-fg-primary)', margin: '0 0 16px' }}>
+            Dane <span style={{ color: 'var(--color-accent)' }}>podstawowe</span>
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div>
@@ -140,14 +140,14 @@ function SettingsPage({ profile, onUpdate }) {
               <input value={email} onChange={e => setEmail(e.target.value)} style={inp} />
             </div>
             <button onClick={handleSaveBasic} disabled={saveSaving}
-              style={{ padding: '8px 20px', background: '#c8f542', border: 'none', borderRadius: 8, color: '#0d0d0f', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 12, cursor: 'pointer', alignSelf: 'flex-start' }}>
+              style={{ padding: '8px 20px', background: 'var(--color-accent)', border: 'none', borderRadius: 8, color: 'var(--color-bg-base)', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 12, cursor: 'pointer', alignSelf: 'flex-start' }}>
               {saveSaving ? '...' : 'Zapisz'}
             </button>
           </div>
         </div>
 
         <button onClick={handleLogout}
-          style={{ padding: '10px 20px', background: '#2a1a1a', border: '1px solid #5a2a2a', borderRadius: 10, color: '#ff8a80', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 13, cursor: 'pointer', width: '100%' }}>
+          style={{ padding: '10px 20px', background: 'var(--color-error-dim)', border: '1px solid var(--color-error)', borderRadius: 10, color: 'var(--color-error)', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 13, cursor: 'pointer', width: '100%' }}>
           WYLOGUJ SIĘ
         </button>
       </div>
@@ -155,8 +155,8 @@ function SettingsPage({ profile, onUpdate }) {
       {/* Right column: Metabolic profile */}
       <div style={{ flex: 1, minWidth: 300, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={card}>
-          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: '#f0ede8', margin: '0 0 16px' }}>
-            Profil <span style={{ color: '#c8f542' }}>metaboliczny</span>
+          <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--color-fg-primary)', margin: '0 0 16px' }}>
+            Profil <span style={{ color: 'var(--color-accent)' }}>metaboliczny</span>
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -197,7 +197,7 @@ function SettingsPage({ profile, onUpdate }) {
               </select>
             </div>
             <button onClick={handleSaveMeta} disabled={metaSaving}
-              style={{ padding: '8px 20px', background: '#c8f542', border: 'none', borderRadius: 8, color: '#0d0d0f', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 12, cursor: 'pointer', alignSelf: 'flex-start' }}>
+              style={{ padding: '8px 20px', background: 'var(--color-accent)', border: 'none', borderRadius: 8, color: 'var(--color-bg-base)', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 12, cursor: 'pointer', alignSelf: 'flex-start' }}>
               {metaSaving ? '...' : 'Aktualizuj profil'}
             </button>
           </div>
@@ -205,20 +205,20 @@ function SettingsPage({ profile, onUpdate }) {
 
         {/* Macro reference card */}
         {localTdee > 0 && (
-          <div style={{ ...card, background: '#111115' }}>
-            <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: '#f0ede8', margin: '0 0 16px' }}>
-              Referencja <span style={{ color: '#c8f542' }}>kaloryczna</span>
+          <div style={{ ...card, background: 'var(--color-bg-card)' }}>
+            <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--color-fg-primary)', margin: '0 0 16px' }}>
+              Referencja <span style={{ color: 'var(--color-accent)' }}>kaloryczna</span>
             </h3>
             <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-              <div style={{ flex: 1, background: '#0d0d0f', borderRadius: 10, padding: 14, textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>BMR</div>
-                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: '#c8f542' }}>{localBmr}</div>
-                <div style={{ fontSize: 10, color: '#555' }}>kcal</div>
+              <div style={{ flex: 1, background: 'var(--color-bg-base)', borderRadius: 10, padding: 14, textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: 'var(--color-fg-muted)', marginBottom: 4 }}>BMR</div>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: 'var(--color-accent)' }}>{localBmr}</div>
+                <div style={{ fontSize: 10, color: 'var(--color-fg-muted)' }}>kcal</div>
               </div>
-              <div style={{ flex: 1, background: '#0d0d0f', borderRadius: 10, padding: 14, textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>TDEE</div>
-                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: '#f0ede8' }}>{localTdee}</div>
-                <div style={{ fontSize: 10, color: '#555' }}>kcal</div>
+              <div style={{ flex: 1, background: 'var(--color-bg-base)', borderRadius: 10, padding: 14, textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: 'var(--color-fg-muted)', marginBottom: 4 }}>TDEE</div>
+                <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 800, color: 'var(--color-fg-primary)' }}>{localTdee}</div>
+                <div style={{ fontSize: 10, color: 'var(--color-fg-muted)' }}>kcal</div>
               </div>
             </div>
 
@@ -226,35 +226,35 @@ function SettingsPage({ profile, onUpdate }) {
               {/* Protein */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-                  <span style={{ color: '#aaa' }}>Białko</span>
-                  <span style={{ color: '#f0ede8' }}>{proteinG}g · {proteinKcal} kcal</span>
+                  <span style={{ color: 'var(--color-fg-secondary)' }}>Białko</span>
+                  <span style={{ color: 'var(--color-fg-primary)' }}>{proteinG}g · {proteinKcal} kcal</span>
                 </div>
-                <div style={{ height: 6, background: '#1e1e22', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: 6, background: 'var(--color-border-subtle)', borderRadius: 4, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${(proteinKcal / macroTotal) * 100}%`, background: '#ff6b6b', borderRadius: 4 }} />
                 </div>
               </div>
               {/* Carbs */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-                  <span style={{ color: '#aaa' }}>Węglowodany</span>
-                  <span style={{ color: '#f0ede8' }}>{carbsG}g · {carbsKcal} kcal</span>
+                  <span style={{ color: 'var(--color-fg-secondary)' }}>Węglowodany</span>
+                  <span style={{ color: 'var(--color-fg-primary)' }}>{carbsG}g · {carbsKcal} kcal</span>
                 </div>
-                <div style={{ height: 6, background: '#1e1e22', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: 6, background: 'var(--color-border-subtle)', borderRadius: 4, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${(carbsKcal / macroTotal) * 100}%`, background: '#4ecdc4', borderRadius: 4 }} />
                 </div>
               </div>
               {/* Fat */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-                  <span style={{ color: '#aaa' }}>Tłuszcze</span>
-                  <span style={{ color: '#f0ede8' }}>{fatG}g · {fatKcal} kcal</span>
+                  <span style={{ color: 'var(--color-fg-secondary)' }}>Tłuszcze</span>
+                  <span style={{ color: 'var(--color-fg-primary)' }}>{fatG}g · {fatKcal} kcal</span>
                 </div>
-                <div style={{ height: 6, background: '#1e1e22', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: 6, background: 'var(--color-border-subtle)', borderRadius: 4, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${(fatKcal / macroTotal) * 100}%`, background: '#ffd93d', borderRadius: 4 }} />
                 </div>
               </div>
             </div>
-            <div style={{ fontSize: 10, color: '#444', marginTop: 12, textAlign: 'center' }}>
+            <div style={{ fontSize: 10, color: 'var(--color-fg-muted)', marginTop: 12, textAlign: 'center' }}>
               Podział: 30% białko · 45% węgle · 25% tłuszcze
             </div>
           </div>
@@ -373,78 +373,78 @@ function MeasurementsPage({ profileHeight }) {
 
   return (
     <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-      <div style={{ background: '#16161a', border: '1px solid #1e1e22', borderRadius: 12, padding: 16, flex: 1, alignSelf: 'flex-start' }}>
-        <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: '#f0ede8', margin: '0 0 12px' }}>
-          Nowy <span style={{ color: '#c8f542' }}>pomiar</span>
+      <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: 12, padding: 16, flex: 1, alignSelf: 'flex-start' }}>
+        <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--color-fg-primary)', margin: '0 0 12px' }}>
+          Nowy <span style={{ color: 'var(--color-accent)' }}>pomiar</span>
         </h3>
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
             {MEASUREMENT_FIELDS.map(f => (
               <div key={f.name}>
-                <label style={{ fontSize: 10, color: '#888', display: 'block', marginBottom: 2 }}>{f.label}</label>
-                <input name={f.name} type="number" step="0.1" value={form[f.name] || ''} onChange={handleChange} style={{ width: '100%', padding: '5px 8px', background: '#0d0d0f', border: '1px solid #2a2a30', borderRadius: 6, color: '#f0ede8', fontSize: 12, boxSizing: 'border-box' }} />
+                <label style={{ fontSize: 10, color: 'var(--color-fg-muted)', display: 'block', marginBottom: 2 }}>{f.label}</label>
+                <input name={f.name} type="number" step="0.1" value={form[f.name] || ''} onChange={handleChange} style={{ width: '100%', padding: '5px 8px', background: 'var(--color-bg-base)', border: '1px solid var(--color-border-default)', borderRadius: 6, color: 'var(--color-fg-primary)', fontSize: 12, boxSizing: 'border-box' }} />
               </div>
             ))}
           </div>
           <button type="submit" disabled={saving}
-            style={{ padding: '8px 16px', background: '#c8f542', border: 'none', borderRadius: 6, color: '#0d0d0f', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 12, cursor: 'pointer', marginTop: 2 }}>
+            style={{ padding: '8px 16px', background: 'var(--color-accent)', border: 'none', borderRadius: 6, color: 'var(--color-bg-base)', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 12, cursor: 'pointer', marginTop: 2 }}>
             {saving ? 'Zapisywanie...' : 'Zapisz pomiar'}
           </button>
         </form>
       </div>
 
-      <div style={{ background: '#16161a', border: '1px solid #1e1e22', borderRadius: 12, padding: 20, flex: 2, minWidth: 350, overflowX: 'auto' }}>
-        <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: '#f0ede8', margin: '0 0 12px' }}>
-          Historia <span style={{ color: '#c8f542' }}>pomiarów</span>
+      <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: 12, padding: 20, flex: 2, minWidth: 350, overflowX: 'auto' }}>
+        <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--color-fg-primary)', margin: '0 0 12px' }}>
+          Historia <span style={{ color: 'var(--color-accent)' }}>pomiarów</span>
         </h3>
         {measurements.length === 0 ? (
-          <div style={{ color: '#444', fontSize: 13, textAlign: 'center', padding: 20 }}>Brak zapisanych pomiarów</div>
+          <div style={{ color: 'var(--color-fg-muted)', fontSize: 13, textAlign: 'center', padding: 20 }}>Brak zapisanych pomiarów</div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Data</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Wzrost</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Waga</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Klatka</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Bic L</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Bic P</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Przed L</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Przed P</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Pas</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Brzuch</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Biodra</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Udo L</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Udo P</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Łyd L</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Łyd P</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Szyja</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30' }}>Barki</th>
-                <th style={{ textAlign: 'left', padding: '4px 6px', color: '#888', borderBottom: '1px solid #2a2a30', width: 30 }} />
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Data</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Wzrost</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Waga</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Klatka</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Bic L</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Bic P</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Przed L</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Przed P</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Pas</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Brzuch</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Biodra</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Udo L</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Udo P</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Łyd L</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Łyd P</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Szyja</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)' }}>Barki</th>
+                <th style={{ textAlign: 'left', padding: '4px 6px', color: 'var(--color-fg-muted)', borderBottom: '1px solid var(--color-border-default)', width: 30 }} />
               </tr>
             </thead>
             <tbody>
               {measurements.map(m => (
                 <tr key={m.id}>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#888' }}>{new Date(m.measuredAt).toLocaleDateString('pl-PL')}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.height ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.weight ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.chest ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.bicepsLeft ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.bicepsRight ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.forearmLeft ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.forearmRight ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.waist ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.belly ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.hips ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.thighLeft ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.thighRight ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.calfLeft ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.calfRight ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.neck ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22', color: '#f0ede8' }}>{m.shoulders ?? '—'}</td>
-                  <td style={{ padding: '4px 6px', borderBottom: '1px solid #1e1e22' }}>
-                    <button onClick={() => handleDelete(m.id)} style={{ background: 'none', border: 'none', color: '#ff5252', cursor: 'pointer', fontSize: 12, padding: 2 }}>✕</button>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-muted)' }}>{new Date(m.measuredAt).toLocaleDateString('pl-PL')}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.height ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.weight ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.chest ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.bicepsLeft ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.bicepsRight ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.forearmLeft ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.forearmRight ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.waist ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.belly ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.hips ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.thighLeft ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.thighRight ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.calfLeft ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.calfRight ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.neck ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)', color: 'var(--color-fg-primary)' }}>{m.shoulders ?? '—'}</td>
+                  <td style={{ padding: '4px 6px', borderBottom: '1px solid var(--color-border-subtle)' }}>
+                    <button onClick={() => handleDelete(m.id)} style={{ background: 'none', border: 'none', color: 'var(--color-error)', cursor: 'pointer', fontSize: 12, padding: 2 }}>✕</button>
                   </td>
                 </tr>
               ))}
@@ -456,31 +456,31 @@ function MeasurementsPage({ profileHeight }) {
       {(vtaper || asymmetries.length > 0) && (
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', width: '100%' }}>
           {vtaper && (
-            <div style={{ background: '#16161a', border: '1px solid #1e1e22', borderRadius: 12, padding: 16, flex: 1, minWidth: 250 }}>
-              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 12, fontWeight: 700, color: '#888', marginBottom: 8 }}>
-                Kształt <span style={{ color: '#c8f542' }}>sylwetki</span>
+            <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: 12, padding: 16, flex: 1, minWidth: 250 }}>
+              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 12, fontWeight: 700, color: 'var(--color-fg-muted)', marginBottom: 8 }}>
+                Kształt <span style={{ color: 'var(--color-accent)' }}>sylwetki</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: '50%',
-                  background: `conic-gradient(${vtaper.color} 0deg, ${vtaper.color} ${(vtaper.ratio / 1.3) * 180}deg, #1e1e22 ${(vtaper.ratio / 1.3) * 180}deg)`,
+                  background: `conic-gradient(${vtaper.color} 0deg, ${vtaper.color} ${(vtaper.ratio / 1.3) * 180}deg, var(--color-border-subtle) ${(vtaper.ratio / 1.3) * 180}deg)`,
                   border: `2px solid ${vtaper.color}`,
                 }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#f0ede8' }}>{vtaper.label}</div>
-                  <div style={{ fontSize: 11, color: '#666' }}>Stosunek klatka/pas: <strong style={{ color: vtaper.color }}>{vtaper.ratio}</strong></div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-fg-primary)' }}>{vtaper.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--color-fg-muted)' }}>Stosunek klatka/pas: <strong style={{ color: vtaper.color }}>{vtaper.ratio}</strong></div>
                 </div>
               </div>
             </div>
           )}
           {asymmetries.map((a, i) => (
-            <div key={i} style={{ background: '#1a1a0a', border: '1px solid #5a4a00', borderRadius: 12, padding: 16, flex: 1, minWidth: 200 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#ffc107' }}>
+            <div key={i} style={{ background: 'var(--color-warn-dim)', border: '1px solid var(--color-warn)', borderRadius: 12, padding: 16, flex: 1, minWidth: 200 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-warn)' }}>
                 <span>⚠️</span>
                 <span>Wykryto asymetrię <strong>{a.diff} cm</strong> w {a.label} ({a.dominant})</span>
               </div>
-              <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
-                Sugerowana praca unilateralna (jednorącz/jednonóż) w zakładce <strong style={{ color: '#c8f542' }}>Ćwiczenia</strong>
+              <div style={{ fontSize: 11, color: 'var(--color-fg-muted)', marginTop: 4 }}>
+                Sugerowana praca unilateralna (jednorącz/jednonóż) w zakładce <strong style={{ color: 'var(--color-accent)' }}>Ćwiczenia</strong>
               </div>
             </div>
           ))}
@@ -516,12 +516,12 @@ export default function ProfilePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d0d0f', color: '#f0ede8', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg-base)', color: 'var(--color-fg-primary)', fontFamily: "'DM Sans', sans-serif" }}>
       <Header />
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e1e22' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border-subtle)' }}>
         <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16 }}>
           {view === 'settings' ? 'Ustawienia konta' : 'Dziennik pomiarów'}
-          <span style={{ color: '#c8f542' }}>{view === 'settings' ? ' i profil metaboliczny' : ' i antropometria'}</span>
+          <span style={{ color: 'var(--color-accent)' }}>{view === 'settings' ? ' i profil metaboliczny' : ' i antropometria'}</span>
         </div>
       </div>
       <div style={{ padding: 20 }}>

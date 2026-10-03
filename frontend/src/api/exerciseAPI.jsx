@@ -39,12 +39,6 @@ export const getRecordsByExercise = async (exerciseId) => {
   return await res.json();
 };
 
-export const searchExercises = async (query) => {
-  const res = await fetch(`${RECORDS_URL}/search?query=${encodeURIComponent(query)}`, { credentials: 'include' });
-  if (!res.ok) throw new Error('Błąd wyszukiwania');
-  return await res.json();
-};
-
 export async function getExerciseProgress(exerciseId, startDate, endDate) {
   const params = new URLSearchParams();
   if (startDate) params.append('startDate', startDate);

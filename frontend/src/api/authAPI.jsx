@@ -17,23 +17,12 @@ export const loginUser = async (formData) => {
   return response.data;
 };
 
-export const verifyEmail = async (token) => {
-  const response = await apiClient.get(`/verify?token=${token}`);
-  return response.data;
-};
-
 export const fetchMe = async () => {
   const response = await apiClient.get('/me');
   return response.data;
 };
 
 const USER_URL = 'http://localhost:8000/api/user';
-
-export const getUserProfile = async () => {
-  const res = await fetch(`${USER_URL}/profile`, { credentials: 'include' });
-  if (!res.ok) throw new Error('Błąd pobierania profilu');
-  return await res.json();
-};
 
 export const updateUserProfile = async (data) => {
   const res = await fetch(`${USER_URL}/profile`, {
@@ -68,22 +57,10 @@ export const getBodyMeasurements = async () => {
   return await res.json();
 };
 
-export const getLatestBodyMeasurement = async () => {
-  const res = await fetch(`${MEASUREMENT_URL}/latest`, { credentials: 'include' });
-  if (!res.ok) return null;
-  return await res.json();
-};
-
 export const deleteBodyMeasurement = async (id) => {
   const res = await fetch(`${MEASUREMENT_URL}/${id}`, {
     method: 'DELETE',
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Błąd usuwania pomiaru');
-};
-
-export const getMeasurementStatus = async () => {
-  const res = await fetch(`${MEASUREMENT_URL}/status`, { credentials: 'include' });
-  if (!res.ok) throw new Error('Błąd sprawdzania statusu pomiarów');
-  return await res.json();
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import AddExerciseModal from "./AddExerciseModal";
 import { getExercisesByDate, deleteUserExercise } from "../../api/exerciseAPI";
 import { templateAPI } from "../../api/templateAPI";
@@ -512,9 +513,15 @@ export default function WorkoutDashboard({ onExerciseChange }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const paramDate = searchParams.get("date");
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().slice(0, 10)
+    paramDate || new Date().toISOString().slice(0, 10)
   );
+
+  useEffect(() => {
+    if (paramDate) setSelectedDate(paramDate);
+  }, [paramDate]);
 
   const fetchExercises = useCallback(async (date) => {
     setLoading(true);

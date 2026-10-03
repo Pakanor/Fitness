@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
+import { useTheme } from "../context/ThemeContext";
 
 export default function DateSearch({ selectedDate, onSearch }) {
   const [localDate, setLocalDate] = useState(selectedDate);
+  const { theme } = useTheme();
 
-useEffect(() => {
-  const timeout = setTimeout(() => { onSearch(localDate); }, 500);
-  return () => clearTimeout(timeout);
-}, [localDate, onSearch]);
+  useEffect(() => {
+    setLocalDate(selectedDate);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => { onSearch(localDate); }, 500);
+    return () => clearTimeout(timeout);
+  }, [localDate, onSearch]);
+
   return (
     <div style={{ marginBottom: 16 }}>
       <input
@@ -22,8 +29,9 @@ useEffect(() => {
           fontSize: 14,
           fontFamily: 'DM Sans, sans-serif',
           outline: 'none',
-          colorScheme: 'dark',
+          colorScheme: theme === 'dark' ? 'dark' : 'light',
         }}
+        aria-label="Wybierz datę"
       />
     </div>
   );

@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import AddExerciseModal from "./AddExerciseModal";
+import TemplateSelectionModal from "../templates/TemplateSelectionModal";
 import { getExercisesByDate, deleteUserExercise } from "../../api/exerciseAPI";
 import { templateAPI } from "../../api/templateAPI";
+import { workoutAPI, SESSION_STATUS } from "../../api/workoutAPI";
+import { toast } from "../../components/common/Toast";
 import DateSearch from "../../components/DateSearch";
 import '../../styles/tokens.css';
 
@@ -22,8 +25,13 @@ function getCategoryColor(category = "") {
 }
 
 const WorkoutDashboardStyles = `
+  /* Fixed height so .exercise-list scrolls inside the page and the bottom bar
+     (Załaduj szablon / Szablony / Dodaj ćwiczenie) always stays visible,
+     no matter how many exercises a loaded template contains. */
   .dashboard {
+    height: calc(100vh - var(--header-height));
     min-height: calc(100vh - var(--header-height));
+    overflow: hidden;
     background: var(--color-bg-base);
     color: var(--color-fg-primary);
     font-family: var(--font-body);
@@ -39,17 +47,21 @@ const WorkoutDashboardStyles = `
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-height: 0;
   }
 
   .content {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
   }
 
   .exercise-list {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding-right: 4px;
     display: flex;
     flex-direction: column;
@@ -58,6 +70,9 @@ const WorkoutDashboardStyles = `
 
   .bottom-bar {
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
     padding: var(--space-4) 0 var(--space-6);
     background: var(--color-bg-base);
     border-top: 1px solid var(--color-border-subtle);
@@ -358,6 +373,177 @@ const WorkoutDashboardStyles = `
     flex-shrink: 0;
   }
 
+  .session-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
+    border-left: 3px solid var(--session-accent, var(--color-fg-disabled));
+    border-radius: var(--radius-lg);
+  }
+
+  .session-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .session-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-fg-primary);
+  }
+
+  .session-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    color: var(--color-bg-deep);
+    background: var(--session-accent, var(--color-fg-disabled));
+  }
+
+  .session-sub {
+    font-size: 12px;
+    color: var(--color-fg-muted);
+  }
+
+  .session-volume {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-fg-secondary);
+  }
+
+  .session-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 10px 18px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .session-btn--primary {
+    background: var(--color-accent);
+    color: var(--color-bg-deep);
+  }
+
+  .session-btn--primary:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(252, 76, 2, 0.15);
+  }
+
+  .session-btn--success {
+    background: var(--color-success);
+    color: var(--color-bg-deep);
+  }
+
+  .session-btn--success:hover:not(:disabled) {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  .session-btn--ghost {
+    background: none;
+    color: var(--color-fg-secondary);
+    border-color: var(--color-border-default);
+  }
+
+  .session-btn--ghost:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    transform: translateY(-1px);
+  }
+
+  .session-btn:disabled {
+    background: var(--color-border-subtle);
+    color: var(--color-fg-disabled);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .exercise-card.clickable {
+    cursor: pointer;
+  }
+
+  .exercise-card.locked {
+    opacity: 0.75;
+  }
+
+  .lock-hint {
+    margin-top: var(--space-2);
+    font-size: 12px;
+    color: var(--color-fg-muted);
+  }
+
+  .template-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-3) var(--space-5);
+    background: none;
+    color: var(--color-fg-secondary);
+    border: 1px dashed var(--color-border-default);
+    border-radius: var(--radius-md);
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+  }
+
+  .template-btn:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .template-btn:disabled {
+    color: var(--color-fg-disabled);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .template-actions {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  .template-actions .template-btn {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .template-btn--ghost {
+    flex: 0 0 auto;
+    min-width: 0;
+    border-style: solid;
+    border-color: var(--color-border-subtle);
+  }
+
   @media (max-width: 600px) {
     .day-name {
       font-size: 22px;
@@ -379,11 +565,12 @@ const WorkoutDashboardStyles = `
   }
 `;
 
-function ExerciseCard({ entry, onDelete, prev }) {
+function ExerciseCard({ entry, onDelete, prev, onLogSet, locked }) {
   const color = getCategoryColor(entry.category);
   const [deleting, setDeleting] = useState(false);
 
-  const handleDelete = async () => {
+  const handleDelete = async (e) => {
+    e.stopPropagation();
     setDeleting(true);
     try {
       await onDelete(entry.userExerciseId);
@@ -393,9 +580,27 @@ function ExerciseCard({ entry, onDelete, prev }) {
   };
 
   const showPrevHint = prev && entry.weight == null && entry.reps == null;
+  const hasNumbers = entry.sets != null || entry.reps != null || entry.weight != null;
+
+  const handleCardClick = () => {
+    if (locked || !onLogSet) return;
+    onLogSet(entry);
+  };
 
   return (
-    <div className="exercise-card" style={{ "--accent": color }}>
+    <div
+      className={`exercise-card ${onLogSet && !locked ? "clickable" : ""} ${locked ? "locked" : ""}`}
+      style={{ "--accent": color }}
+      onClick={handleCardClick}
+      role={onLogSet && !locked ? "button" : undefined}
+      tabIndex={onLogSet && !locked ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
+    >
       <div className="card-left">
         {entry.gifUrl ? (
           <img
@@ -456,16 +661,104 @@ function ExerciseCard({ entry, onDelete, prev }) {
             Poprzednio: {prev.weight} kg x {prev.reps} powt.
           </div>
         )}
+        {locked ? (
+          <div className="lock-hint">
+            {entry.sessionStatus === SESSION_STATUS.PLANNED
+              ? "Serie zapiszesz po rozpoczęciu treningu"
+              : "Trening zakończony — zapis zamknięty"}
+          </div>
+        ) : (
+          onLogSet && !hasNumbers && (
+            <div className="lock-hint">Kliknij, aby zapisać wagę i powtórzenia</div>
+          )
+        )}
       </div>
-      <button
-        className={`delete-btn ${deleting ? "deleting" : ""}`}
-        onClick={handleDelete}
-        disabled={deleting}
-        title="Usuń"
-        aria-label={`Usuń ćwiczenie ${entry.name}`}
-      >
-        {deleting ? "⏳" : "×"}
-      </button>
+      {!locked && (
+        <button
+          className={`delete-btn ${deleting ? "deleting" : ""}`}
+          onClick={handleDelete}
+          disabled={deleting}
+          title="Usuń"
+          aria-label={`Usuń ćwiczenie ${entry.name}`}
+        >
+          {deleting ? "⏳" : "×"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+const STATUS_META = {
+  [SESSION_STATUS.PLANNED]: {
+    label: "Zaplanowany",
+    accent: "var(--color-info)",
+    hint: "Zaplanowany na ten dzień. Serie możesz zapisać po rozpoczęciu treningu.",
+  },
+  [SESSION_STATUS.IN_PROGRESS]: {
+    label: "W trakcie",
+    accent: "var(--color-accent)",
+    hint: "Trening trwa. Kliknij ćwiczenie, aby zapisać serie.",
+  },
+  [SESSION_STATUS.COMPLETED]: {
+    label: "Ukończony",
+    accent: "var(--color-success)",
+    hint: "Trening zakończony. Zapis jest zablokowany.",
+  },
+};
+
+function SessionBanner({ session, actionLoading, onStart, onFinish, onReopen }) {
+  if (!session) return null;
+
+  const meta = STATUS_META[session.status] ?? STATUS_META[SESSION_STATUS.PLANNED];
+  const completed = session.status === SESSION_STATUS.COMPLETED;
+
+  return (
+    <div className="session-banner" style={{ "--session-accent": meta.accent }}>
+      <div className="session-info">
+        <div className="session-title">
+          {session.templateName || "Trening"}
+          <span className="session-badge">{meta.label}</span>
+        </div>
+        <div className="session-sub">{meta.hint}</div>
+      </div>
+
+      {completed && (
+        <>
+          <div className="session-volume">
+            {(session.totalVolume || 0).toLocaleString("pl-PL")} kg objętości
+          </div>
+          <button
+            className="session-btn session-btn--ghost"
+            onClick={onReopen}
+            disabled={actionLoading}
+            title="Wznów trening i dopisz kolejne serie"
+          >
+            {actionLoading ? "Wznawiam…" : "↻ Wznów trening"}
+          </button>
+        </>
+      )}
+
+      {session.status === SESSION_STATUS.PLANNED && (
+        <button
+          className="session-btn session-btn--primary"
+          onClick={onStart}
+          disabled={actionLoading}
+          title="Rozpocznij trening"
+        >
+          {actionLoading ? "Startuję…" : "▶ Rozpocznij trening"}
+        </button>
+      )}
+
+      {session.status === SESSION_STATUS.IN_PROGRESS && (
+        <button
+          className="session-btn session-btn--success"
+          onClick={onFinish}
+          disabled={actionLoading}
+          title="Zakończ trening"
+        >
+          {actionLoading ? "Zapisuję…" : "✓ Zakończ trening"}
+        </button>
+      )}
     </div>
   );
 }
@@ -507,28 +800,106 @@ function TodayHeader({ count, date }) {
   );
 }
 
+function ResumeBanner({ session, onResume }) {
+  if (!session) return null;
+
+  const date = String(session.date).slice(0, 10);
+  const parsed = new Date(`${date}T12:00:00`);
+  const label = parsed.toLocaleDateString("pl-PL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  return (
+    <div className="session-banner" style={{ "--session-accent": "var(--color-warn)" }}>
+      <div className="session-info">
+        <div className="session-title">
+          Niedokończony trening
+          <span className="session-badge">Wznowienia</span>
+        </div>
+        <div className="session-sub">
+          {session.templateName || "Trening"} z {label} · {session.exerciseCount}{" "}
+          {session.exerciseCount === 1 ? "ćwiczenie" : "ćwiczeń"}
+        </div>
+      </div>
+
+      <button
+        className="session-btn session-btn--primary"
+        onClick={onResume}
+        title="Wróć do niedokończonego treningu"
+      >
+        ▶ Wznów trening
+      </button>
+    </div>
+  );
+}
+
 export default function WorkoutDashboard({ onExerciseChange }) {
+  const navigate = useNavigate();
   const [exercises, setExercises] = useState([]);
   const [prevMap, setPrevMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [logTarget, setLogTarget] = useState(null);
+  const [session, setSession] = useState(null);
+  const [resumable, setResumable] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
+  const [templateCount, setTemplateCount] = useState(0);
   const [searchParams] = useSearchParams();
   const paramDate = searchParams.get("date");
   const [selectedDate, setSelectedDate] = useState(
     paramDate || new Date().toISOString().slice(0, 10)
   );
 
+  const sessionStatus = session?.status ?? null;
+  const sessionLocked =
+    sessionStatus === SESSION_STATUS.PLANNED || sessionStatus === SESSION_STATUS.COMPLETED;
+
   useEffect(() => {
     if (paramDate) setSelectedDate(paramDate);
   }, [paramDate]);
+
+  const refreshTemplates = useCallback(async () => {
+    try {
+      const templates = await templateAPI.getTemplates();
+      setTemplateCount(Array.isArray(templates) ? templates.length : 0);
+    } catch {
+      setTemplateCount(0);
+    }
+  }, []);
+
+  // An unfinished session survives reloads and day switches, so it is tracked
+  // separately from the session of the day being viewed.
+  const refreshResumable = useCallback(async () => {
+    try {
+      const active = await workoutAPI.getActiveSession();
+      setResumable(active);
+    } catch {
+      setResumable(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshTemplates();
+  }, [refreshTemplates]);
+
+  useEffect(() => {
+    refreshResumable();
+  }, [refreshResumable]);
 
   const fetchExercises = useCallback(async (date) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getExercisesByDate(date);
+      const [data, daySession] = await Promise.all([
+        getExercisesByDate(date),
+        workoutAPI.getSession(date).catch(() => null),
+      ]);
       setExercises(data);
+      setSession(daySession);
 
       const templateId = data.find((e) => e.templateId)?.templateId;
       if (templateId) {
@@ -564,12 +935,94 @@ export default function WorkoutDashboard({ onExerciseChange }) {
 
   const handleExerciseAdded = () => {
     setModalOpen(false);
+    setLogTarget(null);
     fetchExercises(selectedDate);
+    refreshResumable();
     onExerciseChange?.();
   };
 
   const handleDateSearch = (date) => {
     setSelectedDate(date);
+  };
+
+  const handleResume = () => {
+    if (!resumable) return;
+    setSelectedDate(String(resumable.date).slice(0, 10));
+    toast("Wrócono do niedokończonego treningu.");
+  };
+
+  const handleLoadTemplate = async (templateId) => {
+    setTemplateModalOpen(false);
+    setActionLoading(true);
+    try {
+      await workoutAPI.loadTemplate(templateId, selectedDate);
+      toast("Szablon dodany do tego dnia. Rozpocznij trening, aby zapisywać serie.");
+      await fetchExercises(selectedDate);
+      onExerciseChange?.();
+    } catch (e) {
+      toast(e.message || "Nie udało się wczytać szablonu.", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleStart = async () => {
+    if (!session) return;
+    setActionLoading(true);
+    try {
+      await workoutAPI.startWorkout(session.id);
+      toast("Trening rozpoczęty. Możesz zapisywać serie.");
+      await fetchExercises(selectedDate);
+      await refreshResumable();
+    } catch (e) {
+      toast(e.message || "Nie udało się rozpocząć treningu.", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleFinish = async () => {
+    if (!session) return;
+    setActionLoading(true);
+    try {
+      const updated = await workoutAPI.finishWorkout(session.id);
+      toast(`Trening ukończony — ${(updated.totalVolume || 0).toLocaleString("pl-PL")} kg objętości.`);
+      await fetchExercises(selectedDate);
+      await refreshResumable();
+      onExerciseChange?.();
+    } catch (e) {
+      toast(e.message || "Nie udało się zakończyć treningu.", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!session) return;
+    setActionLoading(true);
+    try {
+      await workoutAPI.reopenWorkout(session.id);
+      toast("Trening wznowiony. Możesz dopisać kolejne serie.");
+      await fetchExercises(selectedDate);
+      await refreshResumable();
+    } catch (e) {
+      toast(e.message || "Nie udało się wznowić treningu.", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleLogSet = (entry) => {
+    setLogTarget({
+      exercise: {
+        id: entry.exerciseId,
+        name: entry.name,
+        category: entry.category,
+        gifUrl: entry.gifUrl,
+      },
+      entry,
+    });
+    setModalOpen(true);
   };
 
   return (
@@ -579,6 +1032,19 @@ export default function WorkoutDashboard({ onExerciseChange }) {
         <div className="dashboard-inner">
           <TodayHeader count={exercises.length} date={selectedDate} />
           <DateSearch selectedDate={selectedDate} onSearch={handleDateSearch} />
+
+          <SessionBanner
+            session={session}
+            actionLoading={actionLoading}
+            onStart={handleStart}
+            onFinish={handleFinish}
+            onReopen={handleReopen}
+          />
+
+          {resumable && String(resumable.date).slice(0, 10) !== selectedDate && (
+            <ResumeBanner session={resumable} onResume={handleResume} />
+          )}
+
           <div className="section-label">Trening</div>
 
           <div className="content">
@@ -591,13 +1057,51 @@ export default function WorkoutDashboard({ onExerciseChange }) {
             ) : (
               <div className="exercise-list">
                 {exercises.map((entry) => (
-                  <ExerciseCard key={entry.userExerciseId} entry={entry} onDelete={handleDelete} prev={prevMap[entry.exerciseId]} />
+                  <ExerciseCard
+                    key={entry.userExerciseId}
+                    entry={entry}
+                    onDelete={handleDelete}
+                    prev={prevMap[entry.exerciseId]}
+                    onLogSet={sessionStatus ? handleLogSet : null}
+                    locked={Boolean(entry.sessionId) && sessionLocked}
+                  />
                 ))}
               </div>
             )}
 
             <div className="bottom-bar">
-              <button className="add-btn" onClick={() => setModalOpen(true)} aria-label="Dodaj ćwiczenie">
+              <div className="template-actions">
+                <button
+                  className="template-btn"
+                  onClick={() => setTemplateModalOpen(true)}
+                  disabled={templateCount === 0 || Boolean(session) || actionLoading}
+                  title={
+                    templateCount === 0
+                      ? "Najpierw utwórz szablon w zakładce Szablony"
+                      : session
+                        ? "Na ten dzień istnieje już trening"
+                        : `Wczytaj jeden z ${templateCount} szablonów na ten dzień`
+                  }
+                >
+                  📋 Załaduj szablon
+                  {templateCount === 0 && " (brak szablonów)"}
+                </button>
+                <button
+                  className="template-btn template-btn--ghost"
+                  onClick={() => navigate('/templates')}
+                  title="Dodaj, edytuj lub usuń szablony"
+                >
+                  ⚙ Szablony
+                </button>
+              </div>
+              <button
+                className="add-btn"
+                onClick={() => { setLogTarget(null); setModalOpen(true); }}
+                aria-label="Dodaj ćwiczenie"
+                disabled={sessionLocked}
+                title={sessionLocked ? "Trening jest zablokowany do edycji" : "Dodaj ćwiczenie"}
+                style={sessionLocked ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+              >
                 <span className="add-btn-icon" aria-hidden="true">+</span>
                 Dodaj ćwiczenie
               </button>
@@ -608,10 +1112,20 @@ export default function WorkoutDashboard({ onExerciseChange }) {
 
       <AddExerciseModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setLogTarget(null); }}
         onAdded={handleExerciseAdded}
         defaultDate={selectedDate}
+        initialExercise={logTarget?.exercise}
+        initialEntry={logTarget?.entry}
+        sessionId={session?.id ?? null}
       />
+
+      {templateModalOpen && (
+        <TemplateSelectionModal
+          onSelect={handleLoadTemplate}
+          onClose={() => setTemplateModalOpen(false)}
+        />
+      )}
     </>
   );
 }

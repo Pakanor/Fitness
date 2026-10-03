@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { addUserExercise, getExerciseCategory, getExercisesByBodyPart } from "../../api/exerciseAPI";
+import { workoutAPI } from "../../api/workoutAPI";
 import { toast } from "../../components/common/Toast";
 
-export default function AddExerciseModal({ open, onClose, onAdded, defaultDate }) {
+export default function AddExerciseModal({
+  open,
+  onClose,
+  onAdded,
+  defaultDate,
+  initialExercise = null,
+  initialEntry = null,
+  sessionId = null,
+}) {
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [categories, setCategories] = useState([]);
@@ -21,24 +30,35 @@ export default function AddExerciseModal({ open, onClose, onAdded, defaultDate }
   const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      setStep(0); setSelectedCategory(null); setSelectedExercise(null); setSearch("");
-      setSets(""); setReps(""); setWeight(""); setRpe(""); setRir(""); setDate(defaultDate || new Date().toISOString().slice(0, 10));
-    }
-  }, [open]);
+  const isSessionLog = Boolean(sessionId) && Boolean(initialExercise);
 
   useEffect(() => {
     if (!open) return;
-    setCatLoading(true);
-    getExerciseCategory().then(setCategories).catch(console.error).finally(() => setCatLoading(false));
-  }, [open]);
+
+    // Prefilled from a workout card: jump straight to the numbers step.
+    setSelectedExercise(initialExercise ?? null);
+    setSelectedCategory(initialExercise?.category ?? null);
+    setStep(initialExercise ? 2 : 0);
+    setSearch("");
+    setSets(initialEntry?.sets != null ? String(initialEntry.sets) : "");
+    setReps(initialEntry?.reps != null ? String(initialEntry.reps) : "");
+    setWeight(initialEntry?.weight != null ? String(initialEntry.weight) : "");
+    setRpe(initialEntry?.rpe != null ? String(initialEntry.rpe) : "");
+    setRir(initialEntry?.rir != null ? String(initialEntry.rir) : "");
+    setDate(defaultDate || new Date().toISOString().slice(0, 10));
+  }, [open, initialExercise, initialEntry, defaultDate]);
 
   useEffect(() => {
-    if (!selectedCategory) return;
+    if (!open || isSessionLog) return;
+    setCatLoading(true);
+    getExerciseCategory().then(setCategories).catch(console.error).finally(() => setCatLoading(false));
+  }, [open, isSessionLog]);
+
+  useEffect(() => {
+    if (!selectedCategory || isSessionLog) return;
     setExLoading(true); setExercises([]);
     getExercisesByBodyPart(selectedCategory).then(setExercises).catch(console.error).finally(() => setExLoading(false));
-  }, [selectedCategory]);
+  }, [selectedCategory, isSessionLog]);
 
   const handleSelectCategory = (cat) => { setSelectedCategory(cat); setStep(1); };
   const handleSelectExercise = (ex) => { setSelectedExercise(ex); setStep(2); };
@@ -57,27 +77,42 @@ export default function AddExerciseModal({ open, onClose, onAdded, defaultDate }
     }
     setLoading(true);
     try {
-      await addUserExercise({
-        userId: user.id, exerciseId: selectedExercise.id,
+      const payload = {
         sets: sets ? parseInt(sets) : null,
         reps: reps ? parseInt(reps) : null,
         weight: weight ? parseFloat(weight) : null,
         rpe: rpe ? parseInt(rpe) : null,
         rir: rir ? parseInt(rir) : null,
-        date,
-      });
-      toast("Ćwiczenie dodane!");
+      };
+
+      if (sessionId) {
+        await workoutAPI.logSet({
+          sessionId,
+          userExerciseId: initialEntry?.userExerciseId ?? null,
+          exerciseId: selectedExercise.id,
+          ...payload,
+        });
+        toast("Zapisano serie w treningu.");
+      } else {
+        await addUserExercise({
+          userId: user.id, exerciseId: selectedExercise.id, ...payload, date,
+        });
+        toast("Ćwiczenie dodane!");
+      }
+
       onAdded?.(); onClose();
     } catch (err) {
       console.error(err);
-      toast("Błąd podczas dodawania ćwiczenia.", "error");
+      toast(err.message || "Błąd podczas dodawania ćwiczenia.", "error");
     } finally {
       setLoading(false);
     }
   };
 
   const filteredExercises = exercises.filter(ex => ex.name.toLowerCase().includes(search.toLowerCase()));
-  const stepLabel = ["Wybierz kategorię", "Wybierz ćwiczenie", `Dodaj: ${selectedExercise?.name ?? ""}`];
+  const stepLabel = isSessionLog
+    ? `Zapisz serie: ${selectedExercise?.name ?? ""}`
+    : ["Wybierz kategorię", "Wybierz ćwiczenie", `Dodaj: ${selectedExercise?.name ?? ""}`];
 
   if (!open) return null;
 
@@ -113,6 +148,7 @@ export default function AddExerciseModal({ open, onClose, onAdded, defaultDate }
         .aem-gif-preview { display: flex; justify-content: center; margin-bottom: 16px; }
         .aem-gif-preview img { width: 220px; height: 220px; border-radius: 12px; object-fit: cover; }
         .aem-field { margin-bottom: 12px; }
+        .aem-hint { display: block; margin-top: 6px; font-size: 11px; color: var(--color-fg-muted); font-family: 'DM Sans', sans-serif; }
         .aem-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--color-fg-muted); margin-bottom: 6px; font-family: 'DM Sans', sans-serif; font-weight: 500; }
         .aem-input { width: 100%; padding: 10px 14px; background: var(--color-bg-base); border: 1px solid var(--color-border-default); border-radius: 10px; color: var(--color-fg-primary); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.15s; colorScheme: dark; }
         .aem-input:focus { border-color: var(--color-accent); }
@@ -127,10 +163,10 @@ export default function AddExerciseModal({ open, onClose, onAdded, defaultDate }
       <div className="aem-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
         <div className="aem-dialog">
           <div className="aem-header">
-            {step > 0 && <button className="aem-back" onClick={handleBack}>←</button>}
+            {step > 0 && !isSessionLog && <button className="aem-back" onClick={handleBack}>←</button>}
             <div className="aem-header-text">
-              <div className="aem-step-label">Krok {step + 1} / 3</div>
-              <div className="aem-step-title">{stepLabel[step]}</div>
+              <div className="aem-step-label">{isSessionLog ? "Trening" : `Krok ${step + 1} / 3`}</div>
+              <div className="aem-step-title">{isSessionLog ? stepLabel : stepLabel[step]}</div>
             </div>
             <button className="aem-close" onClick={onClose}>✕</button>
           </div>
@@ -190,7 +226,8 @@ export default function AddExerciseModal({ open, onClose, onAdded, defaultDate }
                 ))}
                 <div className="aem-field">
                   <label className="aem-label">Data</label>
-                  <input className="aem-input" type="date" value={date} onChange={e => setDate(e.target.value)} style={{ colorScheme: 'dark' }} />
+                  <input className="aem-input" type="date" value={date} onChange={e => setDate(e.target.value)} style={{ colorScheme: 'dark' }} disabled={Boolean(sessionId)} />
+                  {sessionId && <span className="aem-hint">Data pochodzi z rozpoczętego treningu.</span>}
                 </div>
               </>
             )}
@@ -200,7 +237,7 @@ export default function AddExerciseModal({ open, onClose, onAdded, defaultDate }
             <div className="aem-footer">
               <button className="aem-btn-cancel" onClick={onClose} disabled={loading}>Anuluj</button>
               <button className="aem-btn-submit" onClick={handleSubmit} disabled={loading}>
-                {loading ? "Dodawanie..." : "Dodaj ćwiczenie"}
+                {loading ? "Zapisywanie..." : sessionId ? "Zapisz serie" : "Dodaj ćwiczenie"}
               </button>
             </div>
           )}

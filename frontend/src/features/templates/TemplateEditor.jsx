@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "../../components/common/Toast";
 
 const editorStyles = `
   .template-editor-overlay {
@@ -9,10 +10,13 @@ const editorStyles = `
     bottom: 0;
     background: rgba(0, 0, 0, 0.8);
     display: flex;
-    align-items: center;
+    /* Anchored to the top on purpose: a centred dialog moves every time the
+       content grows, which made the popup jump while typing. */
+    align-items: flex-start;
     justify-content: center;
+    overflow-y: auto;
     z-index: 1000;
-    padding: 20px;
+    padding: 5vh 20px 20px;
   }
 
   .template-editor {
@@ -21,7 +25,7 @@ const editorStyles = `
     border-radius: 16px;
     width: 100%;
     max-width: 600px;
-    max-height: 80vh;
+    max-height: 85vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -58,12 +62,46 @@ const editorStyles = `
 
   .template-editor-body {
     padding: 24px;
-    overflow-y: auto;
+    overflow: visible;
     flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .template-editor-field {
     margin-bottom: 20px;
+  }
+
+  .template-editor-field--tight {
+    margin-bottom: 16px;
+  }
+
+  .template-editor-field--grow {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+  }
+
+  /* Only the chosen exercises scroll, so the search box and its result popup
+     never move and never get clipped. */
+  .template-editor-exercise-list {
+    flex: 1;
+    min-height: 90px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+  }
+
+  .template-editor-empty {
+    padding: 20px 16px;
+    text-align: center;
+    color: var(--color-fg-muted);
+    font-size: 13px;
+    border: 1px dashed var(--color-border-subtle);
+    border-radius: 8px;
   }
 
   .template-editor-label {
@@ -75,6 +113,7 @@ const editorStyles = `
 
   .template-editor-input {
     width: 100%;
+    box-sizing: border-box;
     background: var(--color-bg-base);
     border: 1px solid var(--color-border-default);
     border-radius: 8px;
@@ -192,10 +231,19 @@ const editorStyles = `
 
   .template-editor-search {
     margin-top: 16px;
+    position: relative;
+  }
+
+  .template-editor-search-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--color-fg-muted);
+    font-family: 'DM Sans', sans-serif;
   }
 
   .template-editor-search-input {
     width: 100%;
+    box-sizing: border-box;
     background: var(--color-bg-base);
     border: 1px solid var(--color-border-default);
     border-radius: 8px;
@@ -211,16 +259,27 @@ const editorStyles = `
   }
 
   .template-editor-search-results {
-    max-height: 200px;
+    /* Floats over the exercise list instead of pushing it down, so the dialog
+       never changes height while typing. Fixed to four rows (40px each) with
+       scrolling for the rest. */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    max-height: 160px;
     overflow-y: auto;
-    margin-top: 8px;
-    background: var(--color-bg-base);
+    overscroll-behavior: contain;
+    margin-top: 4px;
+    background: var(--color-bg-elevated);
     border: 1px solid var(--color-border-default);
     border-radius: 8px;
+    box-shadow: var(--shadow-md);
   }
 
   .template-editor-search-result {
     padding: 10px 16px;
+    line-height: 20px;
     cursor: pointer;
     color: var(--color-fg-primary);
     font-size: 14px;
@@ -243,28 +302,40 @@ export default function TemplateEditor({ template, onClose, onSave }) {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  const searchRun = useRef(0);
 
-  const handleSearch = async (query) => {
-    setSearchQuery(query);
+  // Debounced search: one request per pause in typing, and stale responses are
+  // discarded so the list never flickers between queries.
+  useEffect(() => {
+    const query = searchQuery.trim();
     if (query.length < 2) {
       setSearchResults([]);
-      return;
+      setSearching(false);
+      return undefined;
     }
 
     setSearching(true);
-    try {
-      const response = await fetch(`http://localhost:8000/api/records/search?query=${encodeURIComponent(query)}`, {
-        credentials: 'include'
-      });
-      if (!response.ok) throw new Error('Search failed');
-      const data = await response.json();
-      setSearchResults(data);
-    } catch (e) {
-      console.error('Search error:', e);
-    } finally {
-      setSearching(false);
-    }
-  };
+    const run = ++searchRun.current;
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/api/records/search?query=${encodeURIComponent(query)}`, {
+          credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Search failed');
+        const data = await response.json();
+        if (run !== searchRun.current) return;
+        setSearchResults(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (run !== searchRun.current) return;
+        console.error('Search error:', e);
+        setSearchResults([]);
+      } finally {
+        if (run === searchRun.current) setSearching(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleAddExercise = (exercise) => {
     if (!exercises.find(e => e.exerciseId === exercise.id)) {
@@ -304,10 +375,14 @@ export default function TemplateEditor({ template, onClose, onSave }) {
         })
       });
 
-      if (!response.ok) throw new Error('Failed to save template');
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Nie udało się zapisać szablonu');
+      }
       onSave();
     } catch (e) {
       console.error('Save error:', e);
+      toast(e.message || 'Nie udało się zapisać szablonu.', 'error');
     } finally {
       setSaving(false);
     }
@@ -337,30 +412,19 @@ export default function TemplateEditor({ template, onClose, onSave }) {
               />
             </div>
 
-            <div className="template-editor-field">
-              <label className="template-editor-label">Ćwiczenia ({exercises.length})</label>
-              
-              {exercises.map((exercise, index) => (
-                <div key={exercise.exerciseId} className="template-editor-exercise">
-                  <span className="template-editor-exercise-handle">⋮⋮</span>
-                  <span className="template-editor-exercise-name">{exercise.exerciseName}</span>
-                  <button 
-                    className="template-editor-exercise-remove"
-                    onClick={() => handleRemoveExercise(exercise.exerciseId)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-
+            <div className="template-editor-field template-editor-field--tight">
+              <label className="template-editor-label">Dodaj ćwiczenie</label>
               <div className="template-editor-search">
                 <input
                   type="text"
                   className="template-editor-search-input"
                   value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Szukaj ćwiczeń..."
                 />
+                {searching && (
+                  <div className="template-editor-search-hint">Szukanie…</div>
+                )}
                 {searchResults.length > 0 && (
                   <div className="template-editor-search-results">
                     {searchResults.map(exercise => (
@@ -373,6 +437,34 @@ export default function TemplateEditor({ template, onClose, onSave }) {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            </div>
+
+            <div className="template-editor-field template-editor-field--grow">
+              <label className="template-editor-label">
+                Ćwiczenia w szablonie ({exercises.length})
+              </label>
+
+              <div className="template-editor-exercise-list">
+                {exercises.length === 0 ? (
+                  <div className="template-editor-empty">
+                    Wyszukaj ćwiczenie powyżej i dodaj je do szablonu.
+                  </div>
+                ) : (
+                  exercises.map(exercise => (
+                    <div key={exercise.exerciseId} className="template-editor-exercise">
+                      <span className="template-editor-exercise-handle">⋮⋮</span>
+                      <span className="template-editor-exercise-name">{exercise.exerciseName}</span>
+                      <button
+                        className="template-editor-exercise-remove"
+                        onClick={() => handleRemoveExercise(exercise.exerciseId)}
+                        title="Usuń z szablonu"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))
                 )}
               </div>
             </div>

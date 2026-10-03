@@ -19,7 +19,10 @@ public class UserExercise
     public WorkoutStartMode? StartMode { get; set; }
     public int? TemplateId { get; set; }
     public WorkoutStatus? Status { get; set; }
-    
+
+    public int? SessionId { get; set; }
+
     public Exercise? Exercise { get; set; }
+    public WorkoutSession? Session { get; set; }
 }
 }

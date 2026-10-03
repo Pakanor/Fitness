@@ -22,6 +22,8 @@ yarn-error.log*
 # ---- Local-only tooling / agent notes ----
 /.vscode/
 /frontend/ssd/
+# Local dev helper scripts (run-dev.sh, start-all.sh) — machine specific
+*.sh
 
 # ---- Secrets & environment ----
 # .env holds the real RAPIDAPI_KEY / POSTGRES_PASSWORD. Keep local.

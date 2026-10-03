@@ -18,6 +18,7 @@ namespace ExerciseAPI.Data
         public DbSet<MuscleDamage> MuscleDamage { get; set; }
         public DbSet<WorkoutTemplate> WorkoutTemplates { get; set; }
         public DbSet<TemplateExercise> TemplateExercises { get; set; }
+        public DbSet<WorkoutSession> WorkoutSessions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -66,6 +67,29 @@ namespace ExerciseAPI.Data
                     .HasForeignKey(e => e.ExerciseId);
                 entity.HasIndex(e => new { e.TemplateId, e.Order });
             });
+
+            modelBuilder.Entity<WorkoutSession>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TotalVolume).HasDefaultValue(0m);
+
+                // One session per user per day.
+                entity.HasIndex(e => new { e.UserId, e.Date }).IsUnique();
+
+                // Deleting a template must not destroy logged sessions: the session
+                // keeps its exercises and simply loses the template reference.
+                entity.HasOne(e => e.Template)
+                    .WithMany()
+                    .HasForeignKey(e => e.TemplateId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasMany(e => e.Exercises)
+                    .WithOne(ue => ue.Session)
+                    .HasForeignKey(ue => ue.SessionId);
+            });
+
+            modelBuilder.Entity<UserExercise>()
+                .HasIndex(ue => ue.SessionId);
         }
     }
 }

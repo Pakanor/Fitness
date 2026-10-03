@@ -197,6 +197,20 @@ namespace ExerciseAPI.Controllers
             if (dto.RIR.HasValue && (dto.RIR < 0 || dto.RIR > 4))
                 return BadRequest("RIR musi być w zakresie 0-4");
 
+            var date = dto.Date.HasValue
+                ? DateTime.SpecifyKind(dto.Date.Value.Date, DateTimeKind.Utc)
+                : DateTime.UtcNow;
+
+            // A session owns its day: planned and finished workouts reject writes
+            // made outside the /api/workouts lifecycle.
+            var session = await _context.WorkoutSessions
+                .FirstOrDefaultAsync(s => s.UserId == CurrentUserId && s.Date == date);
+
+            if (session != null)
+                return Conflict(session.Status == WorkoutStatus.Planned
+                    ? "Najpierw rozpocznij trening, aby zapisywać serie."
+                    : "Zakończony trening jest zablokowany do edycji.");
+
             var entity = new UserExercise
             {
                 UserId = CurrentUserId,
@@ -206,9 +220,7 @@ namespace ExerciseAPI.Controllers
                 Weight = dto.Weight,
                 RPE = dto.RPE,
                 RIR = dto.RIR,
-                Date = dto.Date.HasValue
-                    ? DateTime.SpecifyKind(dto.Date.Value.Date, DateTimeKind.Utc)
-                    : DateTime.UtcNow
+                Date = date
             };
 
             _context.UserExercise.Add(entity);
@@ -285,6 +297,10 @@ namespace ExerciseAPI.Controllers
                 .Where(e => exerciseIds.Contains(e.Id))
                 .ToListAsync();
 
+            var daySession = await _context.WorkoutSessions
+                .FirstOrDefaultAsync(s => s.UserId == CurrentUserId
+                                          && s.Date == DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc));
+
             var result = filtered.Select(ue => {
                 var exercise = exercises.FirstOrDefault(e => e.Id == ue.ExerciseId);
 
@@ -326,6 +342,11 @@ namespace ExerciseAPI.Controllers
                     rpe = ue.RPE,
                     rir = ue.RIR,
                     templateId = ue.TemplateId,
+                    sessionId = ue.SessionId,
+                    sessionStatus = daySession != null
+                        ? WorkoutSessionsController.ToStatusString(daySession.Status)
+                        : null,
+                    canLogSets = daySession == null || daySession.Status == WorkoutStatus.InProgress,
                     date = ue.Date
                 };
             }).ToList();
@@ -360,6 +381,18 @@ namespace ExerciseAPI.Controllers
 
                 if (entry == null || entry.UserId != CurrentUserId)
                 return NotFound();
+
+                // Planned and finished sessions are locked for editing.
+                if (entry.SessionId.HasValue)
+                {
+                    var session = await _context.WorkoutSessions
+                        .FirstOrDefaultAsync(s => s.Id == entry.SessionId.Value);
+
+                    if (session != null && session.Status != WorkoutStatus.InProgress)
+                        return Conflict(session.Status == WorkoutStatus.Planned
+                            ? "Zaplanowany trening można edytować dopiero po rozpoczęciu."
+                            : "Zakończony trening jest zablokowany do edycji.");
+                }
 
             _context.UserExercise.Remove(entry);
             await _context.SaveChangesAsync();

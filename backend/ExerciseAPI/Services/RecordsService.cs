@@ -1,7 +1,9 @@
 using ExerciseAPI.Data;
 using ExerciseAPI.DTOs;
 using ExerciseAPI.Interfaces;
+using ExerciseAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace ExerciseAPI.Services
 {
@@ -24,10 +26,19 @@ namespace ExerciseAPI.Services
             _e1rmCalculator = e1rmCalculator;
         }
 
+        /// <summary>
+        /// PLANNED sessions are plans, not training: they never reach volume, streak
+        /// or record statistics. Legacy rows without a session always count.
+        /// </summary>
+        private Expression<Func<UserExercise, bool>> CountsTowardsStats => ue =>
+            ue.SessionId == null
+            || _context.WorkoutSessions.Any(s => s.Id == ue.SessionId && s.Status != WorkoutStatus.Planned);
+
         public async Task<OneRepMaxProgressionResponseDto> Get1RMProgression(int userId)
         {
             var userExercises = await _context.UserExercise
                 .Where(ue => ue.UserId == userId && ue.Weight.HasValue && ue.Reps.HasValue)
+                .Where(CountsTowardsStats)
                 .Join(_context.Exercises,
                     ue => ue.ExerciseId,
                     e => e.Id,
@@ -110,7 +121,8 @@ namespace ExerciseAPI.Services
                 .Where(ue => ue.UserId == userId
                     && ue.ExerciseId == exerciseId
                     && ue.Weight.HasValue
-                    && ue.Reps.HasValue);
+                    && ue.Reps.HasValue)
+                .Where(CountsTowardsStats);
 
             if (startDate.HasValue)
                 query = query.Where(ue => ue.Date >= startDate.Value.Date);

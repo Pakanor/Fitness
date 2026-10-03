@@ -239,7 +239,7 @@ const DashboardStyles = `
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--color-fg-muted);
-    width: 72px;
+    width: 104px;
     flex-shrink: 0;
   }
 

@@ -89,8 +89,15 @@ const getTodayLabel = (exercises) => {
   return CATEGORY_LABELS[top] || 'Trening siłowy';
 };
 
+const isPlanned = (e) => e?.sessionStatus === 'planned';
+
+// PLANNED sessions are plans, not training: they must not feed volume, streaks or
+// weekly completion. Legacy rows without a session always count.
+const countsForStats = (exercises) =>
+  (exercises || []).filter((e) => !isPlanned(e));
+
 const computeVolume = (exercises) =>
-  exercises.reduce((sum, e) => {
+  countsForStats(exercises).reduce((sum, e) => {
     if (e.sets != null && e.reps != null && e.weight != null) {
       return sum + e.sets * e.reps * e.weight;
     }
@@ -634,11 +641,11 @@ function DashboardPage() {
 
         setProfile(profileRes);
         setTotals(logsRes?.totals || null);
-        setTodayExercises(todayEx || []);
+        setTodayExercises(countsForStats(todayEx || []));
         setWeekData(weekEx);
 
         const activeDays = pastDays
-          .map((ds, i) => ({ date: ds, exercises: pastEx[i] || [] }))
+          .map((ds, i) => ({ date: ds, exercises: countsForStats(pastEx[i]) }))
           .filter((x) => x.exercises.length > 0);
         setRecentWorkouts(activeDays.slice(0, 3));
         setPersonalRecords(Array.isArray(recordsRes) ? recordsRes.slice(0, 3) : []);
@@ -851,7 +858,7 @@ function DashboardPage() {
                         const dayDate = weekDates[i];
                         const isToday = toDateStr(dayDate) === todayStr;
                         const isFuture = toDateStr(dayDate) > todayStr;
-                        const done = weekData[i]?.length > 0;
+                        const done = countsForStats(weekData[i]).length > 0;
                         const cls = `db-week-dot ${done ? 'done' : ''} ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''}`;
                         return (
                           <div key={label} className="db-week-day">

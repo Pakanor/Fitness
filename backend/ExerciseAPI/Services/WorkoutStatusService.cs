@@ -32,8 +32,8 @@ namespace ExerciseAPI.Services
             if (statuses.All(s => s == WorkoutStatus.Completed))
                 return WorkoutStatus.Completed;
 
-            if (statuses.Any(s => s == WorkoutStatus.Active))
-                return WorkoutStatus.Active;
+            if (statuses.Any(s => s == WorkoutStatus.InProgress))
+                return WorkoutStatus.InProgress;
 
             return WorkoutStatus.Planned;
         }
@@ -41,6 +41,13 @@ namespace ExerciseAPI.Services
         public async Task UpdateWorkoutStatus(int userId, DateTime date, WorkoutStatus status)
         {
             var target = DateTime.SpecifyKind(date, DateTimeKind.Utc).Date;
+            var session = await _context.WorkoutSessions
+                .FirstOrDefaultAsync(s => s.UserId == userId && s.Date == target);
+
+            // Session lifecycle has its own endpoints; never downgrade a finished session.
+            if (session != null)
+                return;
+
             var exercises = await _context.UserExercise
                 .Where(ue => ue.UserId == userId && ue.Date.Date == target)
                 .ToListAsync();
@@ -56,7 +63,7 @@ namespace ExerciseAPI.Services
         public async Task<bool> IsWorkoutActive(int userId, DateTime date)
         {
             var status = await GetWorkoutStatus(userId, date);
-            return status == WorkoutStatus.Active;
+            return status == WorkoutStatus.InProgress;
         }
     }
 }

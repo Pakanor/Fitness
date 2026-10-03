@@ -1,6 +1,240 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import '../styles/tokens.css';
+
+const HomePageStyles = `
+  .hp-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--color-bg-deep) 0%, var(--color-bg-base) 100%);
+  }
+
+  .hp-hero {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-16) var(--space-4) var(--space-12);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hp-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 30%, rgba(252, 76, 2, 0.03) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  .hp-hero-inner {
+    max-width: 600px;
+    text-align: center;
+    z-index: 1;
+  }
+
+  .hp-logo {
+    font-family: var(--font-display);
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: var(--space-4);
+    line-height: 1;
+    background: linear-gradient(90deg, var(--color-fg-primary), var(--color-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hp-logo span {
+    color: var(--color-accent);
+  }
+
+  .hp-tagline {
+    font-size: 18px;
+    color: var(--color-fg-secondary);
+    margin-bottom: var(--space-8);
+    line-height: 1.6;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hp-btns {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hp-btn-primary {
+    padding: var(--space-3) var(--space-8);
+    background: var(--color-accent);
+    color: var(--color-bg-deep);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+    letter-spacing: -0.2px;
+  }
+
+  .hp-btn-primary:hover {
+    background: var(--color-accent-hover);
+    box-shadow: 0 4px 16px rgba(252, 76, 2, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .hp-btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .hp-btn-secondary {
+    padding: var(--space-3) var(--space-8);
+    background: transparent;
+    color: var(--color-fg-secondary);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  }
+
+  .hp-btn-secondary:hover {
+    color: var(--color-fg-primary);
+    background: var(--color-bg-input);
+    border-color: var(--color-border-default);
+  }
+
+  .hp-section {
+    padding: var(--space-16) var(--space-4);
+  }
+
+  .hp-section--spacious {
+    padding: var(--space-20) var(--space-4) var(--space-16);
+  }
+
+  .hp-section-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: var(--space-12);
+    color: var(--color-fg-primary);
+  }
+
+  .hp-testimonials {
+    margin-top: var(--space-4);
+  }
+
+  .hp-testimonial {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-4);
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  }
+
+  .hp-testimonial:last-child {
+    margin-bottom: 0;
+  }
+
+  .hp-testimonial-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+
+  .hp-testimonial-avatar {
+    width: 44px;
+    height: 44px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 16px;
+    color: var(--color-bg-deep);
+  }
+
+  .hp-testimonial-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-fg-primary);
+  }
+
+  .hp-testimonial-quote {
+    font-size: 15px;
+    color: var(--color-fg-secondary);
+    line-height: 1.6;
+  }
+
+  .hp-features .hp-feature {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+    transition: transform var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
+  }
+
+  .hp-features .hp-feature:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-default);
+  }
+
+  .hp-feature-icon {
+    font-size: 32px;
+    margin-bottom: var(--space-2);
+  }
+
+  .hp-feature-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-fg-primary);
+  }
+
+  .hp-feature-desc {
+    font-size: 13px;
+    color: var(--color-fg-muted);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 700px) {
+    .hp-hero {
+      padding: var(--space-8) var(--space-4) var(--space-8);
+    }
+
+    .hp-logo {
+      font-size: 36px;
+    }
+
+    .hp-tagline {
+      font-size: 16px;
+    }
+
+    .hp-btns {
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+  }
+`;
 
 const testimonials = [
   { name: 'Michał K.', quote: 'Świetna aplikacja! W końcu mam porządek w ćwiczeniach.' },
@@ -9,9 +243,9 @@ const testimonials = [
 ];
 
 const features = [
-  { icon: '📈', title: 'Historia treningów', desc: 'Zapisuj i przeglądaj wszystkie swoje treningi w jednym miejscu.' },
-  { icon: '🎯', title: 'Statystyki i cele', desc: 'Śledź swoje postępy i osiągaj wyznaczone cele.' },
-  { icon: '⚡', title: 'Motywacja i przypomnienia', desc: 'Codzienna motywacja i przypomnienia o aktywności.' },
+  { icon: '🏆', title: 'Historia treningów', desc: 'Zapisuj i przeglądaj wszystkie swoje treningi w jednym miejscu.' },
+  { icon: '📊', title: 'Statystyki i cele', desc: 'Śledź swoje postępy i osiągaj wyznaczone cele.' },
+  { icon: '💡', title: 'Motywacja i przypomnienia', desc: 'Codzienna motywacja i przypomnienia o aktywności.' },
 ];
 
 const HomePage = () => {
@@ -19,237 +253,83 @@ const HomePage = () => {
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        .hp-page {
-          background: #0d0d0f;
-          color: #f0ede8;
-          font-family: 'DM Sans', sans-serif;
-          min-height: 100vh;
-        }
-
-        .hp-hero {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          padding: 60px 20px;
-          border-bottom: 1px solid #1e1e22;
-        }
-
-        .hp-hero-inner { max-width: 600px; }
-
-        .hp-logo {
-          font-family: 'Syne', sans-serif;
-          font-size: 48px;
-          font-weight: 800;
-          letter-spacing: -1px;
-          margin-bottom: 16px;
-          line-height: 1;
-        }
-
-        .hp-logo span { color: #c8f542; }
-
-        .hp-tagline {
-          font-size: 17px;
-          color: #666;
-          margin-bottom: 40px;
-          line-height: 1.6;
-        }
-
-        .hp-btns {
-          display: flex;
-          gap: 12px;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-
-        .hp-btn-primary {
-          padding: 14px 32px;
-          background: #c8f542;
-          color: #0d0d0f;
-          border: none;
-          border-radius: 12px;
-          font-family: 'Syne', sans-serif;
-          font-size: 15px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: background 0.15s, transform 0.1s;
-        }
-
-        .hp-btn-primary:hover { background: #d4f55a; transform: translateY(-1px); }
-
-        .hp-btn-secondary {
-          padding: 14px 32px;
-          background: none;
-          color: #888;
-          border: 1px solid #2a2a30;
-          border-radius: 12px;
-          font-family: 'Syne', sans-serif;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: color 0.15s, border-color 0.15s;
-        }
-
-        .hp-btn-secondary:hover { color: #f0ede8; border-color: #555; }
-
-        .hp-section {
-          max-width: 960px;
-          margin: 0 auto;
-          padding: 80px 20px;
-        }
-
-        .hp-section-title {
-          font-family: 'Syne', sans-serif;
-          font-size: 28px;
-          font-weight: 700;
-          text-align: center;
-          margin-bottom: 48px;
-          color: #f0ede8;
-        }
-
-        .hp-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 16px;
-        }
-
-        .hp-testimonial {
-          background: #16161a;
-          border: 1px solid #1e1e22;
-          border-radius: 14px;
-          padding: 28px 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .hp-testimonial-avatar {
-          width: 40px;
-          height: 40px;
-          background: #c8f542;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'Syne', sans-serif;
-          font-weight: 800;
-          font-size: 16px;
-          color: #0d0d0f;
-        }
-
-        .hp-testimonial-quote {
-          font-size: 14px;
-          color: #aaa;
-          line-height: 1.6;
-          flex: 1;
-        }
-
-        .hp-testimonial-name {
-          font-size: 12px;
-          color: #555;
-          font-weight: 500;
-        }
-
-        .hp-features-section {
-          border-top: 1px solid #1e1e22;
-          background: #0d0d0f;
-        }
-
-        .hp-feature {
-          background: #16161a;
-          border: 1px solid #1e1e22;
-          border-radius: 14px;
-          padding: 32px 24px;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .hp-feature-icon {
-          font-size: 36px;
-          margin-bottom: 4px;
-        }
-
-        .hp-feature-title {
-          font-family: 'Syne', sans-serif;
-          font-size: 16px;
-          font-weight: 700;
-          color: #f0ede8;
-        }
-
-        .hp-feature-desc {
-          font-size: 13px;
-          color: #555;
-          line-height: 1.6;
-        }
-      `}</style>
-
+      <style>{HomePageStyles}</style>
       <div className="hp-page">
         <div className="hp-hero">
           <motion.div
             className="hp-hero-inner"
-            initial={{ opacity: 0, y: -24 }}
+            initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
           >
-            <div className="hp-logo">Fitness<span>App</span></div>
-            <div className="hp-tagline">Aplikacja, która pomoże Ci osiągnąć formę życia.</div>
+            <div className="hp-logo">
+              Fitness<span>App</span>
+            </div>
+            <div className="hp-tagline">
+              Aplikacja, która pomoże Ci osiągnąć formę życia.
+            </div>
             <div className="hp-btns">
-              <button className="hp-btn-primary" onClick={() => navigate('/register')}>Rozpocznij</button>
-              <button className="hp-btn-secondary" onClick={() => navigate('/login')}>Mam już konto</button>
+              <motion.button
+                className="hp-btn-primary"
+                onClick={() => navigate('/register')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              >
+                Rozpocznij
+              </motion.button>
+              <motion.button
+                className="hp-btn-secondary"
+                onClick={() => navigate('/login')}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              >
+                Mam już konto
+              </motion.button>
             </div>
           </motion.div>
         </div>
 
-        <div className="hp-section">
+        <section className="hp-section hp-section--spacious hp-testimonials">
           <div className="hp-section-title">Opinie użytkowników</div>
-          <div className="hp-grid">
-            {testimonials.map((t, i) => (
+          {testimonials.map((t, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.4 }}
+            >
+              <div className="hp-testimonial hp-testimonial--card">
+                <div className="hp-testimonial-header">
+                  <div className="hp-testimonial-avatar">{t.name[0]}</div>
+                  <span className="hp-testimonial-name">{t.name}</span>
+                </div>
+                <p className="hp-testimonial-quote">"{t.quote}"</p>
+              </div>
+            </motion.div>
+          ))}
+        </section>
+
+        <section className="hp-section hp-features">
+          <div className="hp-section-title">Dlaczego warto?</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-4)' }}>
+            {features.map((f, i) => (
               <motion.div
                 key={i}
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.15, duration: 0.4 }}
               >
-                <div className="hp-testimonial">
-                  <div className="hp-testimonial-avatar">{t.name[0]}</div>
-                  <div className="hp-testimonial-quote">"{t.quote}"</div>
-                  <div className="hp-testimonial-name">— {t.name}</div>
+                <div className="hp-feature">
+                  <div className="hp-feature-icon">{f.icon}</div>
+                  <div className="hp-feature-title">{f.title}</div>
+                  <div className="hp-feature-desc">{f.desc}</div>
                 </div>
               </motion.div>
             ))}
           </div>
-        </div>
-
-        <div className="hp-features-section">
-          <div className="hp-section">
-            <div className="hp-section-title">Dlaczego warto?</div>
-            <div className="hp-grid">
-              {features.map((f, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.15 }}
-                  viewport={{ once: true }}
-                >
-                  <div className="hp-feature">
-                    <div className="hp-feature-icon">{f.icon}</div>
-                    <div className="hp-feature-title">{f.title}</div>
-                    <div className="hp-feature-desc">{f.desc}</div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </>
   );

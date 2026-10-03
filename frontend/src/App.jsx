@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import ExerciseStartPage from './pages/ExerciseStartPage';
 import DashboardPage from './pages/DashboardPage';
 import RecordsPage from './pages/RecordsPage';
+import TemplatesPage from './pages/TemplatesPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginForm from './pages/LoginPage';
 import ProtectedRoute from './pages/ProtectedRoute';
@@ -36,6 +37,7 @@ function App() {
             <Route path="/exercise-start" element={<ProtectedRoute><ExerciseStartPage /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/records" element={<ProtectedRoute><RecordsPage /></ProtectedRoute>} />
+            <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           </Routes>
         </AuthProvider>

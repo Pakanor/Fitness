@@ -359,6 +359,13 @@ function Header() {
             >
               Rekordy
             </button>
+            <button
+              className={`nav-link ${isActive('/templates') ? 'nav-link--active' : ''}`}
+              onClick={() => navigate('/templates')}
+              aria-current={isActive('/templates') ? 'page' : undefined}
+            >
+              Szablony
+            </button>
             <div className="account-wrap" ref={dropdownRef}>
               <button
                 className="account-btn"
@@ -424,6 +431,7 @@ function Header() {
         <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/exercises'); }}>Ćwiczenia</button>
         <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/calorie-tracker'); }}>Kalorie</button>
         <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/records'); }}>Rekordy</button>
+        <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/templates'); }}>Szablony</button>
         <button className="nav-link theme-toggle" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Włącz motyw jasny' : 'Włącz motyw ciemny'}>
           {theme === 'dark' ? <SunIcon /> : <MoonIcon />} <span style={{ marginLeft: 8 }}>Zmień motyw</span>
         </button>

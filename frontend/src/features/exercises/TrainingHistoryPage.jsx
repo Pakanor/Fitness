@@ -25,12 +25,12 @@ const historyStyles = `
     font-family: 'Syne', sans-serif;
     font-size: 24px;
     font-weight: 700;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
   }
 
   .history-back {
     font-size: 14px;
-    color: #c8f542;
+    color: var(--color-accent);
     cursor: pointer;
     background: none;
     border: none;
@@ -40,13 +40,13 @@ const historyStyles = `
 
   .history-subtitle {
     font-size: 14px;
-    color: #666;
+    color: var(--color-fg-muted);
     margin-bottom: 24px;
   }
 
   .history-day {
-    background: #16161a;
-    border: 1px solid #1e1e22;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
     border-radius: 12px;
     padding: 16px 20px;
     margin-bottom: 10px;
@@ -55,8 +55,8 @@ const historyStyles = `
   }
 
   .history-day:hover {
-    background: #1a1a1f;
-    border-color: #333;
+    background: var(--color-bg-elevated);
+    border-color: var(--color-fg-disabled);
   }
 
   .history-day-header {
@@ -70,18 +70,18 @@ const historyStyles = `
     font-family: 'Syne', sans-serif;
     font-size: 15px;
     font-weight: 600;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
   }
 
   .history-day-count {
     font-size: 12px;
-    color: #c8f542;
+    color: var(--color-accent);
     font-weight: 600;
   }
 
   .history-day-exercises {
     font-size: 13px;
-    color: #888;
+    color: var(--color-fg-muted);
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -91,9 +91,9 @@ const historyStyles = `
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(200, 245, 66, 0.08);
-    border: 1px solid rgba(200, 245, 66, 0.25);
-    color: #c8f542;
+    background: rgba(252, 76, 2, 0.08);
+    border: 1px solid rgba(252, 76, 2, 0.25);
+    color: var(--color-accent);
     border-radius: 999px;
     padding: 4px 10px;
     font-size: 12px;
@@ -103,16 +103,16 @@ const historyStyles = `
   }
 
   .history-exercise-chip:hover {
-    background: rgba(200, 245, 66, 0.16);
-    border-color: rgba(200, 245, 66, 0.5);
+    background: rgba(252, 76, 2, 0.16);
+    border-color: rgba(252, 76, 2, 0.5);
   }
 
   .history-exercise-chip-badge {
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.04em;
-    color: #0d0d0f;
-    background: #c8f542;
+    color: var(--color-bg-base);
+    background: var(--color-accent);
     border-radius: 999px;
     padding: 1px 5px;
   }
@@ -120,7 +120,7 @@ const historyStyles = `
   .empty-state {
     text-align: center;
     padding: 48px 20px;
-    color: #555;
+    color: var(--color-fg-muted);
   }
 
   .empty-icon {
@@ -138,8 +138,8 @@ const historyStyles = `
   .spinner {
     width: 28px;
     height: 28px;
-    border: 2px solid #1e1e22;
-    border-top-color: #c8f542;
+    border: 2px solid var(--color-border-subtle);
+    border-top-color: var(--color-accent);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
   }
@@ -181,7 +181,7 @@ export default function TrainingHistoryPage() {
   return (
     <>
       <style>{historyStyles}</style>
-      <div style={{ minHeight: '100vh', background: '#0d0d0f' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg-base)' }}>
         <Header />
         <div className="history-page">
           <div className="history-header">

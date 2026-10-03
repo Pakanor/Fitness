@@ -2,8 +2,8 @@ import { useState } from "react";
 
 const cardStyles = `
   .template-card {
-    background: #16161a;
-    border: 1px solid #1e1e22;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border-subtle);
     border-radius: 12px;
     padding: 20px;
     transition: all 0.2s;
@@ -11,7 +11,7 @@ const cardStyles = `
   }
 
   .template-card:hover {
-    border-color: #2a2a30;
+    border-color: var(--color-border-default);
     transform: translateY(-2px);
   }
 
@@ -26,7 +26,7 @@ const cardStyles = `
     font-family: 'Syne', sans-serif;
     font-size: 16px;
     font-weight: 600;
-    color: #f0ede8;
+    color: var(--color-fg-primary);
     margin: 0;
   }
 
@@ -38,7 +38,7 @@ const cardStyles = `
   .template-card-action {
     background: none;
     border: none;
-    color: #666;
+    color: var(--color-fg-muted);
     cursor: pointer;
     padding: 4px;
     font-size: 16px;
@@ -46,7 +46,7 @@ const cardStyles = `
   }
 
   .template-card-action:hover {
-    color: #f0ede8;
+    color: var(--color-fg-primary);
   }
 
   .template-card-action.delete:hover {
@@ -59,9 +59,9 @@ const cardStyles = `
 
   .template-card-exercise {
     font-size: 13px;
-    color: #999;
+    color: var(--color-fg-muted);
     padding: 4px 0;
-    border-bottom: 1px solid #1e1e22;
+    border-bottom: 1px solid var(--color-border-subtle);
   }
 
   .template-card-exercise:last-child {
@@ -73,16 +73,16 @@ const cardStyles = `
     justify-content: space-between;
     align-items: center;
     font-size: 12px;
-    color: #666;
+    color: var(--color-fg-muted);
   }
 
   .template-card-count {
-    color: #c8f542;
+    color: var(--color-accent);
     font-weight: 500;
   }
 
   .template-card-date {
-    color: #666;
+    color: var(--color-fg-muted);
   }
 `;
 

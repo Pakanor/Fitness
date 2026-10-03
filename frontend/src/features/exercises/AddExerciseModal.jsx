@@ -85,43 +85,43 @@ export default function AddExerciseModal({ open, onClose, onAdded, defaultDate }
     <>
       <style>{`
         .aem-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .aem-dialog { background: #16161a; border: 1px solid #1e1e22; border-radius: 16px; width: 520px; max-width: 100%; min-height: 420px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
-        .aem-header { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid #1e1e22; }
-        .aem-back { background: none; border: none; color: #888; font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
-        .aem-back:hover { color: #f0ede8; background: #1e1e22; }
+        .aem-dialog { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 16px; width: 520px; max-width: 100%; min-height: 420px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; }
+        .aem-header { display: flex; align-items: center; gap: 8px; padding: 16px 20px; border-bottom: 1px solid var(--color-border-subtle); }
+        .aem-back { background: none; border: none; color: var(--color-fg-muted); font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+        .aem-back:hover { color: var(--color-fg-primary); background: var(--color-border-subtle); }
         .aem-header-text { flex: 1; }
-        .aem-step-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #444; margin-bottom: 2px; font-family: 'DM Sans', sans-serif; }
-        .aem-step-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: #f0ede8; text-transform: capitalize; }
-        .aem-close { background: none; border: none; color: #555; font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
-        .aem-close:hover { color: #f0ede8; background: #1e1e22; }
+        .aem-step-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--color-fg-muted); margin-bottom: 2px; font-family: 'DM Sans', sans-serif; }
+        .aem-step-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--color-fg-primary); text-transform: capitalize; }
+        .aem-close { background: none; border: none; color: var(--color-fg-muted); font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+        .aem-close:hover { color: var(--color-fg-primary); background: var(--color-border-subtle); }
         .aem-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
         .aem-spinner { display: flex; justify-content: center; padding: 32px 0; }
-        .aem-spin { width: 24px; height: 24px; border: 2px solid #1e1e22; border-top-color: #c8f542; border-radius: 50%; animation: aem-spin 0.7s linear infinite; }
+        .aem-spin { width: 24px; height: 24px; border: 2px solid var(--color-border-subtle); border-top-color: var(--color-accent); border-radius: 50%; animation: aem-spin 0.7s linear infinite; }
         @keyframes aem-spin { to { transform: rotate(360deg); } }
         .aem-cats { display: flex; flex-wrap: wrap; gap: 8px; }
-        .aem-cat { padding: 8px 16px; border: 1px solid #2a2a30; border-radius: 8px; background: none; color: #ccc; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; text-transform: capitalize; transition: border-color 0.15s, color 0.15s, background 0.15s; }
-        .aem-cat:hover { border-color: #c8f542; color: #c8f542; background: rgba(200,245,66,0.06); }
-        .aem-search { width: 100%; padding: 10px 14px; background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 10px; color: #f0ede8; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; box-sizing: border-box; margin-bottom: 12px; transition: border-color 0.15s; }
-        .aem-search::placeholder { color: #444; }
-        .aem-search:focus { border-color: #c8f542; }
+        .aem-cat { padding: 8px 16px; border: 1px solid var(--color-border-default); border-radius: 8px; background: none; color: var(--color-fg-secondary); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; text-transform: capitalize; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+        .aem-cat:hover { border-color: var(--color-accent); color: var(--color-accent); background: rgba(252,76,2,0.06); }
+        .aem-search { width: 100%; padding: 10px 14px; background: var(--color-bg-base); border: 1px solid var(--color-border-default); border-radius: 10px; color: var(--color-fg-primary); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; box-sizing: border-box; margin-bottom: 12px; transition: border-color 0.15s; }
+        .aem-search::placeholder { color: var(--color-fg-muted); }
+        .aem-search:focus { border-color: var(--color-accent); }
         .aem-ex-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
-        .aem-ex-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid #1e1e22; border-radius: 10px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
-        .aem-ex-item:hover { background: #1e1e22; border-color: #2a2a30; }
-        .aem-ex-gif { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: #1e1e22; flex-shrink: 0; }
-        .aem-ex-name { font-family: 'DM Sans', sans-serif; font-size: 14px; color: #e0ddd8; text-transform: capitalize; }
-        .aem-empty { text-align: center; padding: 32px; color: #444; font-size: 14px; font-family: 'DM Sans', sans-serif; }
+        .aem-ex-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--color-border-subtle); border-radius: 10px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+        .aem-ex-item:hover { background: var(--color-border-subtle); border-color: var(--color-border-default); }
+        .aem-ex-gif { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: var(--color-border-subtle); flex-shrink: 0; }
+        .aem-ex-name { font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--color-fg-primary); text-transform: capitalize; }
+        .aem-empty { text-align: center; padding: 32px; color: var(--color-fg-muted); font-size: 14px; font-family: 'DM Sans', sans-serif; }
         .aem-gif-preview { display: flex; justify-content: center; margin-bottom: 16px; }
         .aem-gif-preview img { width: 220px; height: 220px; border-radius: 12px; object-fit: cover; }
         .aem-field { margin-bottom: 12px; }
-        .aem-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #444; margin-bottom: 6px; font-family: 'DM Sans', sans-serif; font-weight: 500; }
-        .aem-input { width: 100%; padding: 10px 14px; background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 10px; color: #f0ede8; font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.15s; colorScheme: dark; }
-        .aem-input:focus { border-color: #c8f542; }
-        .aem-footer { padding: 16px 20px; border-top: 1px solid #1e1e22; display: flex; justify-content: flex-end; gap: 8px; }
-        .aem-btn-cancel { padding: 10px 18px; background: none; border: none; color: #666; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; border-radius: 8px; transition: color 0.15s; }
-        .aem-btn-cancel:hover { color: #aaa; }
-        .aem-btn-submit { padding: 10px 20px; background: #c8f542; color: #0d0d0f; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
-        .aem-btn-submit:hover { background: #d4f55a; }
-        .aem-btn-submit:disabled { background: #1e1e22; color: #444; cursor: default; }
+        .aem-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--color-fg-muted); margin-bottom: 6px; font-family: 'DM Sans', sans-serif; font-weight: 500; }
+        .aem-input { width: 100%; padding: 10px 14px; background: var(--color-bg-base); border: 1px solid var(--color-border-default); border-radius: 10px; color: var(--color-fg-primary); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.15s; colorScheme: dark; }
+        .aem-input:focus { border-color: var(--color-accent); }
+        .aem-footer { padding: 16px 20px; border-top: 1px solid var(--color-border-subtle); display: flex; justify-content: flex-end; gap: 8px; }
+        .aem-btn-cancel { padding: 10px 18px; background: none; border: none; color: var(--color-fg-muted); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; border-radius: 8px; transition: color 0.15s; }
+        .aem-btn-cancel:hover { color: var(--color-fg-secondary); }
+        .aem-btn-submit { padding: 10px 20px; background: var(--color-accent); color: var(--color-bg-base); border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+        .aem-btn-submit:hover { background: var(--color-accent-hover); }
+        .aem-btn-submit:disabled { background: var(--color-border-subtle); color: var(--color-fg-muted); cursor: default; }
       `}</style>
 
       <div className="aem-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -183,7 +183,7 @@ export default function AddExerciseModal({ open, onClose, onAdded, defaultDate }
                   <div key={label} className="aem-field">
                     <label className="aem-label">
                       {label}
-                      {hint && <span style={{ fontSize: 11, color: '#555', fontWeight: 400, marginLeft: 6 }}>({hint})</span>}
+                      {hint && <span style={{ fontSize: 11, color: 'var(--color-fg-muted)', fontWeight: 400, marginLeft: 6 }}>({hint})</span>}
                     </label>
                     <input className="aem-input" type="number" value={value} onChange={e => set(e.target.value)} />
                   </div>

@@ -11,7 +11,7 @@ const VerifyPage = () => {
 
         .vp-page {
           min-height: 100vh;
-          background: #0d0d0f;
+          background: var(--color-bg-base);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -22,8 +22,8 @@ const VerifyPage = () => {
         .vp-card {
           width: 100%;
           max-width: 440px;
-          background: #16161a;
-          border: 1px solid #1e1e22;
+          background: var(--color-bg-card);
+          border: 1px solid var(--color-border-subtle);
           border-radius: 16px;
           padding: 48px 36px;
           text-align: center;
@@ -38,21 +38,21 @@ const VerifyPage = () => {
           font-family: 'Syne', sans-serif;
           font-size: 22px;
           font-weight: 700;
-          color: #f0ede8;
+          color: var(--color-fg-primary);
           margin-bottom: 12px;
         }
 
         .vp-desc {
           font-size: 14px;
-          color: #555;
+          color: var(--color-fg-muted);
           line-height: 1.6;
           margin-bottom: 32px;
         }
 
         .vp-btn {
           padding: 14px 28px;
-          background: #c8f542;
-          color: #0d0d0f;
+          background: var(--color-accent);
+          color: var(--color-bg-base);
           border: none;
           border-radius: 12px;
           font-family: 'Syne', sans-serif;
@@ -62,7 +62,7 @@ const VerifyPage = () => {
           transition: background 0.15s, transform 0.1s;
         }
 
-        .vp-btn:hover { background: #d4f55a; transform: translateY(-1px); }
+        .vp-btn:hover { background: var(--color-accent-hover); transform: translateY(-1px); }
         .vp-btn:active { transform: translateY(0); }
       `}</style>
 

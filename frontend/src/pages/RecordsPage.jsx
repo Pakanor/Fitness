@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../components/layout/Header';
 import { getRecordsByExercise } from '../api/exerciseAPI';
+import E1RMProgressChart from '../features/exercises/E1RMProgressChart';
 
 const API_URL = 'http://localhost:8000/api/ExerciseDb';
 const PAGE_SIZE = 40;
@@ -28,8 +29,8 @@ function RecordsPage({ embedded }) {
   }, []);
 
   const rootStyle = embedded
-    ? { height: '100%', display: 'flex', flexDirection: 'column', background: '#0d0d0f', color: '#f0ede8', fontFamily: "'DM Sans', sans-serif" }
-    : { height: '100vh', display: 'flex', flexDirection: 'column', background: '#0d0d0f', color: '#f0ede8', fontFamily: "'DM Sans', sans-serif" };
+    ? { height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--color-bg-base)', color: 'var(--color-fg-primary)', fontFamily: "'DM Sans', sans-serif" }
+    : { height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--color-bg-base)', color: 'var(--color-fg-primary)', fontFamily: "'DM Sans', sans-serif" };
 
   const freqMap = useMemo(() => {
     const map = {};
@@ -91,35 +92,35 @@ function RecordsPage({ embedded }) {
     <div style={rootStyle}>
       <style>{`
         .rec-layout { display: flex; flex: 1; overflow: hidden; }
-        .rec-sidebar { width: 280px; flexShrink: 0; borderRight: 1px solid #1e1e22; overflow-y: auto; padding: 12px; }
+        .rec-sidebar { width: 280px; flexShrink: 0; borderRight: 1px solid var(--color-border-subtle); overflow-y: auto; padding: 12px; }
         .rec-main { flex: 1; overflow-y: auto; padding: 20px; }
-        .rec-search { width: 100%; padding: 8px 12px; background: #0d0d0f; border: 1px solid #2a2a30; border-radius: 8px; color: #f0ede8; font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; box-sizing: border-box; margin-bottom: 8px; }
-        .rec-search:focus { border-color: #c8f542; }
-        .rec-ex-item { display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: #888; font-family: 'DM Sans', sans-serif; font-size: 13px; text-align: left; cursor: pointer; border-radius: 6px; transition: color 0.15s, background 0.15s; }
-        .rec-ex-item:hover { color: #f0ede8; background: #1e1e22; }
-        .rec-ex-item.active { color: #c8f542; background: rgba(200,245,66,0.08); }
-        .rec-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #444; margin-bottom: 6px; margin-top: 12px; }
+        .rec-search { width: 100%; padding: 8px 12px; background: var(--color-bg-base); border: 1px solid var(--color-border-default); border-radius: 8px; color: var(--color-fg-primary); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; box-sizing: border-box; margin-bottom: 8px; }
+        .rec-search:focus { border-color: var(--color-accent); }
+        .rec-ex-item { display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: var(--color-fg-muted); font-family: 'DM Sans', sans-serif; font-size: 13px; text-align: left; cursor: pointer; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+        .rec-ex-item:hover { color: var(--color-fg-primary); background: var(--color-border-subtle); }
+        .rec-ex-item.active { color: var(--color-accent); background: rgba(252,76,2,0.08); }
+        .rec-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--color-fg-muted); margin-bottom: 6px; margin-top: 12px; }
         .rec-section-title:first-child { margin-top: 0; }
-        .rec-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: #444; flex-direction: column; gap: 4px; font-size: 14px; }
-        .rec-empty-sub { font-size: 12px; color: #333; }
-        .rec-card { background: #16161a; border: 1px solid #1e1e22; border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .rec-weight { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: #c8f542; }
-        .rec-meta { font-size: 12px; color: #666; }
-        .rec-ratio { font-size: 11px; color: #4caf50; }
-        .chart-wrap { background: #16161a; border: 1px solid #1e1e22; border-radius: 12px; padding: 20px; margin-bottom: 16px; overflow-x: auto; }
+        .rec-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-fg-muted); flex-direction: column; gap: 4px; font-size: 14px; }
+        .rec-empty-sub { font-size: 12px; color: var(--color-fg-disabled); }
+        .rec-card { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .rec-weight { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--color-accent); }
+        .rec-meta { font-size: 12px; color: var(--color-fg-muted); }
+        .rec-ratio { font-size: 11px; color: var(--color-success); }
+        .chart-wrap { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 12px; padding: 20px; margin-bottom: 16px; overflow-x: auto; }
         .rec-pagination { display: flex; gap: 4px; align-items: center; justify-content: center; padding: 8px 0; flex-wrap: wrap; }
-        .rec-page-btn { padding: 4px 10px; background: #1e1e22; border: 1px solid #2a2a30; border-radius: 4px; color: #888; cursor: pointer; font-size: 11px; font-family: 'DM Sans', sans-serif; }
-        .rec-page-btn.active { background: #c8f542; color: #0d0d0f; border-color: #c8f542; }
-        .rec-page-btn:hover:not(.active) { background: #2a2a30; }
-        .rec-freq-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: #1e1e22; border: 1px solid #2a2a30; border-radius: 20px; color: #aaa; font-size: 11px; cursor: pointer; margin: 2px; transition: background 0.15s; }
-        .rec-freq-item:hover { background: #2a2a30; color: #f0ede8; }
-        .rec-freq-badge { background: #c8f542; color: #0d0d0f; border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
+        .rec-page-btn { padding: 4px 10px; background: var(--color-border-subtle); border: 1px solid var(--color-border-default); border-radius: 4px; color: var(--color-fg-muted); cursor: pointer; font-size: 11px; font-family: 'DM Sans', sans-serif; }
+        .rec-page-btn.active { background: var(--color-accent); color: var(--color-bg-base); border-color: var(--color-accent); }
+        .rec-page-btn:hover:not(.active) { background: var(--color-border-default); }
+        .rec-freq-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--color-border-subtle); border: 1px solid var(--color-border-default); border-radius: 20px; color: var(--color-fg-secondary); font-size: 11px; cursor: pointer; margin: 2px; transition: background 0.15s; }
+        .rec-freq-item:hover { background: var(--color-border-default); color: var(--color-fg-primary); }
+        .rec-freq-badge { background: var(--color-accent); color: var(--color-bg-base); border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
       `}</style>
 
       {!embedded && <Header />}
       {!embedded && (
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e1e22', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16 }}>
-          Centrum <span style={{ color: '#c8f542' }}>Rekordów</span>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border-subtle)', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16 }}>
+          Centrum <span style={{ color: 'var(--color-accent)' }}>Rekordów</span>
         </div>
       )}
       <div className="rec-layout">
@@ -173,32 +174,36 @@ function RecordsPage({ embedded }) {
               <div>Wybierz ćwiczenie z listy</div>
               <div className="rec-empty-sub">aby zobaczyć historię rekordów życiowych</div>
             </div>
-          ) : records.length === 0 ? (
-            <div className="rec-empty">
-              <div>Brak rekordów dla tego ćwiczenia</div>
-              <div className="rec-empty-sub">Dodaj treningi, aby śledzić progres</div>
-            </div>
           ) : (
             <>
+              <E1RMProgressChart exerciseId={selectedExerciseId} />
+
+              {records.length === 0 ? (
+                <div className="rec-empty">
+                  <div>Brak rekordów dla tego ćwiczenia</div>
+                  <div className="rec-empty-sub">Dodaj treningi, aby śledzić progres</div>
+                </div>
+              ) : (
+                <>
               {chartSections && (
                 <div className="chart-wrap">
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 12, textAlign: 'center' }}>Progresja siły w czasie</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-fg-muted)', marginBottom: 12, textAlign: 'center' }}>Progresja siły w czasie</div>
                   <svg viewBox={`0 0 ${chartSections.width} ${chartSections.height + 30}`} style={{ width: '100%', height: 'auto', maxHeight: 220 }}>
-                    <line x1="0" y1={chartSections.height} x2={chartSections.width} y2={chartSections.height} stroke="#2a2a30" strokeWidth="1" />
+                    <line x1="0" y1={chartSections.height} x2={chartSections.width} y2={chartSections.height} stroke="var(--color-border-default)" strokeWidth="1" />
                     {chartSections.points.map((p, i) => (
                       <g key={i}>
                         {i > 0 && (
-                          <line x1={chartSections.points[i-1].x} y1={chartSections.points[i-1].y} x2={p.x} y2={p.y} stroke="#c8f542" strokeWidth="2" />
+                          <line x1={chartSections.points[i-1].x} y1={chartSections.points[i-1].y} x2={p.x} y2={p.y} stroke="var(--color-accent)" strokeWidth="2" />
                         )}
-                        <circle cx={p.x} cy={p.y} r="4" fill="#c8f542" />
-                        <text x={p.x} y={chartSections.height + 15} textAnchor="middle" fill="#555" fontSize="9">{new Date(p.date).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}</text>
-                        <text x={p.x} y={p.y - 8} textAnchor="middle" fill="#f0ede8" fontSize="10" fontWeight="600">{p.weight}kg</text>
+                        <circle cx={p.x} cy={p.y} r="4" fill="var(--color-accent)" />
+                        <text x={p.x} y={chartSections.height + 15} textAnchor="middle" fill="var(--color-fg-muted)" fontSize="9">{new Date(p.date).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}</text>
+                        <text x={p.x} y={p.y - 8} textAnchor="middle" fill="var(--color-fg-primary)" fontSize="10" fontWeight="600">{p.weight}kg</text>
                       </g>
                     ))}
                   </svg>
                 </div>
               )}
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#444', marginBottom: 8 }}>Historia rekordów</div>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--color-fg-muted)', marginBottom: 8 }}>Historia rekordów</div>
               {records.map((r, i) => (
                 <div key={i} className="rec-card">
                   <div>
@@ -215,6 +220,8 @@ function RecordsPage({ embedded }) {
                   </div>
                 </div>
               ))}
+                </>
+              )}
             </>
           )}
         </div>

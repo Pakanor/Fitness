@@ -19,6 +19,13 @@ export async function getExercisesByBodyPart(bodyPart) {
   if (!res.ok) throw new Error(`Błąd pobierania ćwiczeń dla: ${bodyPart}`);
   return await res.json();
 }
+
+export async function searchExercises(term, offset = 0, limit = 50) {
+  const params = new URLSearchParams({ term, offset: String(offset), limit: String(limit) });
+  const res = await fetch(`${API_URL}/exercise/search/${encodeURIComponent(term)}?${params}`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Błąd wyszukiwania ćwiczeń');
+  return await res.json();
+}
 export const addUserExercise = async (exerciseData) => {
   const response = await apiClient.post('/userexercise/add', exerciseData);
   return response.data;

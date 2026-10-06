@@ -30,6 +30,9 @@ namespace ExerciseAPI.Data
             modelBuilder.Entity<UserExercise>()
                 .HasIndex(ue => new { ue.UserId, ue.Date });
 
+            modelBuilder.Entity<Exercise>()
+                .HasIndex(e => e.Name);
+
             modelBuilder.Entity<MuscleGroup>().HasData(
                 new MuscleGroup { Key = "chest_main", NamePl = "Klatka piersiowa", IsFront = true, HalfLife = 42 },
                 new MuscleGroup { Key = "deltoid_anterior", NamePl = "Bark przedni", IsFront = true, HalfLife = 30 },

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "../../components/common/Toast";
+import { searchExercises } from "../../api/exerciseAPI";
 
 const editorStyles = `
   .template-editor-overlay {
@@ -24,8 +25,8 @@ const editorStyles = `
     border: 1px solid var(--color-border-subtle);
     border-radius: 16px;
     width: 100%;
-    max-width: 600px;
-    max-height: 85vh;
+    max-width: 900px;
+    max-height: 90vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -233,8 +234,8 @@ const editorStyles = `
     margin-top: 16px;
     position: relative;
   }
-
-  .template-editor-search-hint {
+      width: 112px;
+      height: 84px;
     margin-top: 8px;
     font-size: 12px;
     color: var(--color-fg-muted);
@@ -244,7 +245,7 @@ const editorStyles = `
   .template-editor-search-input {
     width: 100%;
     box-sizing: border-box;
-    background: var(--color-bg-base);
+      max-height: 360px;
     border: 1px solid var(--color-border-default);
     border-radius: 8px;
     padding: 10px 16px;
@@ -267,7 +268,7 @@ const editorStyles = `
     left: 0;
     right: 0;
     z-index: 5;
-    max-height: 160px;
+    max-height: 360px;
     overflow-y: auto;
     overscroll-behavior: contain;
     margin-top: 4px;
@@ -278,8 +279,11 @@ const editorStyles = `
   }
 
   .template-editor-search-result {
-    padding: 10px 16px;
-    line-height: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 76px;
+    padding: 8px 12px;
     cursor: pointer;
     color: var(--color-fg-primary);
     font-size: 14px;
@@ -292,6 +296,25 @@ const editorStyles = `
 
   .template-editor-search-result:last-child {
     border-bottom: none;
+  }
+
+  .template-editor-search-gif,
+  .template-editor-exercise-gif {
+    width: 112px;
+    height: 84px;
+    object-fit: cover;
+    border-radius: 6px;
+    background: var(--color-border-subtle);
+    flex-shrink: 0;
+  }
+
+  .template-editor-exercise-gif {
+    width: 96px;
+    height: 72px;
+  }
+
+  .template-editor-search-result-name {
+    line-height: 1.35;
   }
 `;
 
@@ -318,11 +341,7 @@ export default function TemplateEditor({ template, onClose, onSave }) {
     const run = ++searchRun.current;
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/records/search?query=${encodeURIComponent(query)}`, {
-          credentials: 'include'
-        });
-        if (!response.ok) throw new Error('Search failed');
-        const data = await response.json();
+        const data = await searchExercises(query);
         if (run !== searchRun.current) return;
         setSearchResults(Array.isArray(data) ? data : []);
       } catch (e) {
@@ -342,7 +361,7 @@ export default function TemplateEditor({ template, onClose, onSave }) {
       setExercises(prev => [...prev, {
         exerciseId: exercise.id,
         exerciseName: exercise.name,
-        category: exercise.category,
+        gifUrl: exercise.gifUrl,
         order: prev.length
       }]);
     }
@@ -433,7 +452,16 @@ export default function TemplateEditor({ template, onClose, onSave }) {
                         className="template-editor-search-result"
                         onClick={() => handleAddExercise(exercise)}
                       >
-                        {exercise.name}
+                        {exercise.gifUrl ? (
+                          <img
+                            src={exercise.gifUrl.startsWith('http') ? exercise.gifUrl : `http://localhost:8000${exercise.gifUrl}`}
+                            alt=""
+                            className="template-editor-search-gif"
+                          />
+                        ) : (
+                          <div className="template-editor-search-gif" aria-hidden="true" />
+                        )}
+                        <span className="template-editor-search-result-name">{exercise.name}</span>
                       </div>
                     ))}
                   </div>
@@ -454,6 +482,15 @@ export default function TemplateEditor({ template, onClose, onSave }) {
                 ) : (
                   exercises.map(exercise => (
                     <div key={exercise.exerciseId} className="template-editor-exercise">
+                      {exercise.gifUrl ? (
+                        <img
+                          src={exercise.gifUrl.startsWith('http') ? exercise.gifUrl : `http://localhost:8000${exercise.gifUrl}`}
+                          alt=""
+                          className="template-editor-exercise-gif"
+                        />
+                      ) : (
+                        <div className="template-editor-exercise-gif" aria-hidden="true" />
+                      )}
                       <span className="template-editor-exercise-handle">⋮⋮</span>
                       <span className="template-editor-exercise-name">{exercise.exerciseName}</span>
                       <button

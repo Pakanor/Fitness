@@ -13,6 +13,7 @@ namespace ExerciseAPI.DTOs
     {
         public int ExerciseId { get; set; }
         public string ExerciseName { get; set; } = string.Empty;
+        public string? GifUrl { get; set; }
         public string Category { get; set; } = string.Empty;
         public int Order { get; set; }
     }

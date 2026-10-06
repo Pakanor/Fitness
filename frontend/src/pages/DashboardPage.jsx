@@ -5,6 +5,7 @@ import BodyMeasurementForm from '../features/measurements/BodyMeasurementForm';
 import { useAuth } from '../context/AuthContext';
 import { getExercisesByDate } from '../api/exerciseAPI';
 import { getRecentLogs } from '../api/productAPI';
+import { workoutAPI } from '../api/workoutAPI';
 import '../styles/tokens.css';
 
 const JOB_PAL = {
@@ -193,6 +194,55 @@ const DashboardStyles = `
     font-weight: 700;
     color: var(--color-fg-primary);
     margin-bottom: var(--space-4);
+  }
+
+  .db-incomplete {
+    border-color: rgba(252, 76, 2, 0.35);
+  }
+
+  .db-incomplete-count {
+    color: var(--color-accent);
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: var(--space-2);
+  }
+
+  .db-incomplete-text {
+    color: var(--color-fg-muted);
+    font-size: 13px;
+    margin-bottom: var(--space-3);
+  }
+
+  .db-incomplete-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .db-incomplete-date {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    width: 100%;
+    padding: 8px 10px;
+    color: var(--color-fg-primary);
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .db-incomplete-date:hover {
+    border-color: var(--color-accent);
+  }
+
+  .db-incomplete-date-count {
+    color: var(--color-fg-muted);
+    font-size: 12px;
   }
 
   .db-kcal-current {
@@ -611,6 +661,7 @@ function DashboardPage() {
   const [weekData, setWeekData] = useState([]);
   const [recentWorkouts, setRecentWorkouts] = useState([]);
   const [personalRecords, setPersonalRecords] = useState([]);
+  const [incompleteSessions, setIncompleteSessions] = useState([]);
   const [streak, setStreak] = useState(0);
 
   useEffect(() => {
@@ -624,7 +675,7 @@ function DashboardPage() {
           return toDateStr(d);
         });
 
-        const [profileRes, logsRes, todayEx, weekEx, pastEx, recordsRes] = await Promise.all([
+        const [profileRes, logsRes, todayEx, weekEx, pastEx, recordsRes, incompleteRes] = await Promise.all([
           fetch('http://localhost:8000/api/user/profile', { credentials: 'include' })
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null),
@@ -635,6 +686,7 @@ function DashboardPage() {
           fetch('http://localhost:8000/api/records/history', { credentials: 'include' })
             .then((r) => (r.ok ? r.json() : []))
             .catch(() => []),
+          workoutAPI.getIncompleteSessions().catch(() => []),
         ]);
 
         if (cancelled) return;
@@ -649,6 +701,7 @@ function DashboardPage() {
           .filter((x) => x.exercises.length > 0);
         setRecentWorkouts(activeDays.slice(0, 3));
         setPersonalRecords(Array.isArray(recordsRes) ? recordsRes.slice(0, 3) : []);
+        setIncompleteSessions(Array.isArray(incompleteRes) ? incompleteRes : []);
         setStreak(computeStreak(activeDays.map((x) => x.date)));
       } catch (e) {
         console.error('Błąd pobierania podsumowania:', e);
@@ -851,6 +904,34 @@ function DashboardPage() {
                 </section>
 
                 <aside className="db-side">
+                  {incompleteSessions.length > 0 && (
+                    <div className="db-card db-incomplete">
+                      <h3 className="db-card-title" style={{ fontSize: 14 }}>Niedokończone treningi</h3>
+                      <div className="db-incomplete-count">{incompleteSessions.length}</div>
+                      <div className="db-incomplete-text">Masz treningi wymagające uzupełnienia danych.</div>
+                      <div className="db-incomplete-dates">
+                        {incompleteSessions.map((incomplete) => {
+                          const date = String(incomplete.date).slice(0, 10);
+                          const label = new Date(`${date}T12:00:00`).toLocaleDateString('pl-PL', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                          });
+                          return (
+                            <button
+                              key={incomplete.id}
+                              className="db-incomplete-date"
+                              onClick={() => navigate(`/exercises?date=${date}`)}
+                            >
+                              <span>{label}</span>
+                              <span className="db-incomplete-date-count">{incomplete.exerciseCount} ćw.</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="db-card">
                     <h3 className="db-card-title" style={{ fontSize: 14 }}>Ten tydzień</h3>
                     <div className="db-week">

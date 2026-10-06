@@ -30,7 +30,8 @@ namespace ExerciseAPI.Services
             var target = DateTime.SpecifyKind(date, DateTimeKind.Utc).Date;
             return _context.WorkoutSessions
                 .Include(s => s.Exercises)
-                .FirstOrDefaultAsync(s => s.UserId == userId && s.Date == target);
+                .Where(s => s.UserId == userId && s.Date == target && s.Exercises.Any())
+                .FirstOrDefaultAsync();
         }
 
         public Task<WorkoutSession?> GetSessionById(int sessionId, int userId)
@@ -50,13 +51,21 @@ namespace ExerciseAPI.Services
                 .FirstOrDefaultAsync();
         }
 
+        public Task<List<WorkoutSession>> GetIncompleteSessions(int userId)
+        {
+            return _context.WorkoutSessions
+                .Include(s => s.Exercises)
+                .Include(s => s.Template)
+                .Where(s => s.UserId == userId
+                    && s.Status != WorkoutStatus.Completed
+                    && s.Exercises.Any())
+                .OrderByDescending(s => s.Date)
+                .ToListAsync();
+        }
+
         public async Task<WorkoutSession> CreateFromTemplate(int userId, int templateId, DateTime date)
         {
             var target = DateTime.SpecifyKind(date, DateTimeKind.Utc).Date;
-            var today = DateTime.UtcNow.Date;
-
-            if (target < today)
-                throw new SessionStateException("Sesję można zaplanować tylko na dzisiaj lub przyszłą datę.");
 
             var template = await _context.WorkoutTemplates
                 .Include(t => t.TemplateExercises)
@@ -68,24 +77,26 @@ namespace ExerciseAPI.Services
             if (!template.TemplateExercises.Any())
                 throw new SessionStateException("Szablon nie zawiera żadnych ćwiczeń.");
 
-            var alreadyPlanned = await _context.WorkoutSessions
-                .AnyAsync(s => s.UserId == userId && s.Date == target);
+            var existingSession = await _context.WorkoutSessions
+                .Include(s => s.Exercises)
+                .FirstOrDefaultAsync(s => s.UserId == userId && s.Date == target);
 
-            if (alreadyPlanned)
+            if (existingSession?.Exercises.Any() == true)
                 throw new SessionStateException("Na ten dzień istnieje już zaplanowany trening.");
 
             var now = DateTime.UtcNow;
-            var session = new WorkoutSession
+            var session = existingSession ?? new WorkoutSession
             {
                 UserId = userId,
                 Date = target,
-                Status = WorkoutStatus.Planned,
-                TemplateId = templateId,
-                StartMode = WorkoutStartMode.FromTemplate,
-                TotalVolume = WorkoutSession.EmptyVolume,
-                CreatedAt = now,
-                UpdatedAt = now
+                CreatedAt = now
             };
+
+            session.Status = WorkoutStatus.Planned;
+            session.TemplateId = templateId;
+            session.StartMode = WorkoutStartMode.FromTemplate;
+            session.TotalVolume = WorkoutSession.EmptyVolume;
+            session.UpdatedAt = now;
 
             var exercises = template.TemplateExercises
                 .OrderBy(te => te.Order)
@@ -103,7 +114,8 @@ namespace ExerciseAPI.Services
 
             session.Exercises = exercises;
 
-            _context.WorkoutSessions.Add(session);
+            if (existingSession == null)
+                _context.WorkoutSessions.Add(session);
             await _context.SaveChangesAsync();
 
             return session;
@@ -180,11 +192,8 @@ namespace ExerciseAPI.Services
         public async Task<(UserExercise Entry, WorkoutSession Session)> LogSet(int userId, LogSetDto dto, decimal? userWeight = null)        {
             var session = await GetOwnedSession(userId, dto.SessionId);
 
-            if (session.Status == WorkoutStatus.Planned)
+            if (session.Status == WorkoutStatus.Planned && session.Date.Date > DateTime.UtcNow.Date)
                 throw new SessionStateException("Najpierw rozpocznij trening, aby zapisywać serie.");
-
-            if (session.Status == WorkoutStatus.Completed)
-                throw new SessionStateException("Zakończony trening jest zablokowany do edycji.");
 
             UserExercise entry;
 
@@ -222,7 +231,32 @@ namespace ExerciseAPI.Services
             entry.Weight = dto.Weight;
             entry.RPE = dto.RPE;
             entry.RIR = dto.RIR;
-            entry.Status = WorkoutStatus.InProgress;
+            if (session.Status == WorkoutStatus.Planned)
+            {
+                session.Status = WorkoutStatus.InProgress;
+                session.StartedAt = DateTime.UtcNow;
+            }
+
+            var completed = session.Exercises.Any() && session.Exercises.All(exercise =>
+                exercise.Sets.HasValue && exercise.Reps.HasValue && exercise.Weight.HasValue);
+
+            if (completed)
+            {
+                session.Status = WorkoutStatus.Completed;
+                session.CompletedAt = DateTime.UtcNow;
+            }
+            else if (session.Status == WorkoutStatus.Completed)
+            {
+                session.Status = WorkoutStatus.InProgress;
+                session.CompletedAt = null;
+            }
+
+            entry.Status = completed ? WorkoutStatus.Completed : WorkoutStatus.InProgress;
+            if (completed)
+            {
+                foreach (var exercise in session.Exercises)
+                    exercise.Status = WorkoutStatus.Completed;
+            }
 
             session.UpdatedAt = DateTime.UtcNow;
             session.TotalVolume = CalculateVolume(session);

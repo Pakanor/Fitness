@@ -111,6 +111,7 @@ namespace ExerciseAPI.Controllers
                     {
                         ExerciseId = te.ExerciseId,
                         ExerciseName = te.Exercise?.Name ?? string.Empty,
+                        GifUrl = te.Exercise?.GifUrl,
                         Category = te.Exercise?.Category ?? string.Empty,
                         Order = te.Order
                     }).ToList()

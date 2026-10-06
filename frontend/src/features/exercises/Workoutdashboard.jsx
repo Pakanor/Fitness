@@ -692,7 +692,7 @@ const STATUS_META = {
   [SESSION_STATUS.PLANNED]: {
     label: "Zaplanowany",
     accent: "var(--color-info)",
-    hint: "Zaplanowany na ten dzień. Serie możesz zapisać po rozpoczęciu treningu.",
+    hint: "Zaplanowany na ten dzień. Dane treningu uzupełnisz w wybranym dniu.",
   },
   [SESSION_STATUS.IN_PROGRESS]: {
     label: "W trakcie",
@@ -702,11 +702,11 @@ const STATUS_META = {
   [SESSION_STATUS.COMPLETED]: {
     label: "Ukończony",
     accent: "var(--color-success)",
-    hint: "Trening zakończony. Zapis jest zablokowany.",
+    hint: "Wszystkie dane są uzupełnione. Możesz je edytować.",
   },
 };
 
-function SessionBanner({ session, actionLoading, onStart, onFinish, onReopen }) {
+function SessionBanner({ session, actionLoading, onStart, onEdit, canFill }) {
   if (!session) return null;
 
   const meta = STATUS_META[session.status] ?? STATUS_META[SESSION_STATUS.PLANNED];
@@ -716,49 +716,42 @@ function SessionBanner({ session, actionLoading, onStart, onFinish, onReopen }) 
     <div className="session-banner" style={{ "--session-accent": meta.accent }}>
       <div className="session-info">
         <div className="session-title">
-          {session.templateName || "Trening"}
+          Trening
           <span className="session-badge">{meta.label}</span>
         </div>
-        <div className="session-sub">{meta.hint}</div>
+        <div className="session-sub">
+          {session.status === SESSION_STATUS.PLANNED && canFill
+            ? "Możesz teraz uzupełnić serie w tym treningu."
+            : meta.hint}
+        </div>
       </div>
 
       {completed && (
-        <>
-          <div className="session-volume">
-            {(session.totalVolume || 0).toLocaleString("pl-PL")} kg objętości
-          </div>
-          <button
-            className="session-btn session-btn--ghost"
-            onClick={onReopen}
-            disabled={actionLoading}
-            title="Wznów trening i dopisz kolejne serie"
-          >
-            {actionLoading ? "Wznawiam…" : "↻ Wznów trening"}
-          </button>
-        </>
+        <div className="session-volume">
+          {(session.totalVolume || 0).toLocaleString("pl-PL")} kg objętości
+        </div>
       )}
 
-      {session.status === SESSION_STATUS.PLANNED && (
+      {session.status === SESSION_STATUS.COMPLETED ? (
+        <button
+          className="session-btn session-btn--ghost"
+          onClick={onEdit}
+          disabled={actionLoading}
+          title="Edytuj dane treningu"
+        >
+          ✎ Edytuj dane
+        </button>
+      ) : (
         <button
           className="session-btn session-btn--primary"
           onClick={onStart}
           disabled={actionLoading}
-          title="Rozpocznij trening"
+          title={canFill ? "Wypełnij dane treningu" : "Rozpocznij trening"}
         >
-          {actionLoading ? "Startuję…" : "▶ Rozpocznij trening"}
+          {actionLoading ? "Przygotowuję…" : canFill ? "✎ Wypełnij dane" : "▶ Rozpocznij trening"}
         </button>
       )}
 
-      {session.status === SESSION_STATUS.IN_PROGRESS && (
-        <button
-          className="session-btn session-btn--success"
-          onClick={onFinish}
-          disabled={actionLoading}
-          title="Zakończ trening"
-        >
-          {actionLoading ? "Zapisuję…" : "✓ Zakończ trening"}
-        </button>
-      )}
     </div>
   );
 }
@@ -800,41 +793,6 @@ function TodayHeader({ count, date }) {
   );
 }
 
-function ResumeBanner({ session, onResume }) {
-  if (!session) return null;
-
-  const date = String(session.date).slice(0, 10);
-  const parsed = new Date(`${date}T12:00:00`);
-  const label = parsed.toLocaleDateString("pl-PL", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-
-  return (
-    <div className="session-banner" style={{ "--session-accent": "var(--color-warn)" }}>
-      <div className="session-info">
-        <div className="session-title">
-          Niedokończony trening
-          <span className="session-badge">Wznowienia</span>
-        </div>
-        <div className="session-sub">
-          {session.templateName || "Trening"} z {label} · {session.exerciseCount}{" "}
-          {session.exerciseCount === 1 ? "ćwiczenie" : "ćwiczeń"}
-        </div>
-      </div>
-
-      <button
-        className="session-btn session-btn--primary"
-        onClick={onResume}
-        title="Wróć do niedokończonego treningu"
-      >
-        ▶ Wznów trening
-      </button>
-    </div>
-  );
-}
-
 export default function WorkoutDashboard({ onExerciseChange }) {
   const navigate = useNavigate();
   const [exercises, setExercises] = useState([]);
@@ -844,7 +802,6 @@ export default function WorkoutDashboard({ onExerciseChange }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [logTarget, setLogTarget] = useState(null);
   const [session, setSession] = useState(null);
-  const [resumable, setResumable] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [templateCount, setTemplateCount] = useState(0);
@@ -855,8 +812,12 @@ export default function WorkoutDashboard({ onExerciseChange }) {
   );
 
   const sessionStatus = session?.status ?? null;
+  const currentDate = new Date();
+  const today = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+  const canFillSession = Boolean(session) &&
+    (selectedDate <= today || sessionStatus === SESSION_STATUS.IN_PROGRESS);
   const sessionLocked =
-    sessionStatus === SESSION_STATUS.PLANNED || sessionStatus === SESSION_STATUS.COMPLETED;
+    (sessionStatus === SESSION_STATUS.PLANNED && !canFillSession);
 
   useEffect(() => {
     if (paramDate) setSelectedDate(paramDate);
@@ -871,24 +832,9 @@ export default function WorkoutDashboard({ onExerciseChange }) {
     }
   }, []);
 
-  // An unfinished session survives reloads and day switches, so it is tracked
-  // separately from the session of the day being viewed.
-  const refreshResumable = useCallback(async () => {
-    try {
-      const active = await workoutAPI.getActiveSession();
-      setResumable(active);
-    } catch {
-      setResumable(null);
-    }
-  }, []);
-
   useEffect(() => {
     refreshTemplates();
   }, [refreshTemplates]);
-
-  useEffect(() => {
-    refreshResumable();
-  }, [refreshResumable]);
 
   const fetchExercises = useCallback(async (date) => {
     setLoading(true);
@@ -916,6 +862,7 @@ export default function WorkoutDashboard({ onExerciseChange }) {
       } else {
         setPrevMap({});
       }
+      return data;
     } catch (e) {
       setError(e.message || "Błąd pobierania ćwiczeń");
     } finally {
@@ -929,26 +876,44 @@ export default function WorkoutDashboard({ onExerciseChange }) {
 
   const handleDelete = async (userExerciseId) => {
     await deleteUserExercise(userExerciseId);
-    setExercises((prev) => prev.filter((e) => e.userExerciseId !== userExerciseId));
+    await fetchExercises(selectedDate);
     onExerciseChange?.();
   };
 
   const handleExerciseAdded = () => {
     setModalOpen(false);
     setLogTarget(null);
-    fetchExercises(selectedDate);
-    refreshResumable();
+    fetchExercises(selectedDate).then((entries) => {
+      if (session && entries) openNextExercise(entries);
+    });
     onExerciseChange?.();
+  };
+
+  const openNextExercise = (entries) => {
+    const next = entries.find((entry) =>
+      entry.sets == null || entry.reps == null || entry.weight == null
+    );
+    if (!next) return;
+
+    setLogTarget({
+      exercise: {
+        id: next.exerciseId,
+        name: next.name,
+        category: next.category,
+        gifUrl: next.gifUrl,
+      },
+      entry: next,
+    });
+    setModalOpen(true);
+  };
+
+  const handleEditData = () => {
+    if (!session || exercises.length === 0) return;
+    handleLogSet(exercises[0]);
   };
 
   const handleDateSearch = (date) => {
     setSelectedDate(date);
-  };
-
-  const handleResume = () => {
-    if (!resumable) return;
-    setSelectedDate(String(resumable.date).slice(0, 10));
-    toast("Wrócono do niedokończonego treningu.");
   };
 
   const handleLoadTemplate = async (templateId) => {
@@ -956,7 +921,7 @@ export default function WorkoutDashboard({ onExerciseChange }) {
     setActionLoading(true);
     try {
       await workoutAPI.loadTemplate(templateId, selectedDate);
-      toast("Szablon dodany do tego dnia. Rozpocznij trening, aby zapisywać serie.");
+      toast("Szablon dodany do tego dnia. Wypełnij dane każdego ćwiczenia.");
       await fetchExercises(selectedDate);
       onExerciseChange?.();
     } catch (e) {
@@ -971,42 +936,11 @@ export default function WorkoutDashboard({ onExerciseChange }) {
     setActionLoading(true);
     try {
       await workoutAPI.startWorkout(session.id);
-      toast("Trening rozpoczęty. Możesz zapisywać serie.");
-      await fetchExercises(selectedDate);
-      await refreshResumable();
+      toast("Możesz teraz wypełnić dane ćwiczeń.");
+      const entries = await fetchExercises(selectedDate);
+      openNextExercise(entries);
     } catch (e) {
       toast(e.message || "Nie udało się rozpocząć treningu.", "error");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleFinish = async () => {
-    if (!session) return;
-    setActionLoading(true);
-    try {
-      const updated = await workoutAPI.finishWorkout(session.id);
-      toast(`Trening ukończony — ${(updated.totalVolume || 0).toLocaleString("pl-PL")} kg objętości.`);
-      await fetchExercises(selectedDate);
-      await refreshResumable();
-      onExerciseChange?.();
-    } catch (e) {
-      toast(e.message || "Nie udało się zakończyć treningu.", "error");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleReopen = async () => {
-    if (!session) return;
-    setActionLoading(true);
-    try {
-      await workoutAPI.reopenWorkout(session.id);
-      toast("Trening wznowiony. Możesz dopisać kolejne serie.");
-      await fetchExercises(selectedDate);
-      await refreshResumable();
-    } catch (e) {
-      toast(e.message || "Nie udało się wznowić treningu.", "error");
     } finally {
       setActionLoading(false);
     }
@@ -1037,13 +971,9 @@ export default function WorkoutDashboard({ onExerciseChange }) {
             session={session}
             actionLoading={actionLoading}
             onStart={handleStart}
-            onFinish={handleFinish}
-            onReopen={handleReopen}
+            onEdit={handleEditData}
+            canFill={canFillSession}
           />
-
-          {resumable && String(resumable.date).slice(0, 10) !== selectedDate && (
-            <ResumeBanner session={resumable} onResume={handleResume} />
-          )}
 
           <div className="section-label">Trening</div>
 
@@ -1063,7 +993,7 @@ export default function WorkoutDashboard({ onExerciseChange }) {
                     onDelete={handleDelete}
                     prev={prevMap[entry.exerciseId]}
                     onLogSet={sessionStatus ? handleLogSet : null}
-                    locked={Boolean(entry.sessionId) && sessionLocked}
+                    locked={sessionLocked}
                   />
                 ))}
               </div>

@@ -4,6 +4,7 @@ import { getExercisesByDate } from "../../api/exerciseAPI";
 import Header from "../../components/layout/Header";
 import WorkoutStartModal from "./WorkoutStartModal";
 import { templateAPI } from "../../api/templateAPI";
+import { workoutAPI } from "../../api/workoutAPI";
 import '../../styles/tokens.css';
 
 const ExerciseHubStyles = `
@@ -247,7 +248,10 @@ const ExerciseHubStyles = `
 export default function ExerciseHub() {
   const navigate = useNavigate();
   const [todayCount, setTodayCount] = useState(0);
-  const [todayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [todayDate] = useState(() => {
+    const date = new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  });
   const [showStartModal, setShowStartModal] = useState(false);
 
   useEffect(() => {
@@ -270,12 +274,13 @@ export default function ExerciseHub() {
 
   const handleStartFromTemplate = async (templateId) => {
     try {
-      await templateAPI.startFromTemplate(templateId);
+      await workoutAPI.loadTemplate(templateId, todayDate);
     } catch (e) {
       console.error("Error starting from template:", e);
+      return;
     }
     setShowStartModal(false);
-    navigate("/exercise-start");
+    navigate(`/exercise-start?date=${todayDate}`);
   };
 
   const handleCopyPreviousByTemplate = async (templateId) => {

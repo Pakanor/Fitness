@@ -11,6 +11,7 @@ namespace ExerciseAPI.Interfaces
 
         /// <summary>Most recent session still in progress, on any day — used to resume training.</summary>
         Task<WorkoutSession?> GetActiveSession(int userId);
+        Task<List<WorkoutSession>> GetIncompleteSessions(int userId);
 
         Task<WorkoutSession> CreateFromTemplate(int userId, int templateId, DateTime date);
 

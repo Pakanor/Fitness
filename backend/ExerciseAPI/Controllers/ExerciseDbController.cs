@@ -7,6 +7,7 @@ using ExerciseAPI.Data;
 using ExerciseAPI.Models;
 using ExerciseAPI.DTOs;
 using ExerciseAPI.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
 namespace ExerciseAPI.Controllers
 {
     [ApiController]
@@ -16,15 +17,17 @@ namespace ExerciseAPI.Controllers
     {
         private readonly ExerciseDbImportService _importService;
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
 
 
-        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, IHttpContextAccessor httpContextAccessor)
+        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, IHttpContextAccessor httpContextAccessor, IMemoryCache cache)
             : base(httpContextAccessor)
         {
             _importService = importService;
             _context = context;
+            _cache = cache;
         }
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
 
         [HttpPost("import")]
         public async Task<IActionResult> Import()
@@ -136,25 +139,31 @@ namespace ExerciseAPI.Controllers
             });
         }
         [HttpGet("exercise/search/{term}")]
-        public async Task<IActionResult> SearchExercises(string term)
+        public async Task<IActionResult> SearchExercises(string term, [FromQuery] int offset = 0, [FromQuery] int limit = 50)
         {
-            var exercises = await _context.Exercises
-                .Where(e => e.Name.ToLower().Contains(term.ToLower()))
+            if (string.IsNullOrWhiteSpace(term))
+                return Ok(Array.Empty<object>());
+
+            offset = Math.Max(0, offset);
+            limit = Math.Clamp(limit, 1, 50);
+            var cacheKey = $"exercise-search:{term.Trim().ToLowerInvariant()}:{offset}:{limit}";
+
+            var exercises = await _cache.GetOrCreateAsync(cacheKey, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+                return await _context.Exercises
+                .Where(e => EF.Functions.ILike(e.Name, $"%{term.Trim()}%"))
+                .OrderBy(e => e.Name)
+                .Skip(offset)
+                .Take(limit)
                 .Select(e => new
                 {
                     e.Id,
                     e.Name,
-                    e.Category,
-                    MuscleMappings = _context.ExerciseMuscleGroups
-                        .Where(emg => emg.ExerciseId == e.Id)
-                        .Select(emg => new
-                        {
-                            emg.MuscleGroupKey,
-                            emg.WeightPercentage
-                        })
-                        .ToList()
+                    e.GifUrl
                 })
                 .ToListAsync();
+            });
             return Ok(exercises);
         }
         [HttpPut("exercise/{id}/mappings")]
@@ -299,7 +308,8 @@ namespace ExerciseAPI.Controllers
 
             var daySession = await _context.WorkoutSessions
                 .FirstOrDefaultAsync(s => s.UserId == CurrentUserId
-                                          && s.Date == DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc));
+                                          && s.Date == DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc)
+                                          && s.Exercises.Any());
 
             var result = filtered.Select(ue => {
                 var exercise = exercises.FirstOrDefault(e => e.Id == ue.ExerciseId);
@@ -382,19 +392,23 @@ namespace ExerciseAPI.Controllers
                 if (entry == null || entry.UserId != CurrentUserId)
                 return NotFound();
 
-                // Planned and finished sessions are locked for editing.
-                if (entry.SessionId.HasValue)
-                {
-                    var session = await _context.WorkoutSessions
-                        .FirstOrDefaultAsync(s => s.Id == entry.SessionId.Value);
+            WorkoutSession? sessionToRemove = null;
+            if (entry.SessionId.HasValue)
+            {
+                var hasOtherExercises = await _context.UserExercise
+                    .AnyAsync(ue => ue.SessionId == entry.SessionId.Value && ue.Id != entry.Id);
 
-                    if (session != null && session.Status != WorkoutStatus.InProgress)
-                        return Conflict(session.Status == WorkoutStatus.Planned
-                            ? "Zaplanowany trening można edytować dopiero po rozpoczęciu."
-                            : "Zakończony trening jest zablokowany do edycji.");
+                if (!hasOtherExercises)
+                {
+                    sessionToRemove = await _context.WorkoutSessions
+                        .FirstOrDefaultAsync(s => s.Id == entry.SessionId.Value);
                 }
+            }
 
             _context.UserExercise.Remove(entry);
+            if (sessionToRemove != null)
+                _context.WorkoutSessions.Remove(sessionToRemove);
+
             await _context.SaveChangesAsync();
 
             return NoContent();

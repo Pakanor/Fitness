@@ -62,6 +62,23 @@ namespace ExerciseAPI.Controllers
             return Ok(response);
         }
 
+        [HttpGet("incomplete")]
+        public async Task<IActionResult> GetIncompleteSessions()
+        {
+            if (!HasCurrentUser)
+                return Unauthorized();
+
+            var sessions = await _sessionService.GetIncompleteSessions(CurrentUserId);
+            return Ok(sessions.Select(session => new
+            {
+                session.Id,
+                session.Date,
+                TemplateName = session.Template?.Name,
+                ExerciseCount = session.Exercises.Count,
+                Status = ToStatusString(session.Status)
+            }));
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetSession(int id)
         {

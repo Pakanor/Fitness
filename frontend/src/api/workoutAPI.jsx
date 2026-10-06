@@ -11,11 +11,20 @@ const request = async (url, options = {}) => {
   });
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+  }
 
   if (!response.ok) {
     const error = new Error(
-      (data && (data.title || data.message)) || text || 'API request failed',
+      (data && (data.title || data.message)) ||
+        (text && !text.trimStart().startsWith('<') ? text : null) ||
+        `API request failed (${response.status})`,
     );
     error.status = response.status;
     throw error;
@@ -46,6 +55,8 @@ export const workoutAPI = {
       throw error;
     }
   },
+
+  getIncompleteSessions: () => request('/workouts/incomplete'),
 
   /** Creates a PLANNED session for the target date from a template. */
   loadTemplate: (templateId, date) =>

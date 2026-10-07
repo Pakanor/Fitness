@@ -42,6 +42,17 @@ function ProgressTooltip({ active, payload }) {
   );
 }
 
+function ConfidenceDot({ cx, cy, payload, uncertain = false }) {
+  if (cx == null || cy == null) return null;
+
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={4} fill={uncertain ? "var(--color-fg-muted)" : "var(--color-accent)"} opacity={uncertain ? 0.65 : 1} />
+      {uncertain && <text x={cx + 6} y={cy - 6} fill="var(--color-fg-muted)" fontSize={10}>!</text>}
+    </g>
+  );
+}
+
 const axisTick = { fill: "var(--color-fg-muted)", fontSize: 11 };
 const gridStroke = "var(--color-border-subtle)";
 
@@ -165,7 +176,7 @@ export default function E1RMProgressChart({ exerciseId }) {
             dataKey="maxE1RM"
             stroke="var(--color-accent)"
             strokeWidth={2}
-            dot={{ r: 3 }}
+            dot={(props) => <ConfidenceDot {...props} uncertain={!props.payload.hasRpe} />}
             name="e1RM"
           />
           <Line
@@ -178,6 +189,10 @@ export default function E1RMProgressChart({ exerciseId }) {
           />
         </LineChart>
       </ResponsiveContainer>
+
+      <Box sx={{ color: "var(--color-fg-muted)", fontSize: 11, mt: 1, px: 1 }}>
+        Wskazówka: Brak podanego RPE w treningu oznacza założenie serii do załamania, co może zaniżać wyliczaną siłę na wykresie.
+      </Box>
 
       <MuscleAnalytics analytics={progress.muscleAnalytics ?? []} />
     </motion.div>

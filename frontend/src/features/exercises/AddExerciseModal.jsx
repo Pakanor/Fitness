@@ -26,6 +26,7 @@ export default function AddExerciseModal({
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
   const [rpe, setRpe] = useState("");
+  const [isWarmup, setIsWarmup] = useState(false);
   const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
 
@@ -43,6 +44,7 @@ export default function AddExerciseModal({
     setReps(initialEntry?.reps != null ? String(initialEntry.reps) : "");
     setWeight(initialEntry?.weight != null ? String(initialEntry.weight) : "");
     setRpe(initialEntry?.rpe != null ? String(initialEntry.rpe) : "");
+    setIsWarmup(initialEntry?.isWarmup === true);
     setDate(defaultDate || new Date().toISOString().slice(0, 10));
   }, [open, initialExercise, initialEntry, defaultDate]);
 
@@ -67,7 +69,7 @@ export default function AddExerciseModal({
 
   const handleSubmit = async () => {
     if (!user?.id) { toast("Brak UserId w tokenie!", "error"); return; }
-    if (rpe && (parseInt(rpe) < 1 || parseInt(rpe) > 10)) {
+    if (rpe && (parseFloat(rpe) < 1 || parseFloat(rpe) > 10)) {
       toast("RPE musi być w zakresie 1-10", "error"); return;
     }
     setLoading(true);
@@ -77,6 +79,7 @@ export default function AddExerciseModal({
         reps: reps ? parseInt(reps) : null,
         weight: weight ? parseFloat(weight) : null,
         rpe: rpe ? parseFloat(rpe) : null,
+        isWarmup,
       };
 
       if (sessionId) {
@@ -212,11 +215,22 @@ export default function AddExerciseModal({
                   <div key={label} className="aem-field">
                     <label className="aem-label">
                       {label}
+                      {label.startsWith("RPE") && (
+                        <span
+                          title="RPE to poziom zmęczenia w skali 1-10 (ile powtórzeń miałeś w zapasie). Np. RPE 8 = dałbyś radę zrobić jeszcze 2 powtórzenia. Uzupełnienie tego pola pozwala precyzyjnie oszacować Twoją siłę (e1RM), nawet jeśli nie robisz serii do załamania."
+                          aria-label="Wyjaśnienie RPE"
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 15, height: 15, marginLeft: 6, border: '1px solid currentColor', borderRadius: '50%', fontSize: 10, cursor: 'help' }}
+                        >?</span>
+                      )}
                       {hint && <span style={{ fontSize: 11, color: 'var(--color-fg-muted)', fontWeight: 400, marginLeft: 6 }}>({hint})</span>}
                     </label>
-                    <input className="aem-input" type="number" value={value} onChange={e => set(e.target.value)} />
+                    <input className="aem-input" type="number" min={label.startsWith("RPE") ? 1 : undefined} max={label.startsWith("RPE") ? 10 : undefined} step={label.startsWith("RPE") ? 0.5 : undefined} value={value} onChange={e => set(e.target.value)} />
                   </div>
                 ))}
+                <label className="aem-field" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={isWarmup} onChange={e => setIsWarmup(e.target.checked)} />
+                  <span className="aem-label" style={{ marginBottom: 0, textTransform: 'none', letterSpacing: 0 }}>Seria rozgrzewkowa</span>
+                </label>
                 <div className="aem-field">
                   <label className="aem-label">Data</label>
                   <input className="aem-input" type="date" value={date} onChange={e => setDate(e.target.value)} style={{ colorScheme: 'dark' }} disabled={Boolean(sessionId)} />

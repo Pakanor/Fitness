@@ -186,9 +186,11 @@ namespace ExerciseAPI.Services
                 allTimeMax = _e1rmCalculator.CalculateBest(best.Weight, best.Reps, best.Rpe, allTimeMax);
             }
 
-            var muscleAnalytics = validEntries
-                .Where(x => x.IsWarmup == false)
-                .Where(x => bestExerciseE1Rm <= 0m || x.Weight!.Value >= bestExerciseE1Rm * 0.5m)
+            var hardEntries = validEntries
+                .Where(x => IsHardSet(x, bestExerciseE1Rm))
+                .ToList();
+
+            var muscleAnalytics = hardEntries
                 .SelectMany(x => x.Exercise?.MuscleGroupMappings ?? Enumerable.Empty<ExerciseMuscleGroup>(),
                     (entry, mapping) => new
                     {
@@ -225,14 +227,138 @@ namespace ExerciseAPI.Services
                 .OrderBy(x => x.Name)
                 .ToList();
 
+            var workload = validEntries
+                .GroupBy(x => x.Date.Date)
+                .OrderBy(x => x.Key)
+                .Select(day => new ExerciseWorkloadPointDto
+                {
+                    Date = day.Key.ToString("yyyy-MM-dd"),
+                    Tonnage = day.Sum(x => (x.Sets ?? 1) * x.Reps!.Value * x.Weight!.Value),
+                    Repetitions = day.Sum(x => (x.Sets ?? 1) * x.Reps!.Value),
+                    AverageReps = (decimal)Math.Round(day.Average(x => x.Reps!.Value), 2),
+                    HardSets = hardEntries.Where(x => x.Date.Date == day.Key).Sum(x => x.Sets ?? 1)
+                })
+                .ToList();
+
+            var repRanges = validEntries
+                .GroupBy(x => GetRepRange(x.Reps!.Value))
+                .OrderBy(x => x.Key)
+                .Select(group => new ExerciseRepRangeDto
+                {
+                    Range = group.Key,
+                    Sets = group.Sum(x => x.Sets ?? 1)
+                })
+                .ToList();
+
+            var allTimePr = validEntries
+                .OrderByDescending(x => x.Weight!.Value)
+                .ThenByDescending(x => x.Reps!.Value)
+                .FirstOrDefault();
+
             return new ExerciseProgressResponseDto
             {
                 ExerciseId = exerciseId,
                 ExerciseName = exerciseName,
                 DataPoints = dataPoints.OrderBy(p => p.Date, StringComparer.Ordinal).ToList(),
                 AllTimeMaxE1RM = allTimeMax,
-                MuscleAnalytics = muscleAnalytics
+                MuscleAnalytics = muscleAnalytics,
+                Workload = workload,
+                RepRanges = repRanges,
+                AllTimePrWeight = allTimePr?.Weight ?? 0m,
+                AllTimePrReps = allTimePr?.Reps ?? 0,
+                TotalSets = validEntries.Sum(x => x.Sets ?? 1),
+                LastPerformedDate = validEntries.OrderByDescending(x => x.Date).FirstOrDefault()?.Date.ToString("yyyy-MM-dd")
             };
+        }
+
+        public async Task<GlobalAnalyticsResponseDto> GetOverview(
+            int userId,
+            DateTime? startDate,
+            DateTime? endDate)
+        {
+            var query = _context.UserExercise
+                .Where(ue => ue.UserId == userId && ue.Weight.HasValue && ue.Reps.HasValue)
+                .Where(CountsTowardsStats)
+                .Include(ue => ue.Exercise)
+                .ThenInclude(e => e!.MuscleGroupMappings)
+                .ThenInclude(mapping => mapping.MuscleGroup)
+                .AsQueryable();
+
+            if (startDate.HasValue)
+                query = query.Where(ue => ue.Date >= startDate.Value.Date);
+
+            if (endDate.HasValue)
+                query = query.Where(ue => ue.Date <= endDate.Value.Date.AddDays(1).AddTicks(-1));
+
+            var entries = await query.ToListAsync();
+            var validEntries = entries
+                .Where(x => _e1rmCalculator.IsValidSet(x.Weight!.Value, x.Reps!.Value))
+                .ToList();
+
+            var bestByExercise = validEntries
+                .Where(x => !x.IsWarmup)
+                .GroupBy(x => x.ExerciseId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Max(x => _e1rmCalculator.CalculateBrzycki(x.Weight!.Value, x.Reps!.Value, x.RPE)));
+
+            var hardEntries = validEntries
+                .Where(x => bestByExercise.TryGetValue(x.ExerciseId, out var best) && IsHardSet(x, best))
+                .ToList();
+
+            var muscleVolume = hardEntries
+                .SelectMany(x => x.Exercise?.MuscleGroupMappings ?? Enumerable.Empty<ExerciseMuscleGroup>(),
+                    (entry, mapping) => new
+                    {
+                        mapping.MuscleGroupKey,
+                        Name = mapping.MuscleGroup?.NamePl ?? mapping.MuscleGroupKey,
+                        HardSets = (entry.Sets ?? 1) * mapping.WeightPercentage
+                    })
+                .GroupBy(x => new { x.MuscleGroupKey, x.Name })
+                .OrderBy(x => x.Key.Name)
+                .Select(group => new GlobalMuscleVolumeDto
+                {
+                    Key = group.Key.MuscleGroupKey,
+                    Name = group.Key.Name,
+                    HardSets = group.Sum(x => x.HardSets)
+                })
+                .ToList();
+
+            var activity = hardEntries
+                .GroupBy(x => x.Date.Date)
+                .OrderBy(x => x.Key)
+                .Select(day => new TrainingActivityDayDto
+                {
+                    Date = day.Key.ToString("yyyy-MM-dd"),
+                    HardSets = day.Sum(x => x.Sets ?? 1)
+                })
+                .ToList();
+
+            var weeklyTrend = entries
+                .GroupBy(x => GetWeekStart(x.Date))
+                .OrderBy(x => x.Key)
+                .Select(week => new WeeklyTrainingTrendDto
+                {
+                    Week = week.Key.ToString("yyyy-MM-dd"),
+                    HardSets = hardEntries.Where(x => GetWeekStart(x.Date) == week.Key).Sum(x => x.Sets ?? 1),
+                    AverageRpe = week.Any(x => x.RPE.HasValue)
+                        ? (decimal?)Math.Round(week.Where(x => x.RPE.HasValue).Select(x => (double)x.RPE!.Value).Average(), 2)
+                        : null
+                })
+                .ToList();
+
+            return new GlobalAnalyticsResponseDto
+            {
+                MuscleVolume = muscleVolume,
+                Activity = activity,
+                WeeklyTrend = weeklyTrend
+            };
+        }
+
+        private static bool IsHardSet(UserExercise entry, decimal bestE1Rm)
+        {
+            return !entry.IsWarmup
+                && (bestE1Rm <= 0m || entry.Weight!.Value >= bestE1Rm * 0.5m);
         }
 
         private static DateTime GetWeekStart(DateTime date)

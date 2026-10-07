@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../components/layout/Header';
 import E1RMProgressChart from '../features/exercises/E1RMProgressChart';
+import TrainingOverview from '../features/exercises/TrainingOverview';
 
 const API_URL = 'http://localhost:8000/api/ExerciseDb';
 const PAGE_SIZE = 40;
@@ -12,6 +13,10 @@ function RecordsPage({ embedded }) {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
+  const [activeView, setActiveView] = useState('overview');
+  const [range, setRange] = useState('3M');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -59,11 +64,24 @@ function RecordsPage({ embedded }) {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
 
-  const handleSelectExercise = async (id) => {
+  const handleSelectExercise = (id) => {
     setSelectedExerciseId(id);
+    setActiveView('detail');
     setLoading(true);
     setLoading(false);
   };
+
+  const dateRange = useMemo(() => {
+    if (range === 'CUSTOM') return { startDate: customStart || undefined, endDate: customEnd || undefined };
+    if (range === 'ALL') return { startDate: undefined, endDate: undefined };
+    const end = new Date();
+    const start = new Date(end);
+    if (range === 'WEEK') start.setDate(end.getDate() - 6);
+    if (range === '1M') start.setMonth(end.getMonth() - 1);
+    if (range === '3M') start.setMonth(end.getMonth() - 3);
+    if (range === '6M') start.setMonth(end.getMonth() - 6);
+    return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+  }, [range, customStart, customEnd]);
 
   return (
     <div style={rootStyle}>
@@ -92,6 +110,25 @@ function RecordsPage({ embedded }) {
         .rec-freq-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--color-border-subtle); border: 1px solid var(--color-border-default); border-radius: 20px; color: var(--color-fg-secondary); font-size: 11px; cursor: pointer; margin: 2px; transition: background 0.15s; }
         .rec-freq-item:hover { background: var(--color-border-default); color: var(--color-fg-primary); }
         .rec-freq-badge { background: var(--color-accent); color: var(--color-bg-base); border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
+        .analytics-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+        .analytics-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 16px; }
+        .analytics-tab { border: 0; border-bottom: 2px solid transparent; background: none; color: var(--color-fg-muted); padding: 10px 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; }
+        .analytics-tab.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+        .analytics-range, .analytics-date { background: var(--color-bg-card); color: var(--color-fg-primary); border: 1px solid var(--color-border-default); border-radius: 6px; padding: 7px 9px; font-family: 'DM Sans', sans-serif; font-size: 12px; }
+        .analytics-overview-grid, .analytics-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        .analytics-panel { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 10px; padding: 14px; min-width: 0; }
+        .analytics-panel-wide { grid-column: span 2; }
+        .analytics-panel h2 { color: var(--color-fg-muted); font-size: 12px; font-weight: 500; margin: 0 0 8px; }
+        .analytics-kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+        .analytics-kpi { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 8px; padding: 10px; min-width: 0; }
+        .analytics-kpi span { display: block; color: var(--color-fg-muted); font-size: 10px; margin-bottom: 5px; }
+        .analytics-kpi strong { display: block; color: var(--color-fg-primary); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .activity-heatmap { display: grid; grid-template-columns: repeat(7, minmax(12px, 1fr)); gap: 4px; min-height: 120px; align-content: center; }
+        .activity-cell { aspect-ratio: 1; background: var(--color-accent); border-radius: 3px; min-width: 10px; }
+        .activity-legend { display: flex; align-items: center; gap: 4px; color: var(--color-fg-muted); font-size: 10px; margin-top: 10px; }
+        .activity-legend i { width: 10px; height: 10px; background: var(--color-accent); border-radius: 2px; display: inline-block; }
+        .activity-legend i:nth-of-type(1) { opacity: .25; } .activity-legend i:nth-of-type(2) { opacity: .45; } .activity-legend i:nth-of-type(3) { opacity: .7; }
+        @media (max-width: 760px) { .analytics-overview-grid, .analytics-detail-grid { grid-template-columns: 1fr; } .analytics-panel-wide { grid-column: span 1; } .analytics-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       `}</style>
 
       {!embedded && <Header />}
@@ -143,8 +180,20 @@ function RecordsPage({ embedded }) {
           )}
         </div>
         <div className="rec-main">
+          <div className="analytics-tabs">
+            <button className={`analytics-tab ${activeView === 'overview' ? 'active' : ''}`} onClick={() => setActiveView('overview')}>Przegląd Ogólny Partii</button>
+            <button className={`analytics-tab ${activeView === 'detail' ? 'active' : ''}`} onClick={() => selectedExerciseId && setActiveView('detail')}>Analiza Ćwiczenia</button>
+          </div>
+          <div className="analytics-toolbar">
+            <select className="analytics-range" value={range} onChange={(event) => setRange(event.target.value)}>
+              <option value="WEEK">Tydzień</option><option value="1M">1M</option><option value="3M">3M</option><option value="6M">6M</option><option value="ALL">ALL</option><option value="CUSTOM">Własny zakres</option>
+            </select>
+            {range === 'CUSTOM' && <><input className="analytics-date" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} /><input className="analytics-date" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} /></>}
+          </div>
           {loading ? (
             <div className="rec-empty">Ładowanie...</div>
+          ) : activeView === 'overview' ? (
+            <TrainingOverview startDate={dateRange.startDate} endDate={dateRange.endDate} />
           ) : !selectedExerciseId ? (
             <div className="rec-empty">
               <div style={{fontSize: 28, marginBottom: 8}}>🏆</div>
@@ -153,7 +202,7 @@ function RecordsPage({ embedded }) {
             </div>
           ) : (
             <>
-              <E1RMProgressChart exerciseId={selectedExerciseId} />
+              <E1RMProgressChart exerciseId={selectedExerciseId} startDate={dateRange.startDate} endDate={dateRange.endDate} />
 
             </>
           )}

@@ -6,6 +6,10 @@ import {
   Line,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
+  ComposedChart,
   ReferenceArea,
   XAxis,
   YAxis,
@@ -60,7 +64,7 @@ export function formatKg(value) {
   return `${value} kg`;
 }
 
-export default function E1RMProgressChart({ exerciseId }) {
+export default function E1RMProgressChart({ exerciseId, startDate, endDate }) {
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -76,7 +80,7 @@ export default function E1RMProgressChart({ exerciseId }) {
     setError(null);
     setProgress(null);
 
-    getExerciseProgress(exerciseId)
+    getExerciseProgress(exerciseId, startDate, endDate)
       .then((data) => {
         if (!cancelled) setProgress(data);
       })
@@ -90,7 +94,7 @@ export default function E1RMProgressChart({ exerciseId }) {
     return () => {
       cancelled = true;
     };
-  }, [exerciseId]);
+  }, [exerciseId, startDate, endDate]);
 
   if (loading) {
     return (
@@ -108,11 +112,11 @@ export default function E1RMProgressChart({ exerciseId }) {
     );
   }
 
-  const dataPoints = (progress?.dataPoints ?? []).filter(
-    (point) => typeof point.maxE1RM === "number"
-  );
+  const dataPoints = [...(progress?.dataPoints ?? [])]
+    .filter((point) => typeof point.maxE1RM === "number")
+    .sort((left, right) => left.date.localeCompare(right.date));
 
-  if (dataPoints.length === 0) {
+  if (!progress) {
     return null;
   }
 
@@ -122,6 +126,13 @@ export default function E1RMProgressChart({ exerciseId }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
     >
+      <div className="analytics-kpi-grid">
+        <div className="analytics-kpi"><span>All-Time PR</span><strong>{formatKg(progress.allTimePrWeight)} x {progress.allTimePrReps}</strong></div>
+        <div className="analytics-kpi"><span>Best e1RM</span><strong>{formatKg(progress.allTimeMaxE1RM)}</strong></div>
+        <div className="analytics-kpi"><span>Wykonane serie</span><strong>{progress.totalSets}</strong></div>
+        <div className="analytics-kpi"><span>Ostatnio wykonywane</span><strong>{progress.lastPerformedDate ?? "-"}</strong></div>
+      </div>
+
       <Box
         sx={{
           display: "flex",
@@ -142,7 +153,10 @@ export default function E1RMProgressChart({ exerciseId }) {
         Siła w każdej sesji
       </Box>
 
-      <ResponsiveContainer width="100%" height={220}>
+      <div className="analytics-detail-grid">
+      <section className="analytics-panel analytics-panel-wide">
+      <h2>Progresja e1RM i Top Set</h2>
+      <ResponsiveContainer width="100%" height={250}>
         <LineChart
           data={dataPoints}
           margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
@@ -189,10 +203,39 @@ export default function E1RMProgressChart({ exerciseId }) {
           />
         </LineChart>
       </ResponsiveContainer>
+      </section>
 
       <Box sx={{ color: "var(--color-fg-muted)", fontSize: 11, mt: 1, px: 1 }}>
         Wskazówka: Brak podanego RPE w treningu oznacza założenie serii do załamania, co może zaniżać wyliczaną siłę na wykresie.
       </Box>
+
+      <section className="analytics-panel">
+        <h2>Tonaż i powtórzenia w sesji</h2>
+        <ResponsiveContainer width="100%" height={230}>
+          <ComposedChart data={progress.workload ?? []} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+            <XAxis dataKey="date" tickFormatter={formatDate} tick={axisTick} axisLine={{ stroke: gridStroke }} />
+            <YAxis yAxisId="tonnage" tick={axisTick} axisLine={{ stroke: gridStroke }} />
+            <YAxis yAxisId="reps" orientation="right" tick={axisTick} axisLine={{ stroke: gridStroke }} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Bar yAxisId="tonnage" dataKey="tonnage" fill="var(--color-accent)" name="Tonaż (kg)" radius={[3, 3, 0, 0]} />
+            <Line yAxisId="reps" type="monotone" dataKey="averageReps" stroke="var(--color-info)" strokeWidth={2} name="Średnie powtórzenia" />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </section>
+
+      <section className="analytics-panel">
+        <h2>Rozkład zakresów powtórzeń</h2>
+        <ResponsiveContainer width="100%" height={230}>
+          <PieChart>
+            <Pie data={progress.repRanges ?? []} dataKey="sets" nameKey="range" innerRadius={55} outerRadius={85} paddingAngle={3}>
+              {(progress.repRanges ?? []).map((entry, index) => <Cell key={entry.range} fill={["var(--color-accent)", "var(--color-info)", "var(--color-success)"][index % 3]} />)}
+            </Pie>
+            <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} serii`, "Zakres"]} />
+          </PieChart>
+        </ResponsiveContainer>
+      </section>
+      </div>
 
       <MuscleAnalytics analytics={progress.muscleAnalytics ?? []} />
     </motion.div>

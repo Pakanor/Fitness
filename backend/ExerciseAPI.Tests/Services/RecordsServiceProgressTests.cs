@@ -148,6 +148,25 @@ namespace ExerciseAPI.Tests.Services
         }
 
         [Fact]
+        public async Task Overview_CombinesMuscleVolumeActivityAndWeeklyTrend()
+        {
+            SeedExercise();
+            SeedMuscleMapping();
+            _context.UserExercise.AddRange(
+                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = new DateTime(2026, 10, 5), Sets = 4, Reps = 5, Weight = 100m },
+                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = new DateTime(2026, 10, 6), Sets = 3, Reps = 8, Weight = 80m, RPE = 8m });
+            _context.SaveChanges();
+
+            var result = await _recordsService.GetOverview(UserId, new DateTime(2026, 10, 1), new DateTime(2026, 10, 7));
+
+            Assert.Equal(1, result.MuscleVolume.Count);
+            Assert.Equal(5.6m, result.MuscleVolume[0].HardSets);
+            Assert.Equal(2, result.Activity.Count);
+            Assert.Single(result.WeeklyTrend);
+            Assert.Equal(8m, result.WeeklyTrend[0].AverageRpe);
+        }
+
+        [Fact]
         public async Task InvalidSets_AreIgnored()
         {
             SeedExercise();

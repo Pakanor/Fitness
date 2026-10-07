@@ -128,8 +128,8 @@ function RecordsPage({ embedded }) {
         .analytics-kpi { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 8px; padding: 10px; min-width: 0; }
         .analytics-kpi span { display: block; color: var(--color-fg-muted); font-size: 10px; margin-bottom: 5px; }
         .analytics-kpi strong { display: block; color: var(--color-fg-primary); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .activity-heatmap { display: grid; grid-template-columns: repeat(7, minmax(8px, 1fr)); gap: 3px; min-height: 54px; align-content: center; }
-        .activity-cell { aspect-ratio: 1; background: var(--color-accent); border-radius: 2px; min-width: 8px; }
+        .activity-heatmap { display: grid; grid-template-columns: repeat(7, 12px); grid-auto-rows: 12px; gap: 3px; min-height: 0; align-content: start; justify-content: start; }
+        .activity-cell { width: 12px; height: 12px; background: var(--color-accent); border-radius: 2px; }
         .activity-legend { display: flex; align-items: center; gap: 4px; color: var(--color-fg-muted); font-size: 10px; margin-top: 10px; }
         .activity-legend i { width: 10px; height: 10px; background: var(--color-accent); border-radius: 2px; display: inline-block; }
         .activity-legend i:nth-of-type(1) { opacity: .25; } .activity-legend i:nth-of-type(2) { opacity: .45; } .activity-legend i:nth-of-type(3) { opacity: .7; }

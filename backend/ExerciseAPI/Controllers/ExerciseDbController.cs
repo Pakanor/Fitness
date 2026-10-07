@@ -371,6 +371,10 @@ namespace ExerciseAPI.Controllers
 
             var exercises = await _context.UserExercise
                 .Where(ue => ue.UserId == CurrentUserId)
+                .Where(ue => ue.SessionId == null
+                    || _context.WorkoutSessions.Any(session =>
+                        session.Id == ue.SessionId.Value
+                        && session.Status != WorkoutStatus.Planned))
                 .Select(ue => new { ue.ExerciseId })
                 .ToListAsync();
 

@@ -60,10 +60,11 @@ export async function getExerciseProgress(exerciseId, startDate, endDate) {
   return await res.json();
 }
 
-export async function getTrainingOverview(startDate, endDate) {
+export async function getTrainingOverview(startDate, endDate, timeZone) {
   const params = new URLSearchParams();
   if (startDate) params.append('startDate', startDate);
   if (endDate) params.append('endDate', endDate);
+  if (timeZone) params.append('timeZone', timeZone);
 
   const query = params.toString();
   const res = await fetch(

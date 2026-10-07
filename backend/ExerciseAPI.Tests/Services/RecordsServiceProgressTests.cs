@@ -148,7 +148,7 @@ namespace ExerciseAPI.Tests.Services
         }
 
         [Fact]
-        public async Task Overview_CombinesMuscleVolumeActivityAndWeeklyTrend()
+        public async Task Overview_ReportsAverageWeeklyMuscleVolumeActivityAndWeeklyTrend()
         {
             SeedExercise();
             SeedMuscleMapping();
@@ -160,7 +160,7 @@ namespace ExerciseAPI.Tests.Services
             var result = await _recordsService.GetOverview(UserId, new DateTime(2026, 10, 1), new DateTime(2026, 10, 7));
 
             Assert.Equal(1, result.MuscleVolume.Count);
-            Assert.Equal(5.6m, result.MuscleVolume[0].HardSets);
+            Assert.Equal(2.8m, result.MuscleVolume[0].HardSets);
             Assert.Equal(2, result.Activity.Count);
             Assert.Single(result.WeeklyTrend);
             Assert.Equal(8m, result.WeeklyTrend[0].AverageRpe);

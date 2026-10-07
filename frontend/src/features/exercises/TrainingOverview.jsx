@@ -36,7 +36,9 @@ function getCalendarDays(startDate, endDate, activity) {
   const end = new Date(`${endDate}T00:00:00`);
 
   while (current <= end) {
-    const date = current.toISOString().slice(0, 10);
+    const date = [current.getFullYear(), current.getMonth() + 1, current.getDate()]
+      .map((part, index) => index === 0 ? String(part) : String(part).padStart(2, "0"))
+      .join("-");
     days.push({ date, hardSets: byDate.get(date) ?? 0 });
     current.setDate(current.getDate() + 1);
   }
@@ -49,17 +51,18 @@ export default function TrainingOverview({ startDate, endDate }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [hoveredDay, setHoveredDay] = useState(null);
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getTrainingOverview(startDate, endDate)
+    getTrainingOverview(startDate, endDate, timeZone)
       .then((data) => { if (!cancelled) setOverview(data); })
       .catch((requestError) => { if (!cancelled) setError(requestError.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [startDate, endDate]);
+  }, [startDate, endDate, timeZone]);
 
   if (loading) return <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}><CircularProgress sx={{ color: "var(--color-accent)" }} size={28} /></Box>;
   if (error) return <Typography sx={{ color: "#ef4444", py: 4, textAlign: "center" }}>{error}</Typography>;
@@ -68,19 +71,19 @@ export default function TrainingOverview({ startDate, endDate }) {
   const activityDays = startDate && endDate
     ? getCalendarDays(startDate, endDate, overview.activity ?? [])
     : overview.activity ?? [];
-  const maxHardSets = Math.max(...activityDays.map((day) => Number(day.hardSets)), 1);
+  const formatMuscleLabel = (value) => value.length > 14 ? `${value.slice(0, 13)}...` : value;
 
   return (
     <div className="analytics-overview-grid">
       <section className="analytics-panel analytics-panel-wide">
-        <h2>Objętość efektywna wg partii</h2>
+        <h2>Średnia objętość efektywna wg partii (hard sets / tydzień)</h2>
         <ResponsiveContainer width="100%" height={145}>
           <BarChart data={overview.muscleVolume} margin={{ top: 4, right: 12, bottom: 42, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
             <ReferenceArea y1={10} y2={20} fill="#22c55e" fillOpacity={0.12} />
-            <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} tick={axisTick} axisLine={{ stroke: gridStroke }} />
+            <XAxis dataKey="name" tickFormatter={formatMuscleLabel} angle={-25} textAnchor="end" interval={0} tick={axisTick} axisLine={{ stroke: gridStroke }} />
             <YAxis tick={axisTick} axisLine={{ stroke: gridStroke }} />
-            <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} serii`, "Hard sets"]} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} serii / tydzień`, "Średnia"]} />
             <Bar dataKey="hardSets" fill="var(--color-accent)" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -92,10 +95,9 @@ export default function TrainingOverview({ startDate, endDate }) {
           {activityDays.map((day) => (
             <div
               key={day.date}
-              className="activity-cell"
+              className={`activity-cell activity-level-${day.hardSets === 0 ? 0 : day.hardSets <= 6 ? 1 : day.hardSets <= 14 ? 2 : 3}`}
               onMouseEnter={() => setHoveredDay(day)}
               onMouseLeave={() => setHoveredDay(null)}
-              style={{ opacity: day.hardSets ? 0.25 + Number(day.hardSets) / maxHardSets * 0.75 : 0.12 }}
             />
           ))}
         </div>

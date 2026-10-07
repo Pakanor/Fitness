@@ -280,8 +280,10 @@ namespace ExerciseAPI.Services
         public async Task<GlobalAnalyticsResponseDto> GetOverview(
             int userId,
             DateTime? startDate,
-            DateTime? endDate)
+            DateTime? endDate,
+            string? timeZoneId = null)
         {
+            var timeZone = ResolveTimeZone(timeZoneId);
             var query = _context.UserExercise
                 .Where(ue => ue.UserId == userId && ue.Weight.HasValue && ue.Reps.HasValue)
                 .Where(CountsTowardsStats)
@@ -292,14 +294,14 @@ namespace ExerciseAPI.Services
 
             if (startDate.HasValue)
             {
-                var startUtc = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                var startUtc = ConvertLocalDateToUtc(startDate.Value.Date, timeZone);
                 query = query.Where(ue => ue.Date >= startUtc);
             }
 
             if (endDate.HasValue)
             {
-                var endUtc = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-                query = query.Where(ue => ue.Date <= endUtc);
+                var endExclusiveUtc = ConvertLocalDateToUtc(endDate.Value.Date.AddDays(1), timeZone);
+                query = query.Where(ue => ue.Date < endExclusiveUtc);
             }
 
             var entries = await query.ToListAsync();
@@ -318,6 +320,16 @@ namespace ExerciseAPI.Services
                 .Where(x => bestByExercise.TryGetValue(x.ExerciseId, out var best) && IsHardSet(x, best))
                 .ToList();
 
+            var periodStart = startDate?.Date
+                ?? (validEntries.Count > 0
+                    ? ToUserLocalDate(validEntries.Min(x => x.Date), timeZone)
+                    : DateTime.Today);
+            var periodEnd = endDate?.Date
+                ?? (validEntries.Count > 0
+                    ? ToUserLocalDate(validEntries.Max(x => x.Date), timeZone)
+                    : periodStart);
+            var weekCount = GetCalendarWeekCount(periodStart, periodEnd);
+
             var muscleVolume = hardEntries
                 .SelectMany(x => GetMuscleWeights(x.Exercise),
                     (entry, mapping) => new
@@ -332,12 +344,12 @@ namespace ExerciseAPI.Services
                 {
                     Key = group.Key.Key,
                     Name = group.Key.Name,
-                    HardSets = group.Sum(x => x.HardSets)
+                    HardSets = Math.Round(group.Sum(x => x.HardSets) / weekCount, 2)
                 })
                 .ToList();
 
             var activity = hardEntries
-                .GroupBy(x => x.Date.Date)
+                .GroupBy(x => ToUserLocalDate(x.Date, timeZone))
                 .OrderBy(x => x.Key)
                 .Select(day => new TrainingActivityDayDto
                 {
@@ -347,12 +359,12 @@ namespace ExerciseAPI.Services
                 .ToList();
 
             var weeklyTrend = entries
-                .GroupBy(x => GetWeekStart(x.Date))
+                .GroupBy(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)))
                 .OrderBy(x => x.Key)
                 .Select(week => new WeeklyTrainingTrendDto
                 {
                     Week = week.Key.ToString("yyyy-MM-dd"),
-                    HardSets = hardEntries.Where(x => GetWeekStart(x.Date) == week.Key).Sum(x => x.Sets ?? 1),
+                    HardSets = hardEntries.Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key).Sum(x => x.Sets ?? 1),
                     AverageRpe = week.Any(x => x.RPE.HasValue)
                         ? (decimal?)Math.Round(week.Where(x => x.RPE.HasValue).Select(x => (double)x.RPE!.Value).Average(), 2)
                         : null
@@ -378,6 +390,44 @@ namespace ExerciseAPI.Services
             var day = date.Date;
             var offset = ((int)day.DayOfWeek + 6) % 7;
             return day.AddDays(-offset);
+        }
+
+        private static int GetCalendarWeekCount(DateTime periodStart, DateTime periodEnd)
+        {
+            var firstWeek = GetWeekStart(periodStart);
+            var lastWeek = GetWeekStart(periodEnd);
+            return Math.Max(1, (int)((lastWeek - firstWeek).TotalDays / 7) + 1);
+        }
+
+        private static TimeZoneInfo ResolveTimeZone(string? timeZoneId)
+        {
+            if (string.IsNullOrWhiteSpace(timeZoneId))
+                return TimeZoneInfo.Utc;
+
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.Utc;
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return TimeZoneInfo.Utc;
+            }
+        }
+
+        private static DateTime ConvertLocalDateToUtc(DateTime localDate, TimeZoneInfo timeZone)
+        {
+            var unspecified = DateTime.SpecifyKind(localDate, DateTimeKind.Unspecified);
+            return TimeZoneInfo.ConvertTimeToUtc(unspecified, timeZone);
+        }
+
+        private static DateTime ToUserLocalDate(DateTime value, TimeZoneInfo timeZone)
+        {
+            var utcValue = DateTime.SpecifyKind(value, DateTimeKind.Utc);
+            return TimeZoneInfo.ConvertTimeFromUtc(utcValue, timeZone).Date;
         }
 
         private static string GetRepRange(int reps) => reps <= 5 ? "1-5" : reps <= 10 ? "6-10" : "11-15";

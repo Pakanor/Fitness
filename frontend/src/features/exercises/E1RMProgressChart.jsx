@@ -4,13 +4,8 @@ import { Box, CircularProgress, Typography } from "@mui/material";
 import {
   LineChart,
   Line,
-  BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   ComposedChart,
-  ReferenceArea,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -31,7 +26,6 @@ function formatDate(value) {
   const date = new Date(value);
   return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
-
 function ProgressTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
 
@@ -223,72 +217,9 @@ export default function E1RMProgressChart({ exerciseId, startDate, endDate }) {
         </ResponsiveContainer>
       </section>
 
-      <section className="analytics-panel">
-        <h2>Rozkład zakresów powtórzeń</h2>
-        <ResponsiveContainer width="100%" height={170}>
-          <PieChart>
-            <Pie data={progress.repRanges ?? []} dataKey="sets" nameKey="range" innerRadius={55} outerRadius={85} paddingAngle={3}>
-              {(progress.repRanges ?? []).map((entry, index) => <Cell key={entry.range} fill={["var(--color-accent)", "var(--color-info)", "var(--color-success)"][index % 3]} />)}
-            </Pie>
-            <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} serii`, "Zakres"]} />
-          </PieChart>
-        </ResponsiveContainer>
-      </section>
       </div>
 
-      <MuscleAnalytics analytics={progress.muscleAnalytics ?? []} />
     </motion.div>
   );
 }
 
-function MuscleAnalytics({ analytics }) {
-  const [selectedKey, setSelectedKey] = useState(analytics[0]?.key ?? "");
-  const selected = analytics.find((item) => item.key === selectedKey) ?? analytics[0];
-
-  useEffect(() => {
-    if (!analytics.some((item) => item.key === selectedKey)) {
-      setSelectedKey(analytics[0]?.key ?? "");
-    }
-  }, [analytics, selectedKey]);
-
-  if (!selected) return null;
-
-  return (
-    <Box sx={{ mt: 3 }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-        <Typography sx={{ color: "var(--color-fg-muted)", fontSize: 12 }}>
-          Objętość efektywna: hard sets / tydzień
-        </Typography>
-        <select
-          value={selected.key}
-          onChange={(event) => setSelectedKey(event.target.value)}
-          style={{ background: "var(--color-bg-elevated)", color: "var(--color-fg-primary)", border: `1px solid ${gridStroke}`, borderRadius: 6, padding: "5px 8px" }}
-        >
-          {analytics.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}
-        </select>
-      </Box>
-      <ResponsiveContainer width="100%" height={165}>
-        <BarChart data={selected.weeklyHardSets} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-          <ReferenceArea y1={10} y2={20} fill="#22c55e" fillOpacity={0.12} />
-          <XAxis dataKey="week" tickFormatter={formatDate} tick={axisTick} axisLine={{ stroke: gridStroke }} />
-          <YAxis tick={axisTick} axisLine={{ stroke: gridStroke }} />
-          <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} serii`, "Hard sets"]} />
-          <Bar dataKey="hardSets" fill="var(--color-accent)" radius={[3, 3, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-      <Typography sx={{ color: "var(--color-fg-muted)", fontSize: 12, mt: 2, mb: 1 }}>
-        Rozkład stresorów: zakresy powtórzeń
-      </Typography>
-      <ResponsiveContainer width="100%" height={145}>
-        <BarChart data={selected.repRanges} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
-          <XAxis dataKey="range" tickFormatter={(value) => `${value} powt.`} tick={axisTick} axisLine={{ stroke: gridStroke }} />
-          <YAxis tick={axisTick} axisLine={{ stroke: gridStroke }} />
-          <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} serii`, "Hard sets"]} />
-          <Bar dataKey="hardSets" fill="var(--color-info)" radius={[3, 3, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </Box>
-  );
-}

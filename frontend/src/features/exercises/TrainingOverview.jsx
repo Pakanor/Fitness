@@ -83,6 +83,10 @@ export default function TrainingOverview({ startDate, endDate }) {
   const fallbackEnd = activity.at(-1)?.date ?? fallbackStart;
   const activityWeeks = getCalendarWeeks(startDate ?? fallbackStart, endDate ?? fallbackEnd, activity);
   const formatMuscleLabel = (value) => value.length > 14 ? `${value.slice(0, 13)}...` : value;
+  const muscleVolumeMax = Math.max(
+    20,
+    ...(overview.muscleVolume ?? []).map((entry) => Number(entry.hardSets) || 0)
+  );
 
   return (
     <div className="analytics-overview-grid">
@@ -95,7 +99,7 @@ export default function TrainingOverview({ startDate, endDate }) {
             <ReferenceLine y={10} stroke="#22c55e" strokeDasharray="4 4" strokeWidth={1} />
             <ReferenceLine y={20} stroke="#22c55e" strokeDasharray="4 4" strokeWidth={1} />
             <XAxis dataKey="name" tickFormatter={formatMuscleLabel} angle={-25} textAnchor="end" interval={0} tick={axisTick} axisLine={{ stroke: gridStroke }} />
-            <YAxis tick={axisTick} axisLine={{ stroke: gridStroke }} />
+            <YAxis domain={[0, muscleVolumeMax + 2]} tick={axisTick} axisLine={{ stroke: gridStroke }} />
             <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} serii / tydzień`, "Średnia"]} />
             <Bar dataKey="hardSets" fill="var(--color-accent)" radius={[3, 3, 0, 0]} />
           </BarChart>
@@ -116,12 +120,17 @@ export default function TrainingOverview({ startDate, endDate }) {
               key={day.date}
               className={`activity-cell activity-level-${day.hardSets === 0 ? 0 : day.hardSets <= 6 ? 1 : day.hardSets <= 14 ? 2 : 3}`}
               style={{ gridColumn: weekIndex + 1, gridRow: day.dayIndex + 1 }}
-              onMouseEnter={() => setHoveredDay(day)}
+              onMouseEnter={(event) => setHoveredDay({ ...day, x: event.clientX, y: event.clientY })}
+              onMouseMove={(event) => setHoveredDay({ ...day, x: event.clientX, y: event.clientY })}
               onMouseLeave={() => setHoveredDay(null)}
             />
           )))}
         </div>
-        {hoveredDay && <div className="activity-tooltip">{hoveredDay.date}: {hoveredDay.hardSets} serii</div>}
+        {hoveredDay && (
+          <div className="activity-tooltip" style={{ left: hoveredDay.x + 12, top: hoveredDay.y + 12 }}>
+            {hoveredDay.date}: {hoveredDay.hardSets} serii
+          </div>
+        )}
         <div className="activity-legend"><span>mniej</span><i /><i /><i /><i /><span>więcej</span></div>
       </section>
 

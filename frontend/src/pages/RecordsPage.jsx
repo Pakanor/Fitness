@@ -94,7 +94,7 @@ function RecordsPage({ embedded }) {
         .rec-layout { display: flex; flex: 1; overflow: hidden; min-height: 0; }
         .rec-layout.overview-mode { display: block; overflow: visible; }
         .rec-sidebar { width: 280px; flexShrink: 0; borderRight: 1px solid var(--color-border-subtle); overflow-y: auto; padding: 12px; }
-        .rec-main { flex: 1; overflow: auto; padding: 14px 18px; min-width: 0; }
+        .rec-main { flex: 1; overflow: visible; padding: 14px 18px; min-width: 0; }
         .overview-mode .rec-main { height: auto; overflow: visible; box-sizing: border-box; }
         .rec-search { width: 100%; padding: 8px 12px; background: var(--color-bg-base); border: 1px solid var(--color-border-default); border-radius: 8px; color: var(--color-fg-primary); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; box-sizing: border-box; margin-bottom: 8px; }
         .rec-search:focus { border-color: var(--color-accent); }
@@ -128,7 +128,7 @@ function RecordsPage({ embedded }) {
         .analytics-panel-wide { grid-column: span 2; }
         .analytics-panel h2 { color: var(--color-fg-muted); font-size: 12px; font-weight: 500; margin: 0 0 8px; }
         .analytics-activity-panel { position: relative; }
-        .activity-tooltip { min-height: 16px; color: var(--color-fg-primary); font-size: 10px; margin-top: 5px; }
+        .activity-tooltip { position: fixed; z-index: 20; pointer-events: none; padding: 5px 7px; background: var(--color-bg-elevated); border: 1px solid var(--color-border-default); border-radius: 4px; color: var(--color-fg-primary); font-size: 10px; white-space: nowrap; box-shadow: var(--shadow-sm); }
         .analytics-kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
         .analytics-kpi { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 8px; padding: 10px; min-width: 0; }
         .analytics-kpi span { display: block; color: var(--color-fg-muted); font-size: 10px; margin-bottom: 5px; }

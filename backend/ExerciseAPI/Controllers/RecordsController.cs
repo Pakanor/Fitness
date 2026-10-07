@@ -130,5 +130,18 @@ namespace ExerciseAPI.Controllers
             var result = await _recordsService.GetExerciseProgress(CurrentUserId, exerciseId, startDate, endDate);
             return Ok(result);
         }
+
+        [HttpGet("overview")]
+        public async Task<IActionResult> GetOverview(
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null,
+            [FromQuery] string? timeZone = null)
+        {
+            if (!HasCurrentUser)
+                return Unauthorized();
+
+            var result = await _recordsService.GetOverview(CurrentUserId, startDate, endDate, timeZone);
+            return Ok(result);
+        }
     }
 }

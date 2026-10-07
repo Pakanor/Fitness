@@ -230,7 +230,7 @@ namespace ExerciseAPI.Services
             entry.Reps = dto.Reps;
             entry.Weight = dto.Weight;
             entry.RPE = dto.RPE;
-            entry.RIR = dto.RIR;
+            entry.IsWarmup = dto.IsWarmup;
             if (session.Status == WorkoutStatus.Planned)
             {
                 session.Status = WorkoutStatus.InProgress;

@@ -59,3 +59,18 @@ export async function getExerciseProgress(exerciseId, startDate, endDate) {
   if (!res.ok) throw new Error('Blad pobierania progresji cwiczenia');
   return await res.json();
 }
+
+export async function getTrainingOverview(startDate, endDate, timeZone) {
+  const params = new URLSearchParams();
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
+  if (timeZone) params.append('timeZone', timeZone);
+
+  const query = params.toString();
+  const res = await fetch(
+    `${RECORDS_URL}/overview${query ? `?${query}` : ''}`,
+    { credentials: 'include' }
+  );
+  if (!res.ok) throw new Error('Blad pobierania globalnej analityki');
+  return await res.json();
+}

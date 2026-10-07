@@ -38,6 +38,22 @@ namespace ExerciseAPI.Tests.Services
         }
 
         [Fact]
+        public void CalculateBrzycki_WithoutRpe_UsesOnlyRepetitions()
+        {
+            Assert.Equal(112.51m, _calculator.CalculateBrzycki(100m, 5));
+        }
+
+        [Fact]
+        public void CalculateBrzycki_WithRpe_AddsRepsInReserve()
+        {
+            var withoutRpe = _calculator.CalculateBrzycki(100m, 5);
+            var withRpe = _calculator.CalculateBrzycki(100m, 5, 8m);
+
+            Assert.True(withRpe > withoutRpe);
+            Assert.Equal(120.02m, withRpe);
+        }
+
+        [Fact]
         public void CalculateBest_KeepsHigherValue()
         {
             var best = _calculator.CalculateBest(100m, 5, 0);

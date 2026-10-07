@@ -201,7 +201,7 @@ namespace ExerciseAPI.Controllers
                         reps = entry.Reps,
                         weight = entry.Weight,
                         rpe = entry.RPE,
-                        rir = entry.RIR
+                        isWarmup = entry.IsWarmup,
                     },
                     session = response
                 });
@@ -267,7 +267,7 @@ namespace ExerciseAPI.Controllers
                             Reps = e.Reps,
                             Weight = e.Weight,
                             RPE = e.RPE,
-                            RIR = e.RIR,
+                            IsWarmup = e.IsWarmup,
                             Volume = e.Sets.HasValue && e.Reps.HasValue && e.Weight.HasValue
                                 ? e.Sets.Value * e.Reps.Value * e.Weight.Value
                                 : 0m

@@ -343,8 +343,8 @@ export default function ExerciseHub() {
             >
               <div className="shortcut-icon shortcut-icon--purple" aria-hidden="true">🏆</div>
               <div className="shortcut-text">
-                <div className="shortcut-title">Rekordy życiowe</div>
-                <div className="shortcut-desc">Najlepsze wyniki i progresja e1RM</div>
+                <div className="shortcut-title">Analityka Treningowa</div>
+                <div className="shortcut-desc">Wszystkie sesje, e1RM i objętość efektywna</div>
               </div>
               <div className="shortcut-arrow" aria-hidden="true">→</div>
             </a>

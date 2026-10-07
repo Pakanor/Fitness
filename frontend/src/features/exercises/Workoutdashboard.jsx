@@ -643,18 +643,6 @@ function ExerciseCard({ entry, onDelete, prev, onLogSet, locked }) {
               <span className="stat-label">kg</span>
             </div>
           )}
-          {entry.rpe != null && (
-            <div className="stat">
-              <span className="stat-value" style={{ color: 'var(--color-accent)' }}>{entry.rpe}</span>
-              <span className="stat-label">RPE</span>
-            </div>
-          )}
-          {entry.rir != null && (
-            <div className="stat">
-              <span className="stat-value" style={{ color: 'var(--color-category-arms)' }}>{entry.rir}</span>
-              <span className="stat-label">RIR</span>
-            </div>
-          )}
         </div>
         {showPrevHint && (
           <div className="prev-hint">

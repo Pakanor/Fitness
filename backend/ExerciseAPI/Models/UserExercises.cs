@@ -13,8 +13,8 @@ public class UserExercise
     public int? Sets { get; set; }
     public int? Reps { get; set; }
     public decimal? Weight { get; set; }
-    public int? RPE { get; set; }
-    public int? RIR { get; set; }
+    public decimal? RPE { get; set; }
+    public bool IsWarmup { get; set; }
     
     public WorkoutStartMode? StartMode { get; set; }
     public int? TemplateId { get; set; }

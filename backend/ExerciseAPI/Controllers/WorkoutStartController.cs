@@ -39,7 +39,7 @@ namespace ExerciseAPI.Controllers
                 e.Reps,
                 e.Weight,
                 e.RPE,
-                e.RIR
+                e.IsWarmup,
             }).ToList();
 
             return Ok(response);
@@ -65,7 +65,7 @@ namespace ExerciseAPI.Controllers
                 e.Reps,
                 e.Weight,
                 e.RPE,
-                e.RIR
+                e.IsWarmup,
             }).ToList();
 
             return Ok(response);

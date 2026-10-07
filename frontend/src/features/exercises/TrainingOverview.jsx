@@ -48,6 +48,7 @@ export default function TrainingOverview({ startDate, endDate }) {
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [hoveredDay, setHoveredDay] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,8 +74,8 @@ export default function TrainingOverview({ startDate, endDate }) {
     <div className="analytics-overview-grid">
       <section className="analytics-panel analytics-panel-wide">
         <h2>Objętość efektywna wg partii</h2>
-        <ResponsiveContainer width="100%" height={185}>
-          <BarChart data={overview.muscleVolume} margin={{ top: 8, right: 16, bottom: 55, left: 0 }}>
+        <ResponsiveContainer width="100%" height={145}>
+          <BarChart data={overview.muscleVolume} margin={{ top: 4, right: 12, bottom: 42, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
             <ReferenceArea y1={10} y2={20} fill="#22c55e" fillOpacity={0.12} />
             <XAxis dataKey="name" angle={-35} textAnchor="end" interval={0} tick={axisTick} axisLine={{ stroke: gridStroke }} />
@@ -85,20 +86,27 @@ export default function TrainingOverview({ startDate, endDate }) {
         </ResponsiveContainer>
       </section>
 
-      <section className="analytics-panel">
+      <section className="analytics-panel analytics-activity-panel">
         <h2>Częstotliwość treningów</h2>
         <div className="activity-heatmap">
           {activityDays.map((day) => (
-            <div key={day.date} className="activity-cell" title={`${day.date}: ${day.hardSets} serii`} style={{ opacity: day.hardSets ? 0.25 + Number(day.hardSets) / maxHardSets * 0.75 : 0.12 }} />
+            <div
+              key={day.date}
+              className="activity-cell"
+              onMouseEnter={() => setHoveredDay(day)}
+              onMouseLeave={() => setHoveredDay(null)}
+              style={{ opacity: day.hardSets ? 0.25 + Number(day.hardSets) / maxHardSets * 0.75 : 0.12 }}
+            />
           ))}
         </div>
+        {hoveredDay && <div className="activity-tooltip">{hoveredDay.date}: {hoveredDay.hardSets} serii</div>}
         <div className="activity-legend"><span>mniej</span><i /><i /><i /><i /><span>więcej</span></div>
       </section>
 
-      <section className="analytics-panel analytics-panel-wide">
+      <section className="analytics-panel">
         <h2>Objętość tygodniowa vs średnie RPE</h2>
-        <ResponsiveContainer width="100%" height={185}>
-          <LineChart data={overview.weeklyTrend} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
+        <ResponsiveContainer width="100%" height={125}>
+          <LineChart data={overview.weeklyTrend} margin={{ top: 4, right: 12, bottom: 4, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
             <XAxis dataKey="week" tickFormatter={formatDate} tick={axisTick} axisLine={{ stroke: gridStroke }} />
             <YAxis yAxisId="sets" tick={axisTick} axisLine={{ stroke: gridStroke }} />

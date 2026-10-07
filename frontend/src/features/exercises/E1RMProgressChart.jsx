@@ -203,11 +203,10 @@ export default function E1RMProgressChart({ exerciseId, startDate, endDate }) {
           />
         </LineChart>
       </ResponsiveContainer>
+        <Box sx={{ color: "var(--color-fg-muted)", fontSize: 10, mt: 0.5 }}>
+          Wskazówka: brak RPE oznacza założenie serii do załamania i może zaniżać wyliczaną siłę.
+        </Box>
       </section>
-
-      <Box sx={{ color: "var(--color-fg-muted)", fontSize: 11, mt: 1, px: 1 }}>
-        Wskazówka: Brak podanego RPE w treningu oznacza założenie serii do załamania, co może zaniżać wyliczaną siłę na wykresie.
-      </Box>
 
       <section className="analytics-panel">
         <h2>Tonaż i powtórzenia w sesji</h2>

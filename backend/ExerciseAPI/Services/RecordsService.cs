@@ -143,6 +143,12 @@ namespace ExerciseAPI.Services
                 .Where(x => _e1rmCalculator.IsValidSet(x.Weight!.Value, x.Reps!.Value))
                 .ToList();
 
+            var bestExerciseE1Rm = validEntries
+                .Where(x => !x.IsWarmup)
+                .Select(x => _e1rmCalculator.CalculateBrzycki(x.Weight!.Value, x.Reps!.Value, x.RPE))
+                .DefaultIfEmpty(0m)
+                .Max();
+
             var days = validEntries.GroupBy(x => x.Date.Date);
 
             foreach (var day in days)
@@ -153,7 +159,7 @@ namespace ExerciseAPI.Services
                         Weight = x.Weight!.Value,
                         Reps = x.Reps!.Value,
                         Rpe = x.RPE,
-                        E1RM = _e1rmCalculator.CalculateEpley(x.Weight!.Value, x.Reps!.Value)
+                        E1RM = _e1rmCalculator.CalculateBrzycki(x.Weight!.Value, x.Reps!.Value, x.RPE)
                     })
                     .Where(x => x.E1RM > 0)
                     .OrderByDescending(x => x.E1RM)
@@ -173,14 +179,16 @@ namespace ExerciseAPI.Services
                     MaxE1RM = best.E1RM,
                     TopSetWeight = topSet.Weight!.Value,
                     TopSetReps = topSet.Reps!.Value,
-                    TopSetRpe = topSet.RPE
+                    TopSetRpe = topSet.RPE,
+                    HasRpe = best.Rpe.HasValue
                 });
 
-                allTimeMax = _e1rmCalculator.CalculateBest(best.Weight, best.Reps, allTimeMax);
+                allTimeMax = _e1rmCalculator.CalculateBest(best.Weight, best.Reps, best.Rpe, allTimeMax);
             }
 
-            var muscleAnalytics = entries
-                .Where(x => x.RPE.HasValue && x.RPE.Value >= 7)
+            var muscleAnalytics = validEntries
+                .Where(x => x.IsWarmup == false)
+                .Where(x => bestExerciseE1Rm <= 0m || x.Weight!.Value >= bestExerciseE1Rm * 0.5m)
                 .SelectMany(x => x.Exercise?.MuscleGroupMappings ?? Enumerable.Empty<ExerciseMuscleGroup>(),
                     (entry, mapping) => new
                     {

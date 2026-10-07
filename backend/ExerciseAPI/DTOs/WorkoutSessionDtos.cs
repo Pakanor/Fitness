@@ -30,6 +30,7 @@ namespace ExerciseAPI.DTOs
 
         [Range(typeof(decimal), "1", "10")]
         public decimal? RPE { get; set; }
+        public bool IsWarmup { get; set; }
     }
 
     public class SessionExerciseDto
@@ -43,6 +44,7 @@ namespace ExerciseAPI.DTOs
         public int? Reps { get; set; }
         public decimal? Weight { get; set; }
         public decimal? RPE { get; set; }
+        public bool IsWarmup { get; set; }
         public decimal Volume { get; set; }
     }
 

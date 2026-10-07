@@ -225,6 +225,7 @@ namespace ExerciseAPI.Controllers
                 Reps = dto.Reps,
                 Weight = dto.Weight,
                 RPE = dto.RPE,
+                IsWarmup = dto.IsWarmup,
                 Date = date
             };
 
@@ -270,6 +271,7 @@ namespace ExerciseAPI.Controllers
                 Reps = entity.Reps,
                 Weight = entity.Weight,
                 RPE = entity.RPE,
+                IsWarmup = entity.IsWarmup,
                 Date = entity.Date
             };
 
@@ -345,6 +347,7 @@ namespace ExerciseAPI.Controllers
                     reps = ue.Reps,
                     weight = ue.Weight,
                     rpe = ue.RPE,
+                    isWarmup = ue.IsWarmup,
                     templateId = ue.TemplateId,
                     sessionId = ue.SessionId,
                     sessionStatus = daySession != null

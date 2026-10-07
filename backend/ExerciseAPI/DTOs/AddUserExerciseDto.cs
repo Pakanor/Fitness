@@ -8,5 +8,6 @@ namespace ExerciseAPI.DTOs
         public decimal? Weight { get; set; }
         public DateTime? Date { get; set; }
         public decimal? RPE { get; set; }
+        public bool IsWarmup { get; set; }
     }
 }

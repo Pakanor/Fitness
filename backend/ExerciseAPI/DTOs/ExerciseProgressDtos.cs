@@ -7,6 +7,7 @@ namespace ExerciseAPI.DTOs
         public decimal TopSetWeight { get; set; }
         public int TopSetReps { get; set; }
         public decimal? TopSetRpe { get; set; }
+        public bool HasRpe { get; set; }
     }
 
     public class WeeklyHardSetsDto

@@ -46,6 +46,18 @@ namespace ExerciseAPI.Tests.Services
             _context.SaveChanges();
         }
 
+        private void SeedMuscleMapping(decimal weightPercentage = 0.8m)
+        {
+            _context.MuscleGroups.Add(new MuscleGroup { Key = "chest_main", NamePl = "Klatka piersiowa" });
+            _context.ExerciseMuscleGroups.Add(new ExerciseMuscleGroup
+            {
+                ExerciseId = ExerciseId,
+                MuscleGroupKey = "chest_main",
+                WeightPercentage = weightPercentage
+            });
+            _context.SaveChanges();
+        }
+
         [Fact]
         public async Task GroupsByDate_KeepingHighestE1RMOfTheDay()
         {
@@ -80,6 +92,62 @@ namespace ExerciseAPI.Tests.Services
         }
 
         [Fact]
+        public async Task Progress_UsesRpeWhenPresentAndMarksFallbackWhenMissing()
+        {
+            SeedExercise();
+            var day = new DateTime(2026, 10, 2);
+
+            _context.UserExercise.AddRange(
+                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = day, Weight = 100m, Reps = 5 },
+                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = day.AddDays(1), Weight = 100m, Reps = 5, RPE = 8m });
+            _context.SaveChanges();
+
+            var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
+
+            Assert.False(result.DataPoints[0].HasRpe);
+            Assert.True(result.DataPoints[1].HasRpe);
+            Assert.True(result.DataPoints[1].MaxE1RM > result.DataPoints[0].MaxE1RM);
+        }
+
+        [Fact]
+        public async Task HardSets_WithoutRpeCountAsWorkingSets()
+        {
+            SeedExercise();
+            SeedMuscleMapping();
+            _context.UserExercise.Add(new UserExercise
+            {
+                UserId = UserId,
+                ExerciseId = ExerciseId,
+                Date = new DateTime(2026, 10, 2),
+                Sets = 4,
+                Reps = 5,
+                Weight = 100m
+            });
+            _context.SaveChanges();
+
+            var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
+
+            Assert.Equal(3.2m, result.MuscleAnalytics[0].WeeklyHardSets[0].HardSets);
+        }
+
+        [Fact]
+        public async Task HardSets_IgnoreWarmupsAndVeryLightSets()
+        {
+            SeedExercise();
+            SeedMuscleMapping();
+            var date = new DateTime(2026, 10, 2);
+            _context.UserExercise.AddRange(
+                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = date, Sets = 4, Reps = 5, Weight = 100m },
+                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = date, Sets = 5, Reps = 5, Weight = 40m },
+                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = date, Sets = 5, Reps = 5, Weight = 100m, IsWarmup = true });
+            _context.SaveChanges();
+
+            var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
+
+            Assert.Equal(3.2m, result.MuscleAnalytics[0].WeeklyHardSets[0].HardSets);
+        }
+
+        [Fact]
         public async Task InvalidSets_AreIgnored()
         {
             SeedExercise();
@@ -108,7 +176,7 @@ namespace ExerciseAPI.Tests.Services
 
             var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
 
-            Assert.Equal(116.67m, result.AllTimeMaxE1RM);
+            Assert.Equal(112.51m, result.AllTimeMaxE1RM);
         }
 
         [Fact]

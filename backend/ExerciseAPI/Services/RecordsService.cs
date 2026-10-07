@@ -125,10 +125,16 @@ namespace ExerciseAPI.Services
                 .Where(CountsTowardsStats);
 
             if (startDate.HasValue)
-                query = query.Where(ue => ue.Date >= startDate.Value.Date);
+            {
+                var startUtc = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(ue => ue.Date >= startUtc);
+            }
 
             if (endDate.HasValue)
-                query = query.Where(ue => ue.Date <= endDate.Value.Date.AddDays(1).AddTicks(-1));
+            {
+                var endUtc = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+                query = query.Where(ue => ue.Date <= endUtc);
+            }
 
             var entries = await query
                 .Include(ue => ue.Exercise)
@@ -285,10 +291,16 @@ namespace ExerciseAPI.Services
                 .AsQueryable();
 
             if (startDate.HasValue)
-                query = query.Where(ue => ue.Date >= startDate.Value.Date);
+            {
+                var startUtc = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
+                query = query.Where(ue => ue.Date >= startUtc);
+            }
 
             if (endDate.HasValue)
-                query = query.Where(ue => ue.Date <= endDate.Value.Date.AddDays(1).AddTicks(-1));
+            {
+                var endUtc = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+                query = query.Where(ue => ue.Date <= endUtc);
+            }
 
             var entries = await query.ToListAsync();
             var validEntries = entries

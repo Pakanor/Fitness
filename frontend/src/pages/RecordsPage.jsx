@@ -87,8 +87,10 @@ function RecordsPage({ embedded }) {
     <div style={rootStyle}>
       <style>{`
         .rec-layout { display: flex; flex: 1; overflow: hidden; }
+        .rec-layout.overview-mode { display: block; }
         .rec-sidebar { width: 280px; flexShrink: 0; borderRight: 1px solid var(--color-border-subtle); overflow-y: auto; padding: 12px; }
         .rec-main { flex: 1; overflow-y: auto; padding: 20px; }
+        .overview-mode .rec-main { height: 100%; box-sizing: border-box; }
         .rec-search { width: 100%; padding: 8px 12px; background: var(--color-bg-base); border: 1px solid var(--color-border-default); border-radius: 8px; color: var(--color-fg-primary); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; box-sizing: border-box; margin-bottom: 8px; }
         .rec-search:focus { border-color: var(--color-accent); }
         .rec-ex-item { display: block; width: 100%; padding: 8px 12px; background: none; border: none; color: var(--color-fg-muted); font-family: 'DM Sans', sans-serif; font-size: 13px; text-align: left; cursor: pointer; border-radius: 6px; transition: color 0.15s, background 0.15s; }
@@ -137,8 +139,8 @@ function RecordsPage({ embedded }) {
           Analityka <span style={{ color: 'var(--color-accent)' }}>Treningowa</span>
         </div>
       )}
-      <div className="rec-layout">
-        <div className="rec-sidebar">
+      <div className={`rec-layout ${activeView === 'overview' ? 'overview-mode' : ''}`}>
+        {activeView === 'detail' && <div className="rec-sidebar">
           <input className="rec-search" placeholder="Szukaj ćwiczenia..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} />
 
           {mostFrequent.length > 0 && search.length === 0 && (
@@ -178,7 +180,7 @@ function RecordsPage({ embedded }) {
               <button className="rec-page-btn" onClick={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page >= totalPages - 1} style={{ opacity: page >= totalPages - 1 ? 0.3 : 1 }}>▶</button>
             </div>
           )}
-        </div>
+        </div>}
         <div className="rec-main">
           <div className="analytics-tabs">
             <button className={`analytics-tab ${activeView === 'overview' ? 'active' : ''}`} onClick={() => setActiveView('overview')}>Przegląd Ogólny Partii</button>

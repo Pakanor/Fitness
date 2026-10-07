@@ -7,6 +7,7 @@ import {
   Line,
   LineChart,
   ReferenceArea,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -29,21 +30,30 @@ function formatDate(value) {
   return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function getCalendarDays(startDate, endDate, activity) {
+function getCalendarWeeks(startDate, endDate, activity) {
   const byDate = new Map(activity.map((day) => [day.date, day.hardSets]));
-  const days = [];
-  const current = new Date(`${startDate}T00:00:00`);
-  const end = new Date(`${endDate}T00:00:00`);
+  const firstDate = new Date(`${startDate}T00:00:00`);
+  const lastDate = new Date(`${endDate}T00:00:00`);
+  const firstMonday = new Date(firstDate);
+  firstMonday.setDate(firstMonday.getDate() - ((firstMonday.getDay() + 6) % 7));
+  const lastSunday = new Date(lastDate);
+  lastSunday.setDate(lastSunday.getDate() + (7 - lastSunday.getDay()) % 7);
+  const weeks = [];
+  const current = new Date(firstMonday);
 
-  while (current <= end) {
-    const date = [current.getFullYear(), current.getMonth() + 1, current.getDate()]
-      .map((part, index) => index === 0 ? String(part) : String(part).padStart(2, "0"))
-      .join("-");
-    days.push({ date, hardSets: byDate.get(date) ?? 0 });
-    current.setDate(current.getDate() + 1);
+  while (current <= lastSunday) {
+    const week = [];
+    for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+      const date = [current.getFullYear(), current.getMonth() + 1, current.getDate()]
+        .map((part, index) => index === 0 ? String(part) : String(part).padStart(2, "0"))
+        .join("-");
+      week.push({ date, hardSets: byDate.get(date) ?? 0, dayIndex });
+      current.setDate(current.getDate() + 1);
+    }
+    weeks.push(week);
   }
 
-  return days;
+  return weeks;
 }
 
 export default function TrainingOverview({ startDate, endDate }) {
@@ -68,9 +78,10 @@ export default function TrainingOverview({ startDate, endDate }) {
   if (error) return <Typography sx={{ color: "#ef4444", py: 4, textAlign: "center" }}>{error}</Typography>;
   if (!overview) return null;
 
-  const activityDays = startDate && endDate
-    ? getCalendarDays(startDate, endDate, overview.activity ?? [])
-    : overview.activity ?? [];
+  const activity = overview.activity ?? [];
+  const fallbackStart = activity[0]?.date ?? new Date().toISOString().slice(0, 10);
+  const fallbackEnd = activity.at(-1)?.date ?? fallbackStart;
+  const activityWeeks = getCalendarWeeks(startDate ?? fallbackStart, endDate ?? fallbackEnd, activity);
   const formatMuscleLabel = (value) => value.length > 14 ? `${value.slice(0, 13)}...` : value;
 
   return (
@@ -81,6 +92,8 @@ export default function TrainingOverview({ startDate, endDate }) {
           <BarChart data={overview.muscleVolume} margin={{ top: 4, right: 12, bottom: 42, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
             <ReferenceArea y1={10} y2={20} fill="#22c55e" fillOpacity={0.12} />
+            <ReferenceLine y={10} stroke="#22c55e" strokeDasharray="4 4" strokeWidth={1} />
+            <ReferenceLine y={20} stroke="#22c55e" strokeDasharray="4 4" strokeWidth={1} />
             <XAxis dataKey="name" tickFormatter={formatMuscleLabel} angle={-25} textAnchor="end" interval={0} tick={axisTick} axisLine={{ stroke: gridStroke }} />
             <YAxis tick={axisTick} axisLine={{ stroke: gridStroke }} />
             <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} serii / tydzień`, "Średnia"]} />
@@ -91,15 +104,22 @@ export default function TrainingOverview({ startDate, endDate }) {
 
       <section className="analytics-panel analytics-activity-panel">
         <h2>Częstotliwość treningów</h2>
-        <div className="activity-heatmap">
-          {activityDays.map((day) => (
+        <div
+          className="activity-heatmap"
+          style={{
+            gridTemplateColumns: `repeat(${Math.max(activityWeeks.length, 1)}, minmax(0, 1fr))`,
+            gridTemplateRows: "repeat(7, minmax(12px, 1fr))",
+          }}
+        >
+          {activityWeeks.flatMap((week, weekIndex) => week.map((day) => (
             <div
               key={day.date}
               className={`activity-cell activity-level-${day.hardSets === 0 ? 0 : day.hardSets <= 6 ? 1 : day.hardSets <= 14 ? 2 : 3}`}
+              style={{ gridColumn: weekIndex + 1, gridRow: day.dayIndex + 1 }}
               onMouseEnter={() => setHoveredDay(day)}
               onMouseLeave={() => setHoveredDay(null)}
             />
-          ))}
+          )))}
         </div>
         {hoveredDay && <div className="activity-tooltip">{hoveredDay.date}: {hoveredDay.hardSets} serii</div>}
         <div className="activity-legend"><span>mniej</span><i /><i /><i /><i /><span>więcej</span></div>

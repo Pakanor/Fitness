@@ -197,13 +197,13 @@ namespace ExerciseAPI.Services
                 .ToList();
 
             var muscleAnalytics = hardEntries
-                .SelectMany(x => x.Exercise?.MuscleGroupMappings ?? Enumerable.Empty<ExerciseMuscleGroup>(),
+                .SelectMany(x => GetMuscleWeights(x.Exercise),
                     (entry, mapping) => new
                     {
-                        mapping.MuscleGroupKey,
-                        Name = mapping.MuscleGroup?.NamePl ?? mapping.MuscleGroupKey,
+                        MuscleGroupKey = mapping.Key,
+                        mapping.Name,
                         Week = GetWeekStart(entry.Date),
-                        HardSets = (entry.Sets ?? 1) * mapping.WeightPercentage,
+                        HardSets = (entry.Sets ?? 1) * mapping.Weight,
                         Reps = entry.Reps!.Value
                     })
                 .GroupBy(x => new { x.MuscleGroupKey, x.Name })
@@ -319,18 +319,18 @@ namespace ExerciseAPI.Services
                 .ToList();
 
             var muscleVolume = hardEntries
-                .SelectMany(x => x.Exercise?.MuscleGroupMappings ?? Enumerable.Empty<ExerciseMuscleGroup>(),
+                .SelectMany(x => GetMuscleWeights(x.Exercise),
                     (entry, mapping) => new
                     {
-                        mapping.MuscleGroupKey,
-                        Name = mapping.MuscleGroup?.NamePl ?? mapping.MuscleGroupKey,
-                        HardSets = (entry.Sets ?? 1) * mapping.WeightPercentage
+                        mapping.Key,
+                        mapping.Name,
+                        HardSets = (entry.Sets ?? 1) * mapping.Weight
                     })
-                .GroupBy(x => new { x.MuscleGroupKey, x.Name })
+                .GroupBy(x => new { x.Key, x.Name })
                 .OrderBy(x => x.Key.Name)
                 .Select(group => new GlobalMuscleVolumeDto
                 {
-                    Key = group.Key.MuscleGroupKey,
+                    Key = group.Key.Key,
                     Name = group.Key.Name,
                     HardSets = group.Sum(x => x.HardSets)
                 })
@@ -381,5 +381,38 @@ namespace ExerciseAPI.Services
         }
 
         private static string GetRepRange(int reps) => reps <= 5 ? "1-5" : reps <= 10 ? "6-10" : "11-15";
+
+        private static IEnumerable<(string Key, string Name, decimal Weight)> GetMuscleWeights(Exercise? exercise)
+        {
+            if (exercise == null)
+                return Enumerable.Empty<(string, string, decimal)>();
+
+            if (exercise.MuscleGroupMappings.Count > 0)
+            {
+                return exercise.MuscleGroupMappings.Select(mapping =>
+                    (mapping.MuscleGroupKey, mapping.MuscleGroup?.NamePl ?? mapping.MuscleGroupKey, mapping.WeightPercentage));
+            }
+
+            return new[]
+            {
+                ("chest_main", "Klatka piersiowa", exercise.ChestMain),
+                ("deltoid_anterior", "Bark przedni", exercise.DeltoidAnterior),
+                ("deltoid_lateral", "Bark boczny", exercise.DeltoidLateral),
+                ("deltoid_posterior", "Bark tylny", exercise.DeltoidPosterior),
+                ("biceps", "Biceps", exercise.Biceps),
+                ("triceps", "Triceps", exercise.Triceps),
+                ("forearms", "Przedramiona", exercise.Forearms),
+                ("lats", "Plecy szerokie", exercise.Lats),
+                ("rhomboids", "Romby i czworoboczny", exercise.Rhomboids),
+                ("lower_back", "Dolny odcinek pleców", exercise.LowerBack),
+                ("abs", "Brzuch", exercise.Abs),
+                ("core_stabilizers", "Stabilizatory tułowia", exercise.CoreStabilizers),
+                ("quadriceps", "Czwórki", exercise.Quadriceps),
+                ("hamstrings", "Dwugłowe uda", exercise.Hamstrings),
+                ("glutes", "Pośladki", exercise.Glutes),
+                ("calves", "Łydki", exercise.Calves)
+            }.Where(mapping => mapping.Item3 > 0)
+                .Select(mapping => (mapping.Item1, mapping.Item2, mapping.Item3));
+        }
     }
 }

@@ -156,7 +156,7 @@ export default function E1RMProgressChart({ exerciseId, startDate, endDate }) {
       <div className="analytics-detail-grid">
       <section className="analytics-panel analytics-panel-wide">
       <h2>Progresja e1RM i Top Set</h2>
-      <ResponsiveContainer width="100%" height={250}>
+      <ResponsiveContainer width="100%" height={190}>
         <LineChart
           data={dataPoints}
           margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
@@ -211,7 +211,7 @@ export default function E1RMProgressChart({ exerciseId, startDate, endDate }) {
 
       <section className="analytics-panel">
         <h2>Tonaż i powtórzenia w sesji</h2>
-        <ResponsiveContainer width="100%" height={230}>
+        <ResponsiveContainer width="100%" height={170}>
           <ComposedChart data={progress.workload ?? []} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
             <XAxis dataKey="date" tickFormatter={formatDate} tick={axisTick} axisLine={{ stroke: gridStroke }} />
@@ -226,7 +226,7 @@ export default function E1RMProgressChart({ exerciseId, startDate, endDate }) {
 
       <section className="analytics-panel">
         <h2>Rozkład zakresów powtórzeń</h2>
-        <ResponsiveContainer width="100%" height={230}>
+        <ResponsiveContainer width="100%" height={170}>
           <PieChart>
             <Pie data={progress.repRanges ?? []} dataKey="sets" nameKey="range" innerRadius={55} outerRadius={85} paddingAngle={3}>
               {(progress.repRanges ?? []).map((entry, index) => <Cell key={entry.range} fill={["var(--color-accent)", "var(--color-info)", "var(--color-success)"][index % 3]} />)}
@@ -268,7 +268,7 @@ function MuscleAnalytics({ analytics }) {
           {analytics.map((item) => <option key={item.key} value={item.key}>{item.name}</option>)}
         </select>
       </Box>
-      <ResponsiveContainer width="100%" height={210}>
+      <ResponsiveContainer width="100%" height={165}>
         <BarChart data={selected.weeklyHardSets} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
           <ReferenceArea y1={10} y2={20} fill="#22c55e" fillOpacity={0.12} />
@@ -281,7 +281,7 @@ function MuscleAnalytics({ analytics }) {
       <Typography sx={{ color: "var(--color-fg-muted)", fontSize: 12, mt: 2, mb: 1 }}>
         Rozkład stresorów: zakresy powtórzeń
       </Typography>
-      <ResponsiveContainer width="100%" height={180}>
+      <ResponsiveContainer width="100%" height={145}>
         <BarChart data={selected.repRanges} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
           <XAxis dataKey="range" tickFormatter={(value) => `${value} powt.`} tick={axisTick} axisLine={{ stroke: gridStroke }} />

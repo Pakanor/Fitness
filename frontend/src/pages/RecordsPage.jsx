@@ -89,7 +89,7 @@ function RecordsPage({ embedded }) {
         .rec-layout { display: flex; flex: 1; overflow: hidden; }
         .rec-layout.overview-mode { display: block; }
         .rec-sidebar { width: 280px; flexShrink: 0; borderRight: 1px solid var(--color-border-subtle); overflow-y: auto; padding: 12px; }
-        .rec-main { flex: 1; overflow-y: auto; padding: 20px; }
+        .rec-main { flex: 1; overflow: hidden; padding: 14px 18px; }
         .overview-mode .rec-main { height: 100%; box-sizing: border-box; }
         .rec-search { width: 100%; padding: 8px 12px; background: var(--color-bg-base); border: 1px solid var(--color-border-default); border-radius: 8px; color: var(--color-fg-primary); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; box-sizing: border-box; margin-bottom: 8px; }
         .rec-search:focus { border-color: var(--color-accent); }
@@ -112,20 +112,20 @@ function RecordsPage({ embedded }) {
         .rec-freq-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--color-border-subtle); border: 1px solid var(--color-border-default); border-radius: 20px; color: var(--color-fg-secondary); font-size: 11px; cursor: pointer; margin: 2px; transition: background 0.15s; }
         .rec-freq-item:hover { background: var(--color-border-default); color: var(--color-fg-primary); }
         .rec-freq-badge { background: var(--color-accent); color: var(--color-bg-base); border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700; }
-        .analytics-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
-        .analytics-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 16px; }
-        .analytics-tab { border: 0; border-bottom: 2px solid transparent; background: none; color: var(--color-fg-muted); padding: 10px 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; }
+        .analytics-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+        .analytics-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 10px; }
+        .analytics-tab { border: 0; border-bottom: 2px solid transparent; background: none; color: var(--color-fg-muted); padding: 7px 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 12px; }
         .analytics-tab.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
         .analytics-range, .analytics-date { background: var(--color-bg-card); color: var(--color-fg-primary); border: 1px solid var(--color-border-default); border-radius: 6px; padding: 7px 9px; font-family: 'DM Sans', sans-serif; font-size: 12px; }
-        .analytics-overview-grid, .analytics-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-        .analytics-panel { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 10px; padding: 14px; min-width: 0; }
+        .analytics-overview-grid, .analytics-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .analytics-panel { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 10px; padding: 10px; min-width: 0; }
         .analytics-panel-wide { grid-column: span 2; }
         .analytics-panel h2 { color: var(--color-fg-muted); font-size: 12px; font-weight: 500; margin: 0 0 8px; }
         .analytics-kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
         .analytics-kpi { background: var(--color-bg-card); border: 1px solid var(--color-border-subtle); border-radius: 8px; padding: 10px; min-width: 0; }
         .analytics-kpi span { display: block; color: var(--color-fg-muted); font-size: 10px; margin-bottom: 5px; }
         .analytics-kpi strong { display: block; color: var(--color-fg-primary); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .activity-heatmap { display: grid; grid-template-columns: repeat(7, minmax(12px, 1fr)); gap: 4px; min-height: 120px; align-content: center; }
+        .activity-heatmap { display: grid; grid-template-columns: repeat(7, minmax(10px, 1fr)); gap: 3px; min-height: 80px; align-content: center; }
         .activity-cell { aspect-ratio: 1; background: var(--color-accent); border-radius: 3px; min-width: 10px; }
         .activity-legend { display: flex; align-items: center; gap: 4px; color: var(--color-fg-muted); font-size: 10px; margin-top: 10px; }
         .activity-legend i { width: 10px; height: 10px; background: var(--color-accent); border-radius: 2px; display: inline-block; }
@@ -184,7 +184,7 @@ function RecordsPage({ embedded }) {
         <div className="rec-main">
           <div className="analytics-tabs">
             <button className={`analytics-tab ${activeView === 'overview' ? 'active' : ''}`} onClick={() => setActiveView('overview')}>Przegląd Ogólny Partii</button>
-            <button className={`analytics-tab ${activeView === 'detail' ? 'active' : ''}`} onClick={() => selectedExerciseId && setActiveView('detail')}>Analiza Ćwiczenia</button>
+            <button className={`analytics-tab ${activeView === 'detail' ? 'active' : ''}`} onClick={() => setActiveView('detail')}>Analiza Ćwiczenia</button>
           </div>
           <div className="analytics-toolbar">
             <select className="analytics-range" value={range} onChange={(event) => setRange(event.target.value)}>

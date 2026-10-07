@@ -73,7 +73,7 @@ export default function TrainingOverview({ startDate, endDate }) {
     <div className="analytics-overview-grid">
       <section className="analytics-panel analytics-panel-wide">
         <h2>Objętość efektywna wg partii</h2>
-        <ResponsiveContainer width="100%" height={270}>
+        <ResponsiveContainer width="100%" height={185}>
           <BarChart data={overview.muscleVolume} margin={{ top: 8, right: 16, bottom: 55, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
             <ReferenceArea y1={10} y2={20} fill="#22c55e" fillOpacity={0.12} />
@@ -97,7 +97,7 @@ export default function TrainingOverview({ startDate, endDate }) {
 
       <section className="analytics-panel analytics-panel-wide">
         <h2>Objętość tygodniowa vs średnie RPE</h2>
-        <ResponsiveContainer width="100%" height={270}>
+        <ResponsiveContainer width="100%" height={185}>
           <LineChart data={overview.weeklyTrend} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
             <XAxis dataKey="week" tickFormatter={formatDate} tick={axisTick} axisLine={{ stroke: gridStroke }} />

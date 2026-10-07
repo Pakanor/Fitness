@@ -203,9 +203,6 @@ namespace ExerciseAPI.Controllers
             if (dto.RPE.HasValue && (dto.RPE < 1 || dto.RPE > 10))
                 return BadRequest("RPE musi być w zakresie 1-10");
 
-            if (dto.RIR.HasValue && (dto.RIR < 0 || dto.RIR > 4))
-                return BadRequest("RIR musi być w zakresie 0-4");
-
             var date = dto.Date.HasValue
                 ? DateTime.SpecifyKind(dto.Date.Value.Date, DateTimeKind.Utc)
                 : DateTime.UtcNow;
@@ -228,7 +225,6 @@ namespace ExerciseAPI.Controllers
                 Reps = dto.Reps,
                 Weight = dto.Weight,
                 RPE = dto.RPE,
-                RIR = dto.RIR,
                 Date = date
             };
 
@@ -274,7 +270,6 @@ namespace ExerciseAPI.Controllers
                 Reps = entity.Reps,
                 Weight = entity.Weight,
                 RPE = entity.RPE,
-                RIR = entity.RIR,
                 Date = entity.Date
             };
 
@@ -350,7 +345,6 @@ namespace ExerciseAPI.Controllers
                     reps = ue.Reps,
                     weight = ue.Weight,
                     rpe = ue.RPE,
-                    rir = ue.RIR,
                     templateId = ue.TemplateId,
                     sessionId = ue.SessionId,
                     sessionStatus = daySession != null

@@ -26,7 +26,6 @@ export default function AddExerciseModal({
   const [reps, setReps] = useState("");
   const [weight, setWeight] = useState("");
   const [rpe, setRpe] = useState("");
-  const [rir, setRir] = useState("");
   const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
 
@@ -44,7 +43,6 @@ export default function AddExerciseModal({
     setReps(initialEntry?.reps != null ? String(initialEntry.reps) : "");
     setWeight(initialEntry?.weight != null ? String(initialEntry.weight) : "");
     setRpe(initialEntry?.rpe != null ? String(initialEntry.rpe) : "");
-    setRir(initialEntry?.rir != null ? String(initialEntry.rir) : "");
     setDate(defaultDate || new Date().toISOString().slice(0, 10));
   }, [open, initialExercise, initialEntry, defaultDate]);
 
@@ -72,17 +70,13 @@ export default function AddExerciseModal({
     if (rpe && (parseInt(rpe) < 1 || parseInt(rpe) > 10)) {
       toast("RPE musi być w zakresie 1-10", "error"); return;
     }
-    if (rir && (parseInt(rir) < 0 || parseInt(rir) > 4)) {
-      toast("RIR musi być w zakresie 0-4", "error"); return;
-    }
     setLoading(true);
     try {
       const payload = {
         sets: sets ? parseInt(sets) : null,
         reps: reps ? parseInt(reps) : null,
         weight: weight ? parseFloat(weight) : null,
-        rpe: rpe ? parseInt(rpe) : null,
-        rir: rir ? parseInt(rir) : null,
+        rpe: rpe ? parseFloat(rpe) : null,
       };
 
       if (sessionId) {
@@ -214,7 +208,6 @@ export default function AddExerciseModal({
                   { label: "Powtórzenia", value: reps, set: setReps },
                   { label: "Waga (kg)", value: weight, set: setWeight },
                   { label: "RPE (1-10)", value: rpe, set: setRpe, hint: "opcjonalne" },
-                  { label: "RIR (0-4)", value: rir, set: setRir, hint: "opcjonalne" },
                 ].map(({ label, value, set, hint }) => (
                   <div key={label} className="aem-field">
                     <label className="aem-label">

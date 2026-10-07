@@ -358,15 +358,20 @@ namespace ExerciseAPI.Services
                 })
                 .ToList();
 
-            var weeklyTrend = entries
+            var weeklyTrend = hardEntries
                 .GroupBy(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)))
                 .OrderBy(x => x.Key)
                 .Select(week => new WeeklyTrainingTrendDto
                 {
                     Week = week.Key.ToString("yyyy-MM-dd"),
-                    HardSets = hardEntries.Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key).Sum(x => x.Sets ?? 1),
-                    AverageRpe = week.Any(x => x.RPE.HasValue)
-                        ? (decimal?)Math.Round(week.Where(x => x.RPE.HasValue).Select(x => (double)x.RPE!.Value).Average(), 2)
+                    HardSets = week.Sum(x => x.Sets ?? 1),
+                    AverageRpe = entries
+                        .Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key && x.RPE.HasValue)
+                        .Any()
+                        ? (decimal?)Math.Round(entries
+                            .Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key && x.RPE.HasValue)
+                            .Select(x => (double)x.RPE!.Value)
+                            .Average(), 2)
                         : null
                 })
                 .ToList();

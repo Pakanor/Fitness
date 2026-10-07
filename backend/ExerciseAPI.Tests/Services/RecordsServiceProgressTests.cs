@@ -163,6 +163,7 @@ namespace ExerciseAPI.Tests.Services
             Assert.Equal(2.8m, result.MuscleVolume[0].HardSets);
             Assert.Equal(2, result.Activity.Count);
             Assert.Single(result.WeeklyTrend);
+            Assert.Equal(7, result.WeeklyTrend[0].HardSets);
             Assert.Equal(8m, result.WeeklyTrend[0].AverageRpe);
         }
 

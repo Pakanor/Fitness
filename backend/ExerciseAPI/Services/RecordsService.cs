@@ -131,15 +131,19 @@ namespace ExerciseAPI.Services
                 query = query.Where(ue => ue.Date <= endDate.Value.Date.AddDays(1).AddTicks(-1));
 
             var entries = await query
-                .Select(ue => new { ue.Date, ue.Weight, ue.Reps })
+                .Include(ue => ue.Exercise)
+                .ThenInclude(e => e!.MuscleGroupMappings)
+                .ThenInclude(mapping => mapping.MuscleGroup)
                 .ToListAsync();
 
             var dataPoints = new List<ExerciseProgressPointDto>();
             var allTimeMax = 0m;
 
-            var days = entries
+            var validEntries = entries
                 .Where(x => _e1rmCalculator.IsValidSet(x.Weight!.Value, x.Reps!.Value))
-                .GroupBy(x => x.Date.Date);
+                .ToList();
+
+            var days = validEntries.GroupBy(x => x.Date.Date);
 
             foreach (var day in days)
             {
@@ -148,6 +152,7 @@ namespace ExerciseAPI.Services
                     {
                         Weight = x.Weight!.Value,
                         Reps = x.Reps!.Value,
+                        Rpe = x.RPE,
                         E1RM = _e1rmCalculator.CalculateEpley(x.Weight!.Value, x.Reps!.Value)
                     })
                     .Where(x => x.E1RM > 0)
@@ -157,24 +162,78 @@ namespace ExerciseAPI.Services
 
                 if (best == null) continue;
 
+                var topSet = day
+                    .OrderByDescending(x => x.Weight!.Value)
+                    .ThenByDescending(x => x.Reps!.Value)
+                    .First();
+
                 dataPoints.Add(new ExerciseProgressPointDto
                 {
                     Date = day.Key.ToString("yyyy-MM-dd"),
                     MaxE1RM = best.E1RM,
-                    TopSetWeight = best.Weight,
-                    TopSetReps = best.Reps
+                    TopSetWeight = topSet.Weight!.Value,
+                    TopSetReps = topSet.Reps!.Value,
+                    TopSetRpe = topSet.RPE
                 });
 
                 allTimeMax = _e1rmCalculator.CalculateBest(best.Weight, best.Reps, allTimeMax);
             }
+
+            var muscleAnalytics = entries
+                .Where(x => x.RPE.HasValue && x.RPE.Value >= 7)
+                .SelectMany(x => x.Exercise?.MuscleGroupMappings ?? Enumerable.Empty<ExerciseMuscleGroup>(),
+                    (entry, mapping) => new
+                    {
+                        mapping.MuscleGroupKey,
+                        Name = mapping.MuscleGroup?.NamePl ?? mapping.MuscleGroupKey,
+                        Week = GetWeekStart(entry.Date),
+                        HardSets = (entry.Sets ?? 1) * mapping.WeightPercentage,
+                        Reps = entry.Reps!.Value
+                    })
+                .GroupBy(x => new { x.MuscleGroupKey, x.Name })
+                .Select(group => new MuscleAnalyticsDto
+                {
+                    Key = group.Key.MuscleGroupKey,
+                    Name = group.Key.Name,
+                    WeeklyHardSets = group
+                        .GroupBy(x => x.Week)
+                        .OrderBy(x => x.Key)
+                        .Select(week => new WeeklyHardSetsDto
+                        {
+                            Week = week.Key.ToString("yyyy-MM-dd"),
+                            HardSets = week.Sum(x => x.HardSets)
+                        })
+                        .ToList(),
+                    RepRanges = group
+                        .GroupBy(x => GetRepRange(x.Reps))
+                        .OrderBy(x => x.Key)
+                        .Select(range => new RepRangeDistributionDto
+                        {
+                            Range = range.Key,
+                            HardSets = range.Sum(x => x.HardSets)
+                        })
+                        .ToList()
+                })
+                .OrderBy(x => x.Name)
+                .ToList();
 
             return new ExerciseProgressResponseDto
             {
                 ExerciseId = exerciseId,
                 ExerciseName = exerciseName,
                 DataPoints = dataPoints.OrderBy(p => p.Date, StringComparer.Ordinal).ToList(),
-                AllTimeMaxE1RM = allTimeMax
+                AllTimeMaxE1RM = allTimeMax,
+                MuscleAnalytics = muscleAnalytics
             };
         }
+
+        private static DateTime GetWeekStart(DateTime date)
+        {
+            var day = date.Date;
+            var offset = ((int)day.DayOfWeek + 6) % 7;
+            return day.AddDays(-offset);
+        }
+
+        private static string GetRepRange(int reps) => reps <= 5 ? "1-5" : reps <= 10 ? "6-10" : "11-15";
     }
 }

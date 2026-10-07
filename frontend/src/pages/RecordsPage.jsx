@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../components/layout/Header';
-import { getRecordsByExercise } from '../api/exerciseAPI';
 import E1RMProgressChart from '../features/exercises/E1RMProgressChart';
 
 const API_URL = 'http://localhost:8000/api/ExerciseDb';
@@ -10,7 +9,6 @@ function RecordsPage({ embedded }) {
   const [exercises, setExercises] = useState([]);
   const [userExercises, setUserExercises] = useState([]);
   const [selectedExerciseId, setSelectedExerciseId] = useState(null);
-  const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -64,29 +62,8 @@ function RecordsPage({ embedded }) {
   const handleSelectExercise = async (id) => {
     setSelectedExerciseId(id);
     setLoading(true);
-    try {
-      const data = await getRecordsByExercise(id);
-      setRecords(data);
-    } catch {
-      setRecords([]);
-    }
     setLoading(false);
   };
-
-  const chartSections = records.length > 0 ? (() => {
-    const minW = Math.min(...records.map(r => r.weight));
-    const maxW = Math.max(...records.map(r => r.weight));
-    const range = maxW - minW || 1;
-    const height = 180;
-    const width = Math.max(300, records.length * 60);
-    const points = records.map((r, i) => {
-      const x = i * (width / Math.max(records.length - 1, 1));
-      const y = height - ((r.weight - minW) / range) * (height - 20) - 10;
-      return { x, y, ...r };
-    });
-    const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
-    return { points, linePath, height, width, minW, maxW };
-  })() : null;
 
   return (
     <div style={rootStyle}>
@@ -120,7 +97,7 @@ function RecordsPage({ embedded }) {
       {!embedded && <Header />}
       {!embedded && (
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border-subtle)', fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 16 }}>
-          Centrum <span style={{ color: 'var(--color-accent)' }}>Rekordów</span>
+          Analityka <span style={{ color: 'var(--color-accent)' }}>Treningowa</span>
         </div>
       )}
       <div className="rec-layout">
@@ -172,56 +149,12 @@ function RecordsPage({ embedded }) {
             <div className="rec-empty">
               <div style={{fontSize: 28, marginBottom: 8}}>🏆</div>
               <div>Wybierz ćwiczenie z listy</div>
-              <div className="rec-empty-sub">aby zobaczyć historię rekordów życiowych</div>
+              <div className="rec-empty-sub">aby zobaczyć analizę wszystkich sesji</div>
             </div>
           ) : (
             <>
               <E1RMProgressChart exerciseId={selectedExerciseId} />
 
-              {records.length === 0 ? (
-                <div className="rec-empty">
-                  <div>Brak rekordów dla tego ćwiczenia</div>
-                  <div className="rec-empty-sub">Dodaj treningi, aby śledzić progres</div>
-                </div>
-              ) : (
-                <>
-              {chartSections && (
-                <div className="chart-wrap">
-                  <div style={{ fontSize: 12, color: 'var(--color-fg-muted)', marginBottom: 12, textAlign: 'center' }}>Progresja siły w czasie</div>
-                  <svg viewBox={`0 0 ${chartSections.width} ${chartSections.height + 30}`} style={{ width: '100%', height: 'auto', maxHeight: 220 }}>
-                    <line x1="0" y1={chartSections.height} x2={chartSections.width} y2={chartSections.height} stroke="var(--color-border-default)" strokeWidth="1" />
-                    {chartSections.points.map((p, i) => (
-                      <g key={i}>
-                        {i > 0 && (
-                          <line x1={chartSections.points[i-1].x} y1={chartSections.points[i-1].y} x2={p.x} y2={p.y} stroke="var(--color-accent)" strokeWidth="2" />
-                        )}
-                        <circle cx={p.x} cy={p.y} r="4" fill="var(--color-accent)" />
-                        <text x={p.x} y={chartSections.height + 15} textAnchor="middle" fill="var(--color-fg-muted)" fontSize="9">{new Date(p.date).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}</text>
-                        <text x={p.x} y={p.y - 8} textAnchor="middle" fill="var(--color-fg-primary)" fontSize="10" fontWeight="600">{p.weight}kg</text>
-                      </g>
-                    ))}
-                  </svg>
-                </div>
-              )}
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '1.5px', color: 'var(--color-fg-muted)', marginBottom: 8 }}>Historia rekordów</div>
-              {records.map((r, i) => (
-                <div key={i} className="rec-card">
-                  <div>
-                    <div className="rec-weight">{r.weight} kg</div>
-                    <div className="rec-meta">{r.reps} powt. • {new Date(r.date).toLocaleDateString('pl-PL')}</div>
-                  </div>
-                  <div style={{textAlign: 'right'}}>
-                    {r.strengthToWeightRatio != null && (
-                      <div className="rec-ratio">Stosunek: {r.strengthToWeightRatio.toFixed(2)}</div>
-                    )}
-                    {r.userWeightAtTime != null && (
-                      <div className="rec-meta">Waga: {r.userWeightAtTime}kg</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-                </>
-              )}
             </>
           )}
         </div>

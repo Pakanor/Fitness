@@ -357,7 +357,7 @@ function Header() {
               onClick={() => navigate('/records')}
               aria-current={isActive('/records') ? 'page' : undefined}
             >
-              Rekordy
+              Analityka Treningowa
             </button>
             <button
               className={`nav-link ${isActive('/templates') ? 'nav-link--active' : ''}`}
@@ -430,7 +430,7 @@ function Header() {
       <div id="mobile-menu" className={`mobile-menu ${menuOpen ? 'open' : ''}`} role="navigation" aria-label="Menu mobilne">
         <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/exercises'); }}>Ćwiczenia</button>
         <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/calorie-tracker'); }}>Kalorie</button>
-        <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/records'); }}>Rekordy</button>
+        <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/records'); }}>Analityka Treningowa</button>
         <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/templates'); }}>Szablony</button>
         <button className="nav-link theme-toggle" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Włącz motyw jasny' : 'Włącz motyw ciemny'}>
           {theme === 'dark' ? <SunIcon /> : <MoonIcon />} <span style={{ marginLeft: 8 }}>Zmień motyw</span>

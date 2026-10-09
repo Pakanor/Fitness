@@ -200,8 +200,19 @@ namespace ExerciseAPI.Controllers
             if (!exerciseExists)
                 return BadRequest("Niepoprawne ćwiczenie");
 
-            if (dto.RPE.HasValue && (dto.RPE < 1 || dto.RPE > 10))
+            // Validate RPE in Sets array if provided
+            if (dto.Sets != null && dto.Sets.Any())
+            {
+                foreach (var set in dto.Sets)
+                {
+                    if (set.RPE.HasValue && (set.RPE < 1 || set.RPE > 10))
+                        return BadRequest("RPE musi być w zakresie 1-10");
+                }
+            }
+            else if (dto.RPE.HasValue && (dto.RPE < 1 || dto.RPE > 10))
+            {
                 return BadRequest("RPE musi być w zakresie 1-10");
+            }
 
             var date = dto.Date.HasValue
                 ? DateTime.SpecifyKind(dto.Date.Value.Date, DateTimeKind.Utc)
@@ -221,25 +232,66 @@ namespace ExerciseAPI.Controllers
             {
                 UserId = CurrentUserId,
                 ExerciseId = dto.ExerciseId,
-                Sets = dto.Sets,
-                Reps = dto.Reps,
-                Weight = dto.Weight,
-                RPE = dto.RPE,
-                IsWarmup = dto.IsWarmup,
                 Date = date
             };
 
             _context.UserExercise.Add(entity);
+            await _context.SaveChangesAsync(); // Save to get entity.Id
+
+            // Create WorkoutSet records from the Sets array (new granular format)
+            var setsToCreate = new List<LogSingleSetDto>();
+
+            if (dto.Sets != null && dto.Sets.Any())
+            {
+                setsToCreate = dto.Sets;
+            }
+            else if (dto.SetsCount.HasValue || dto.Reps.HasValue || dto.Weight.HasValue)
+            {
+                // Legacy format: create sets from aggregate data
+                var setCount = dto.SetsCount ?? 1;
+                for (int i = 1; i <= setCount; i++)
+                {
+                    setsToCreate.Add(new LogSingleSetDto
+                    {
+                        SetNumber = i,
+                        Reps = dto.Reps ?? 0,
+                        Weight = dto.Weight ?? 0,
+                        RPE = dto.RPE,
+                        IsWarmup = dto.IsWarmup
+                    });
+                }
+            }
+
+            foreach (var setDto in setsToCreate.OrderBy(s => s.SetNumber))
+            {
+                var workoutSet = new WorkoutSet
+                {
+                    UserExerciseId = entity.Id,
+                    SetNumber = setDto.SetNumber,
+                    Weight = setDto.Weight,
+                    Reps = setDto.Reps,
+                    RPE = setDto.RPE,
+                    IsWarmup = setDto.IsWarmup
+                };
+                _context.WorkoutSets.Add(workoutSet);
+            }
+
             await _context.SaveChangesAsync();
 
-            if (entity.Weight.HasValue && entity.Reps.HasValue)
+            // Update personal record based on best set
+            var bestSet = setsToCreate
+                .Where(s => !s.IsWarmup && s.Weight > 0 && s.Reps > 0)
+                .OrderByDescending(s => s.Weight * (1 + s.Reps / 30.0m))
+                .FirstOrDefault();
+
+            if (bestSet != null)
             {
                 var previousRecord = await _context.PersonalRecords
-                    .Where(pr => pr.UserId == entity.UserId && pr.ExerciseId == entity.ExerciseId && pr.Reps == entity.Reps.Value)
+                    .Where(pr => pr.UserId == entity.UserId && pr.ExerciseId == entity.ExerciseId && pr.Reps == bestSet.Reps)
                     .OrderByDescending(pr => pr.Weight)
                     .FirstOrDefaultAsync();
 
-                if (previousRecord == null || entity.Weight > previousRecord.Weight)
+                if (previousRecord == null || bestSet.Weight > previousRecord.Weight)
                 {
                     decimal userWeight = (decimal)UserWeight;
                     int? userAge = null;
@@ -248,13 +300,13 @@ namespace ExerciseAPI.Controllers
                     {
                         UserId = entity.UserId,
                         ExerciseId = entity.ExerciseId,
-                        Weight = entity.Weight.Value,
-                        Reps = entity.Reps.Value,
+                        Weight = bestSet.Weight,
+                        Reps = bestSet.Reps,
                         Date = entity.Date,
                         UserWeightAtTime = userWeight,
                         UserAgeAtTime = userAge,
                         StrengthToWeightRatio = userWeight > 0
-                            ? Math.Round(entity.Weight.Value / userWeight, 2)
+                            ? Math.Round(bestSet.Weight / userWeight, 2)
                             : null
                     };
 
@@ -263,15 +315,24 @@ namespace ExerciseAPI.Controllers
                 }
             }
 
+            var firstSet = setsToCreate.OrderBy(s => s.SetNumber).FirstOrDefault();
             var response = new UserExerciseResponseDto
             {
                 Id = entity.Id,
                 ExerciseId = entity.ExerciseId,
-                Sets = entity.Sets,
-                Reps = entity.Reps,
-                Weight = entity.Weight,
-                RPE = entity.RPE,
-                IsWarmup = entity.IsWarmup,
+                Sets = setsToCreate.OrderBy(s => s.SetNumber).Select(s => new SessionSetDto
+                {
+                    SetNumber = s.SetNumber,
+                    Weight = s.Weight,
+                    Reps = s.Reps,
+                    RPE = s.RPE,
+                    IsWarmup = s.IsWarmup
+                }).ToList(),
+                SetsCount = setsToCreate.Count,
+                Reps = firstSet?.Reps,
+                Weight = firstSet?.Weight,
+                RPE = firstSet?.RPE,
+                IsWarmup = firstSet?.IsWarmup ?? false,
                 Date = entity.Date
             };
 
@@ -289,13 +350,13 @@ namespace ExerciseAPI.Controllers
             if (!DateTime.TryParse(date, out var parsedDate))
                 return BadRequest("Nieprawidłowy format daty");
 
-            var all = await _context.UserExercise
-                .Where(ue => ue.UserId == CurrentUserId)
-                .ToListAsync();
+            var startUtc = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+            var endUtc = startUtc.AddDays(1);
 
-            var filtered = all
-            .Where(ue => ue.Date.Date == parsedDate.Date) 
-            .ToList();
+            var filtered = await _context.UserExercise
+                .Where(ue => ue.UserId == CurrentUserId && ue.Date >= startUtc && ue.Date < endUtc)
+                .Include(ue => ue.Sets)
+                .ToListAsync();
 
             var exerciseIds = filtered.Select(ue => ue.ExerciseId).Distinct().ToList();
 
@@ -305,11 +366,13 @@ namespace ExerciseAPI.Controllers
 
             var daySession = await _context.WorkoutSessions
                 .FirstOrDefaultAsync(s => s.UserId == CurrentUserId
-                                          && s.Date == DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc)
+                                          && s.Date == startUtc
                                           && s.Exercises.Any());
 
             var result = filtered.Select(ue => {
                 var exercise = exercises.FirstOrDefault(e => e.Id == ue.ExerciseId);
+                var sets = ue.Sets.OrderBy(s => s.SetNumber).ToList();
+                var firstSet = sets.FirstOrDefault();
 
                 // Build primaryMuscles from the exercise's 16 activation columns.
                 string primaryMuscles = "";
@@ -343,11 +406,11 @@ namespace ExerciseAPI.Controllers
                     category = exercise?.Category ?? "",
                     primaryMuscles,
                     gifUrl = exercise?.GifUrl ?? "",
-                    sets = ue.Sets,
-                    reps = ue.Reps,
-                    weight = ue.Weight,
-                    rpe = ue.RPE,
-                    isWarmup = ue.IsWarmup,
+                    sets = sets.Count, // Legacy: number of sets
+                    reps = firstSet?.Reps,
+                    weight = firstSet?.Weight,
+                    rpe = firstSet?.RPE,
+                    isWarmup = firstSet?.IsWarmup ?? false,
                     templateId = ue.TemplateId,
                     sessionId = ue.SessionId,
                     sessionStatus = daySession != null

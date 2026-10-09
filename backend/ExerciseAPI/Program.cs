@@ -69,7 +69,7 @@ builder.Services.AddScoped<ExerciseAPI.Interfaces.ITemplateService, ExerciseAPI.
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutStartModeService, ExerciseAPI.Services.WorkoutStartModeService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutStatusService, ExerciseAPI.Services.WorkoutStatusService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutSessionService, ExerciseAPI.Services.WorkoutSessionService>();
-builder.Services.AddSingleton<ExerciseAPI.Services.AnalyticsQueue>();
+builder.Services.AddSingleton<ExerciseAPI.Services.IAnalyticsQueue, ExerciseAPI.Services.AnalyticsQueue>();
 builder.Services.AddHostedService<ExerciseAPI.Services.AnalyticsBackgroundService>();
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();

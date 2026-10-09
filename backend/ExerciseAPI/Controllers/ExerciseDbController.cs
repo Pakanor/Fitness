@@ -200,26 +200,14 @@ namespace ExerciseAPI.Controllers
             if (!exerciseExists)
                 return BadRequest("Niepoprawne ćwiczenie");
 
-            // Validate RPE in Sets array if provided
-            if (dto.Sets != null && dto.Sets.Any())
-            {
-                foreach (var set in dto.Sets)
-                {
-                    if (set.RPE.HasValue && (set.RPE < 1 || set.RPE > 10))
-                        return BadRequest("RPE musi być w zakresie 1-10");
-                }
-            }
-            else if (dto.RPE.HasValue && (dto.RPE < 1 || dto.RPE > 10))
-            {
-                return BadRequest("RPE musi być w zakresie 1-10");
-            }
+            var validationError = ValidateSets(dto);
+            if (validationError != null)
+                return BadRequest(validationError);
 
             var date = dto.Date.HasValue
                 ? DateTime.SpecifyKind(dto.Date.Value.Date, DateTimeKind.Utc)
                 : DateTime.UtcNow;
 
-            // A session owns its day: planned and finished workouts reject writes
-            // made outside the /api/workouts lifecycle.
             var session = await _context.WorkoutSessions
                 .FirstOrDefaultAsync(s => s.UserId == CurrentUserId && s.Date == date);
 
@@ -236,9 +224,8 @@ namespace ExerciseAPI.Controllers
             };
 
             _context.UserExercise.Add(entity);
-            await _context.SaveChangesAsync(); // Save to get entity.Id
+            await _context.SaveChangesAsync();
 
-            // Create WorkoutSet records from the Sets array (new granular format)
             var setsToCreate = new List<LogSingleSetDto>();
 
             if (dto.Sets != null && dto.Sets.Any())
@@ -247,8 +234,10 @@ namespace ExerciseAPI.Controllers
             }
             else if (dto.SetsCount.HasValue || dto.Reps.HasValue || dto.Weight.HasValue)
             {
-                // Legacy format: create sets from aggregate data
                 var setCount = dto.SetsCount ?? 1;
+                if (setCount < 1 || setCount > 100)
+                    return BadRequest("Liczba serii musi być w zakresie 1-100.");
+
                 for (int i = 1; i <= setCount; i++)
                 {
                     setsToCreate.Add(new LogSingleSetDto
@@ -473,9 +462,64 @@ namespace ExerciseAPI.Controllers
             if (sessionToRemove != null)
                 _context.WorkoutSessions.Remove(sessionToRemove);
 
-            await _context.SaveChangesAsync();
+await _context.SaveChangesAsync();
 
             return NoContent();
         }
-}
+
+        private static string? ValidateSets(AddUserExerciseDto dto)
+        {
+            var sets = new List<LogSingleSetDto>();
+
+            if (dto.Sets != null && dto.Sets.Any())
+            {
+                sets = dto.Sets;
+            }
+            else if (dto.SetsCount.HasValue || dto.Reps.HasValue || dto.Weight.HasValue)
+            {
+                var setCount = dto.SetsCount ?? 1;
+                if (setCount < 1 || setCount > 100)
+                    return "Liczba serii musi być w zakresie 1-100.";
+
+                for (int i = 1; i <= setCount; i++)
+                {
+                    sets.Add(new LogSingleSetDto
+                    {
+                        SetNumber = i,
+                        Reps = dto.Reps ?? 0,
+                        Weight = dto.Weight ?? 0,
+                        RPE = dto.RPE,
+                        IsWarmup = dto.IsWarmup
+                    });
+                }
+            }
+
+            if (!sets.Any())
+                return "Brak serii do zapisania.";
+
+            var seenNumbers = new HashSet<int>();
+            foreach (var set in sets)
+            {
+                if (set.SetNumber < 1 || set.SetNumber > 100)
+                    return $"Numer serii {set.SetNumber} poza zakresem 1-100.";
+
+                if (!seenNumbers.Add(set.SetNumber))
+                    return $"Powtórzony numer serii: {set.SetNumber}.";
+
+                if (set.Reps < 0 || set.Reps > 1000)
+                    return $"Nieprawidłowa liczba powtórzeń w serii {set.SetNumber}.";
+
+                if (set.Weight < 0 || set.Weight > 1000)
+                    return $"Nieprawidłowy ciężar w serii {set.SetNumber}.";
+
+                if (set.RPE.HasValue && (set.RPE < 1 || set.RPE > 10))
+                    return $"RPE w serii {set.SetNumber} musi być w zakresie 1-10.";
+
+                if (!set.IsWarmup && set.Weight == 0 && set.Reps == 0)
+                    return $"Seria {set.SetNumber} musi mieć ciężar lub powtórzenia.";
+            }
+
+            return null;
+        }
+    }
 }

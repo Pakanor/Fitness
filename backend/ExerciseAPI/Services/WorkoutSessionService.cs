@@ -197,8 +197,13 @@ namespace ExerciseAPI.Services
         {
             var session = await GetOwnedSessionWithSets(userId, dto.SessionId);
 
+            if (session.Status == WorkoutStatus.Completed)
+                throw new SessionStateException("Zakończony trening jest zablokowany do edycji. Użyj opcji 'Wznów trening'.");
+
             if (session.Status == WorkoutStatus.Planned && session.Date.Date > DateTime.UtcNow.Date)
                 throw new SessionStateException("Najpierw rozpocznij trening, aby zapisywać serie.");
+
+            ValidateSets(dto);
 
             UserExercise entry;
 
@@ -370,6 +375,63 @@ namespace ExerciseAPI.Services
             });
 
             await _context.SaveChangesAsync();
+        }
+
+        private static void ValidateSets(LogSetDto dto)
+        {
+            var sets = new List<LogSingleSetDto>();
+
+            if (dto.Sets != null && dto.Sets.Any())
+            {
+                sets = dto.Sets;
+            }
+            else if (dto.Set != null)
+            {
+                sets.Add(dto.Set);
+            }
+            else if (dto.SetsCount.HasValue || dto.Reps.HasValue || dto.Weight.HasValue)
+            {
+                var setCount = dto.SetsCount ?? 1;
+                if (setCount < 1 || setCount > 100)
+                    throw new SessionStateException("Liczba serii musi być w zakresie 1-100.");
+
+                for (int i = 1; i <= setCount; i++)
+                {
+                    sets.Add(new LogSingleSetDto
+                    {
+                        SetNumber = i,
+                        Reps = dto.Reps ?? 0,
+                        Weight = dto.Weight ?? 0,
+                        RPE = dto.RPE,
+                        IsWarmup = dto.IsWarmup
+                    });
+                }
+            }
+
+            if (!sets.Any())
+                throw new SessionStateException("Brak serii do zapisania.");
+
+            var seenNumbers = new HashSet<int>();
+            foreach (var set in sets)
+            {
+                if (set.SetNumber < 1 || set.SetNumber > 100)
+                    throw new SessionStateException($"Numer serii {set.SetNumber} poza zakresem 1-100.");
+
+                if (!seenNumbers.Add(set.SetNumber))
+                    throw new SessionStateException($"Powtórzony numer serii: {set.SetNumber}.");
+
+                if (set.Reps < 0 || set.Reps > 1000)
+                    throw new SessionStateException($"Nieprawidłowa liczba powtórzeń w serii {set.SetNumber}.");
+
+                if (set.Weight < 0 || set.Weight > 1000)
+                    throw new SessionStateException($"Nieprawidłowy ciężar w serii {set.SetNumber}.");
+
+                if (set.RPE.HasValue && (set.RPE < 1 || set.RPE > 10))
+                    throw new SessionStateException($"RPE w serii {set.SetNumber} musi być w zakresie 1-10.");
+
+                if (!set.IsWarmup && set.Weight == 0 && set.Reps == 0)
+                    throw new SessionStateException($"Seria {set.SetNumber} musi mieć ciężar lub powtórzenia.");
+            }
         }
     }
 }

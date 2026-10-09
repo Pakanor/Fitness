@@ -33,16 +33,55 @@ namespace ExerciseAPI.Tests.Services
             _context.SaveChanges();
         }
 
-        private void SeedLog(DateTime date, decimal? weight, int? reps)
+        private void SeedLog(DateTime date, decimal? weight, int? reps, decimal? rpe = null)
         {
-            _context.UserExercise.Add(new UserExercise
+            var ue = new UserExercise
             {
                 UserId = UserId,
                 ExerciseId = ExerciseId,
-                Date = date,
-                Weight = weight,
-                Reps = reps
-            });
+                Date = date
+            };
+            _context.UserExercise.Add(ue);
+            _context.SaveChanges();
+
+            if (weight.HasValue && reps.HasValue)
+            {
+                _context.WorkoutSets.Add(new WorkoutSet
+                {
+                    UserExerciseId = ue.Id,
+                    SetNumber = 1,
+                    Weight = weight.Value,
+                    Reps = reps.Value,
+                    RPE = rpe
+                });
+                _context.SaveChanges();
+            }
+        }
+
+        private void SeedLogWithSets(DateTime date, params (decimal weight, int reps, decimal? rpe, bool isWarmup)[] sets)
+        {
+            var ue = new UserExercise
+            {
+                UserId = UserId,
+                ExerciseId = ExerciseId,
+                Date = date
+            };
+            _context.UserExercise.Add(ue);
+            _context.SaveChanges();
+
+            for (int i = 0; i < sets.Length; i++)
+            {
+                var s = sets[i];
+                _context.WorkoutSets.Add(new WorkoutSet
+                {
+                    UserExerciseId = ue.Id,
+                    SetNumber = i + 1,
+                    Weight = s.weight,
+                    Reps = s.reps,
+                    RPE = s.rpe,
+                    IsWarmup = s.isWarmup
+                });
+            }
             _context.SaveChanges();
         }
 
@@ -97,10 +136,8 @@ namespace ExerciseAPI.Tests.Services
             SeedExercise();
             var day = new DateTime(2026, 10, 2);
 
-            _context.UserExercise.AddRange(
-                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = day, Weight = 100m, Reps = 5 },
-                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = day.AddDays(1), Weight = 100m, Reps = 5, RPE = 8m });
-            _context.SaveChanges();
+            SeedLog(day, 100m, 5);
+            SeedLog(day.AddDays(1), 100m, 5, 8m);
 
             var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
 
@@ -114,16 +151,11 @@ namespace ExerciseAPI.Tests.Services
         {
             SeedExercise();
             SeedMuscleMapping();
-            _context.UserExercise.Add(new UserExercise
-            {
-                UserId = UserId,
-                ExerciseId = ExerciseId,
-                Date = new DateTime(2026, 10, 2),
-                Sets = 4,
-                Reps = 5,
-                Weight = 100m
-            });
-            _context.SaveChanges();
+            SeedLogWithSets(new DateTime(2026, 10, 2),
+                (100m, 5, null, false),
+                (100m, 5, null, false),
+                (100m, 5, null, false),
+                (100m, 5, null, false));
 
             var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
 
@@ -136,11 +168,21 @@ namespace ExerciseAPI.Tests.Services
             SeedExercise();
             SeedMuscleMapping();
             var date = new DateTime(2026, 10, 2);
-            _context.UserExercise.AddRange(
-                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = date, Sets = 4, Reps = 5, Weight = 100m },
-                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = date, Sets = 5, Reps = 5, Weight = 40m },
-                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = date, Sets = 5, Reps = 5, Weight = 100m, IsWarmup = true });
-            _context.SaveChanges();
+            SeedLogWithSets(date,
+                (100m, 5, null, false),
+                (100m, 5, null, false),
+                (100m, 5, null, false),
+                (100m, 5, null, false),
+                (40m, 5, null, false),
+                (40m, 5, null, false),
+                (40m, 5, null, false),
+                (40m, 5, null, false),
+                (40m, 5, null, false),
+                (100m, 5, null, true),
+                (100m, 5, null, true),
+                (100m, 5, null, true),
+                (100m, 5, null, true),
+                (100m, 5, null, true));
 
             var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
 
@@ -152,10 +194,15 @@ namespace ExerciseAPI.Tests.Services
         {
             SeedExercise();
             SeedMuscleMapping();
-            _context.UserExercise.AddRange(
-                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = new DateTime(2026, 10, 5), Sets = 4, Reps = 5, Weight = 100m },
-                new UserExercise { UserId = UserId, ExerciseId = ExerciseId, Date = new DateTime(2026, 10, 6), Sets = 3, Reps = 8, Weight = 80m, RPE = 8m });
-            _context.SaveChanges();
+            SeedLogWithSets(new DateTime(2026, 10, 5),
+                (100m, 5, null, false),
+                (100m, 5, null, false),
+                (100m, 5, null, false),
+                (100m, 5, null, false));
+            SeedLogWithSets(new DateTime(2026, 10, 6),
+                (80m, 8, 8m, false),
+                (80m, 8, 8m, false),
+                (80m, 8, 8m, false));
 
             var result = await _recordsService.GetOverview(UserId, new DateTime(2026, 10, 1), new DateTime(2026, 10, 7));
 
@@ -232,11 +279,19 @@ namespace ExerciseAPI.Tests.Services
             SeedExercise();
             var day = new DateTime(2026, 10, 1);
 
-            _context.UserExercise.Add(new UserExercise
+            var ue = new UserExercise
             {
                 UserId = 999,
                 ExerciseId = ExerciseId,
-                Date = day,
+                Date = day
+            };
+            _context.UserExercise.Add(ue);
+            _context.SaveChanges();
+
+            _context.WorkoutSets.Add(new WorkoutSet
+            {
+                UserExerciseId = ue.Id,
+                SetNumber = 1,
                 Weight = 200m,
                 Reps = 5
             });

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using ExerciseAPI.Interfaces;
 using ExerciseAPI.DTOs;
 
@@ -30,17 +31,20 @@ namespace ExerciseAPI.Controllers
             if (!exercises.Any())
                 return NotFound("No previous workouts to copy");
 
-            var response = exercises.Select(e => new
-            {
-                e.ExerciseId,
-                ExerciseName = e.Exercise?.Name ?? string.Empty,
-                Category = e.Exercise?.Category ?? string.Empty,
-                e.Sets,
-                e.Reps,
-                e.Weight,
-                e.RPE,
-                e.IsWarmup,
-            }).ToList();
+            var response = exercises
+                .SelectMany(e => e.Sets
+                    .Select(set => new
+                    {
+                        e.ExerciseId,
+                        ExerciseName = e.Exercise?.Name ?? string.Empty,
+                        Category = e.Exercise?.Category ?? string.Empty,
+                        set.SetNumber,
+                        set.Weight,
+                        set.Reps,
+                        set.RPE,
+                        set.IsWarmup,
+                    }))
+                .ToList();
 
             return Ok(response);
         }
@@ -57,16 +61,20 @@ namespace ExerciseAPI.Controllers
             if (!exercises.Any())
                 return NotFound("No previous workouts for this template");
 
-            var response = exercises.Select(e => new
-            {
-                e.ExerciseId,
-                ExerciseName = e.Exercise?.Name ?? string.Empty,
-                e.Sets,
-                e.Reps,
-                e.Weight,
-                e.RPE,
-                e.IsWarmup,
-            }).ToList();
+            var response = exercises
+                .SelectMany(e => e.Sets
+                    .Select(set => new
+                    {
+                        e.ExerciseId,
+                        ExerciseName = e.Exercise?.Name ?? string.Empty,
+                        Category = e.Exercise?.Category ?? string.Empty,
+                        set.SetNumber,
+                        set.Weight,
+                        set.Reps,
+                        set.RPE,
+                        set.IsWarmup,
+                    }))
+                .ToList();
 
             return Ok(response);
         }

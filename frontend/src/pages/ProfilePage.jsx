@@ -17,7 +17,7 @@ const sel = { ...inp, cursor: 'pointer' };
 const lbl = { fontSize: 11, color: 'var(--color-fg-muted)', display: 'block', marginBottom: 4 };
 const card = { background: 'var(--color-bg-card)', border: '1px solid var(--color-border-subtle)', borderRadius: 12, padding: 24 };
 
-function SettingsPage({ profile, onUpdate }) {
+function LegacySettingsPage({ profile, onUpdate }) {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -525,7 +525,7 @@ export default function ProfilePage() {
         </div>
       </div>
       <div style={{ padding: 20 }}>
-        {view === 'settings' && <SettingsPage profile={profile} onUpdate={fetchProfile} />}
+        {view === 'settings' && <LegacySettingsPage profile={profile} onUpdate={fetchProfile} />}
         {view === 'measurements' && <MeasurementsPage profileHeight={profile?.height} />}
       </div>
     </div>

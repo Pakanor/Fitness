@@ -5,6 +5,13 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from '../../components/common/Toast';
 
+const AvatarIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
 const HeaderStyles = `
   .header {
     position: sticky;
@@ -127,6 +134,31 @@ const HeaderStyles = `
     background: var(--color-bg-input);
   }
 
+  .account-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-bg-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .account-name {
+    display: none;
+  }
+
+  @media (min-width: 480px) {
+    .account-name {
+      display: inline;
+    }
+  }
+
   .chevron {
     font-size: 9px;
     color: var(--color-fg-disabled);
@@ -146,7 +178,7 @@ const HeaderStyles = `
     border: 1px solid var(--color-border-default);
     border-radius: var(--radius-lg);
     padding: var(--space-2);
-    min-width: 180px;
+    min-width: 220px;
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
@@ -166,6 +198,55 @@ const HeaderStyles = `
     }
   }
 
+  .dropdown-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-1);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .dropdown-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-bg-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .dropdown-user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .dropdown-username {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-fg-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dropdown-email {
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--color-fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .dropdown-item {
     font-family: var(--font-body);
     font-size: 13px;
@@ -178,13 +259,20 @@ const HeaderStyles = `
     cursor: pointer;
     text-align: left;
     transition: color var(--transition-fast), background var(--transition-fast);
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     width: 100%;
   }
 
   .dropdown-item:hover {
     color: var(--color-fg-primary);
     background: var(--color-bg-input);
+  }
+
+  .dropdown-item-icon {
+    font-size: 14px;
+    flex-shrink: 0;
   }
 
   .dropdown-item--danger {
@@ -199,6 +287,44 @@ const HeaderStyles = `
     height: 1px;
     background: var(--color-border-subtle);
     margin: var(--space-2) 0;
+  }
+
+  .mobile-user-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    margin: calc(var(--space-3) * -1) calc(var(--space-4) * -1) var(--space-2);
+    background: var(--color-bg-elevated);
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .mobile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-bg-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .mobile-username {
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-fg-primary);
+  }
+
+  .mobile-email {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--color-fg-muted);
   }
 
   .hamburger {
@@ -329,6 +455,9 @@ function Header() {
 
   const logoHref = user ? '/dashboard' : '/';
 
+  // Get first letter of username for avatar fallback
+  const avatarLetter = user?.username?.charAt(0)?.toUpperCase() || 'U';
+
   return (
     <>
       <style>{HeaderStyles}</style>
@@ -374,24 +503,36 @@ function Header() {
                 aria-haspopup="true"
                 aria-label="Menu konta"
               >
-                Konto
+                <span className="account-avatar" aria-hidden="true">{avatarLetter}</span>
+                <span className="account-name">Konto</span>
                 <span className={`chevron ${dropdownOpen ? 'open' : ''}`} aria-hidden="true">▾</span>
               </button>
               {dropdownOpen && (
                 <div className="account-dropdown" role="menu">
-                  <button
-                    className="dropdown-item"
-                    onClick={() => handleDropdownClick('/profile?view=settings')}
-                    role="menuitem"
-                  >
-                    Ustawienia konta
-                  </button>
+                  {user && (
+                    <div className="dropdown-header">
+                      <span className="dropdown-avatar" aria-hidden="true">{avatarLetter}</span>
+                      <div className="dropdown-user-info">
+                        <span className="dropdown-username">{user.username}</span>
+                        <span className="dropdown-email">{user.email}</span>
+                      </div>
+                    </div>
+                  )}
                   <button
                     className="dropdown-item"
                     onClick={() => handleDropdownClick('/profile?view=measurements')}
                     role="menuitem"
                   >
+                    <span className="dropdown-item-icon" aria-hidden="true">📏</span>
                     Dziennik pomiarów
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => handleDropdownClick('/konto/ustawienia')}
+                    role="menuitem"
+                  >
+                    <span className="dropdown-item-icon" aria-hidden="true">⚙️</span>
+                    Ustawienia konta
                   </button>
                   <div className="dropdown-divider" role="separator" />
                   <button
@@ -399,6 +540,7 @@ function Header() {
                     onClick={handleLogout}
                     role="menuitem"
                   >
+                    <span className="dropdown-item-icon" aria-hidden="true">🚪</span>
                     Wyloguj się
                   </button>
                 </div>
@@ -428,6 +570,15 @@ function Header() {
       </header>
 
       <div id="mobile-menu" className={`mobile-menu ${menuOpen ? 'open' : ''}`} role="navigation" aria-label="Menu mobilne">
+        {user && (
+          <div className="mobile-user-header">
+            <span className="mobile-avatar" aria-hidden="true">{avatarLetter}</span>
+            <div>
+              <div className="mobile-username">{user.username}</div>
+              <div className="mobile-email">{user.email}</div>
+            </div>
+          </div>
+        )}
         <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/exercises'); }}>Ćwiczenia</button>
         <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/calorie-tracker'); }}>Kalorie</button>
         <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/records'); }}>Analityka Treningowa</button>
@@ -435,9 +586,15 @@ function Header() {
         <button className="nav-link theme-toggle" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Włącz motyw jasny' : 'Włącz motyw ciemny'}>
           {theme === 'dark' ? <SunIcon /> : <MoonIcon />} <span style={{ marginLeft: 8 }}>Zmień motyw</span>
         </button>
-        <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/profile?view=settings'); }}>Ustawienia konta</button>
-        <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/profile?view=measurements'); }}>Dziennik pomiarów</button>
-        <button className="nav-link dropdown-item--danger" onClick={() => { setMenuOpen(false); handleLogout(); }}>Wyloguj się</button>
+        <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/konto/ustawienia'); }}>
+          <span style={{ marginRight: 8 }}>⚙️</span> Ustawienia konta
+        </button>
+        <button className="nav-link" onClick={() => { setMenuOpen(false); navigate('/profile?view=measurements'); }}>
+          <span style={{ marginRight: 8 }}>📏</span> Dziennik pomiarów
+        </button>
+        <button className="nav-link dropdown-item--danger" onClick={() => { setMenuOpen(false); handleLogout(); }}>
+          <span style={{ marginRight: 8 }}>🚪</span> Wyloguj się
+        </button>
       </div>
     </>
   );

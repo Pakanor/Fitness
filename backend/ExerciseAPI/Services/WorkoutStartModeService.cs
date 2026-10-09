@@ -28,6 +28,7 @@ namespace ExerciseAPI.Services
             return await _context.UserExercise
                 .Where(ue => ue.UserId == userId && ue.Date == lastWorkoutDate)
                 .Include(ue => ue.Exercise)
+                .Include(ue => ue.Sets)
                 .OrderBy(ue => ue.Id)
                 .ToListAsync();
         }
@@ -52,6 +53,7 @@ namespace ExerciseAPI.Services
                              && ue.Date == lastMatchingDate
                              && ue.TemplateId == templateId)
                 .Include(ue => ue.Exercise)
+                .Include(ue => ue.Sets)
                 .OrderBy(ue => ue.Id)
                 .ToListAsync();
         }

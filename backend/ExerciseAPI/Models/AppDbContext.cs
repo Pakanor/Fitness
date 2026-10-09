@@ -12,6 +12,7 @@ namespace ExerciseAPI.Data
 
         public DbSet<Exercise> Exercises { get; set; }
         public DbSet<UserExercise> UserExercise { get; set; }
+        public DbSet<WorkoutSet> WorkoutSets { get; set; }
         public DbSet<PersonalRecord> PersonalRecords { get; set; }
         public DbSet<ExerciseMuscleGroup> ExerciseMuscleGroups { get; set; }
         public DbSet<MuscleGroup> MuscleGroups { get; set; }
@@ -93,6 +94,16 @@ namespace ExerciseAPI.Data
 
             modelBuilder.Entity<UserExercise>()
                 .HasIndex(ue => ue.SessionId);
+
+            modelBuilder.Entity<WorkoutSet>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasOne(e => e.UserExercise)
+                    .WithMany(ue => ue.Sets)
+                    .HasForeignKey(e => e.UserExerciseId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(e => new { e.UserExerciseId, e.SetNumber }).IsUnique();
+            });
         }
     }
 }

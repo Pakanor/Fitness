@@ -197,11 +197,7 @@ namespace ExerciseAPI.Controllers
                     {
                         userExerciseId = entry.Id,
                         exerciseId = entry.ExerciseId,
-                        sets = entry.Sets,
-                        reps = entry.Reps,
-                        weight = entry.Weight,
-                        rpe = entry.RPE,
-                        isWarmup = entry.IsWarmup,
+                        sets = entry.Sets.Select(s => new { s.Id, s.SetNumber, s.Weight, s.Reps, s.RPE, s.IsWarmup, Volume = s.Weight * s.Reps }),
                     },
                     session = response
                 });
@@ -256,6 +252,7 @@ namespace ExerciseAPI.Controllers
                     .Select(e =>
                     {
                         var exercise = exercises.FirstOrDefault(x => x.Id == e.ExerciseId);
+                        var sets = e.Sets.OrderBy(s => s.SetNumber).ToList();
                         return new SessionExerciseDto
                         {
                             UserExerciseId = e.Id,
@@ -263,14 +260,21 @@ namespace ExerciseAPI.Controllers
                             ExerciseName = exercise?.Name ?? string.Empty,
                             Category = exercise?.Category ?? string.Empty,
                             GifUrl = exercise?.GifUrl ?? string.Empty,
-                            Sets = e.Sets,
-                            Reps = e.Reps,
-                            Weight = e.Weight,
-                            RPE = e.RPE,
-                            IsWarmup = e.IsWarmup,
-                            Volume = e.Sets.HasValue && e.Reps.HasValue && e.Weight.HasValue
-                                ? e.Sets.Value * e.Reps.Value * e.Weight.Value
-                                : 0m
+                            Sets = sets.Select(s => new SessionSetDto
+                            {
+                                Id = s.Id,
+                                SetNumber = s.SetNumber,
+                                Weight = s.Weight,
+                                Reps = s.Reps,
+                                RPE = s.RPE,
+                                IsWarmup = s.IsWarmup
+                            }).ToList(),
+                            SetsCount = sets.Count,
+                            Reps = sets.FirstOrDefault()?.Reps,
+                            Weight = sets.FirstOrDefault()?.Weight,
+                            RPE = sets.FirstOrDefault()?.RPE,
+                            IsWarmup = sets.FirstOrDefault()?.IsWarmup ?? false,
+                            Volume = sets.Sum(s => s.Weight * s.Reps)
                         };
                     })
                     .ToList()

@@ -37,16 +37,16 @@ namespace ExerciseAPI.Services
         public async Task<OneRepMaxProgressionResponseDto> Get1RMProgression(int userId)
         {
             var userExercises = await _context.UserExercise
-                .Where(ue => ue.UserId == userId && ue.Weight.HasValue && ue.Reps.HasValue)
+                .Where(ue => ue.UserId == userId)
                 .Where(CountsTowardsStats)
+                .Include(ue => ue.Sets)
                 .Join(_context.Exercises,
                     ue => ue.ExerciseId,
                     e => e.Id,
                     (ue, e) => new
                     {
                         ue.Date,
-                        ue.Weight,
-                        ue.Reps,
+                        Sets = ue.Sets,
                         e.Name,
                         e.Category,
                         e.IsBenchmark
@@ -54,14 +54,28 @@ namespace ExerciseAPI.Services
                 .OrderBy(x => x.Date)
                 .ToListAsync();
 
-            var exercisesByName = userExercises
+            var setRecords = userExercises
+                .SelectMany(x => x.Sets
+                    .Where(s => s.Weight > 0 && s.Reps > 0)
+                    .Select(s => new
+                    {
+                        x.Date,
+                        Weight = s.Weight,
+                        Reps = s.Reps,
+                        x.Name,
+                        x.Category,
+                        x.IsBenchmark
+                    }))
+                .ToList();
+
+            var exercisesByName = setRecords
                 .GroupBy(x => x.Name.ToLower())
                 .ToDictionary(
                     g => g.Key,
                     g => g.First()
                 );
 
-            var benchmarkExercises = userExercises
+            var benchmarkExercises = setRecords
                 .Where(x => x.IsBenchmark)
                 .GroupBy(x => x.Name.ToLower())
                 .ToList();
@@ -78,13 +92,13 @@ namespace ExerciseAPI.Services
                     .Select(g =>
                     {
                         var bestSet = g.OrderByDescending(x =>
-                            _calculator.CalculateEpley(x.Weight!.Value, x.Reps!.Value))
+                            _calculator.CalculateEpley(x.Weight, x.Reps))
                             .First();
                         return new OneRepMaxDataPointDto
                         {
                             Date = g.Key,
                             Estimated1RM = _calculator.CalculateEpley(
-                                bestSet.Weight!.Value, bestSet.Reps!.Value)
+                                bestSet.Weight, bestSet.Reps)
                         };
                     })
                     .OrderBy(h => h.Date)
@@ -119,9 +133,7 @@ namespace ExerciseAPI.Services
 
             var query = _context.UserExercise
                 .Where(ue => ue.UserId == userId
-                    && ue.ExerciseId == exerciseId
-                    && ue.Weight.HasValue
-                    && ue.Reps.HasValue)
+                    && ue.ExerciseId == exerciseId)
                 .Where(CountsTowardsStats);
 
             if (startDate.HasValue)
@@ -140,18 +152,32 @@ namespace ExerciseAPI.Services
                 .Include(ue => ue.Exercise)
                 .ThenInclude(e => e!.MuscleGroupMappings)
                 .ThenInclude(mapping => mapping.MuscleGroup)
+                .Include(ue => ue.Sets)
                 .ToListAsync();
+
+            var setRecords = entries
+                .SelectMany(entry => entry.Sets
+                    .Select(set => new SetRecord
+                    {
+                        Date = entry.Date,
+                        Weight = set.Weight,
+                        Reps = set.Reps,
+                        Rpe = set.RPE,
+                        IsWarmup = set.IsWarmup,
+                        Exercise = entry.Exercise
+                    }))
+                .ToList();
 
             var dataPoints = new List<ExerciseProgressPointDto>();
             var allTimeMax = 0m;
 
-            var validEntries = entries
-                .Where(x => _e1rmCalculator.IsValidSet(x.Weight!.Value, x.Reps!.Value))
+            var validEntries = setRecords
+                .Where(x => _e1rmCalculator.IsValidSet(x.Weight, x.Reps))
                 .ToList();
 
             var bestExerciseE1Rm = validEntries
                 .Where(x => !x.IsWarmup)
-                .Select(x => _e1rmCalculator.CalculateBrzycki(x.Weight!.Value, x.Reps!.Value, x.RPE))
+                .Select(x => _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe))
                 .DefaultIfEmpty(0m)
                 .Max();
 
@@ -162,10 +188,10 @@ namespace ExerciseAPI.Services
                 var best = day
                     .Select(x => new
                     {
-                        Weight = x.Weight!.Value,
-                        Reps = x.Reps!.Value,
-                        Rpe = x.RPE,
-                        E1RM = _e1rmCalculator.CalculateBrzycki(x.Weight!.Value, x.Reps!.Value, x.RPE)
+                        Weight = x.Weight,
+                        Reps = x.Reps,
+                        Rpe = x.Rpe,
+                        E1RM = _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe)
                     })
                     .Where(x => x.E1RM > 0)
                     .OrderByDescending(x => x.E1RM)
@@ -175,17 +201,17 @@ namespace ExerciseAPI.Services
                 if (best == null) continue;
 
                 var topSet = day
-                    .OrderByDescending(x => x.Weight!.Value)
-                    .ThenByDescending(x => x.Reps!.Value)
+                    .OrderByDescending(x => x.Weight)
+                    .ThenByDescending(x => x.Reps)
                     .First();
 
                 dataPoints.Add(new ExerciseProgressPointDto
                 {
                     Date = day.Key.ToString("yyyy-MM-dd"),
                     MaxE1RM = best.E1RM,
-                    TopSetWeight = topSet.Weight!.Value,
-                    TopSetReps = topSet.Reps!.Value,
-                    TopSetRpe = topSet.RPE,
+                    TopSetWeight = topSet.Weight,
+                    TopSetReps = topSet.Reps,
+                    TopSetRpe = topSet.Rpe,
                     HasRpe = best.Rpe.HasValue
                 });
 
@@ -203,8 +229,8 @@ namespace ExerciseAPI.Services
                         MuscleGroupKey = mapping.Key,
                         mapping.Name,
                         Week = GetWeekStart(entry.Date),
-                        HardSets = (entry.Sets ?? 1) * mapping.Weight,
-                        Reps = entry.Reps!.Value
+                        HardSets = mapping.Weight,
+                        Reps = entry.Reps
                     })
                 .GroupBy(x => new { x.MuscleGroupKey, x.Name })
                 .Select(group => new MuscleAnalyticsDto
@@ -239,26 +265,26 @@ namespace ExerciseAPI.Services
                 .Select(day => new ExerciseWorkloadPointDto
                 {
                     Date = day.Key.ToString("yyyy-MM-dd"),
-                    Tonnage = day.Sum(x => (x.Sets ?? 1) * x.Reps!.Value * x.Weight!.Value),
-                    Repetitions = day.Sum(x => (x.Sets ?? 1) * x.Reps!.Value),
-                    AverageReps = (decimal)Math.Round(day.Average(x => x.Reps!.Value), 2),
-                    HardSets = hardEntries.Where(x => x.Date.Date == day.Key).Sum(x => x.Sets ?? 1)
+                    Tonnage = day.Sum(x => x.Weight * x.Reps),
+                    Repetitions = day.Sum(x => x.Reps),
+                    AverageReps = (decimal)Math.Round(day.Average(x => x.Reps), 2),
+                    HardSets = hardEntries.Where(x => x.Date.Date == day.Key).Sum(x => 1m)
                 })
                 .ToList();
 
             var repRanges = validEntries
-                .GroupBy(x => GetRepRange(x.Reps!.Value))
+                .GroupBy(x => GetRepRange(x.Reps))
                 .OrderBy(x => x.Key)
                 .Select(group => new ExerciseRepRangeDto
                 {
                     Range = group.Key,
-                    Sets = group.Sum(x => x.Sets ?? 1)
+                    Sets = group.Sum(x => 1m)
                 })
                 .ToList();
 
             var allTimePr = validEntries
-                .OrderByDescending(x => x.Weight!.Value)
-                .ThenByDescending(x => x.Reps!.Value)
+                .OrderByDescending(x => x.Weight)
+                .ThenByDescending(x => x.Reps)
                 .FirstOrDefault();
 
             return new ExerciseProgressResponseDto
@@ -272,7 +298,7 @@ namespace ExerciseAPI.Services
                 RepRanges = repRanges,
                 AllTimePrWeight = allTimePr?.Weight ?? 0m,
                 AllTimePrReps = allTimePr?.Reps ?? 0,
-                TotalSets = validEntries.Sum(x => x.Sets ?? 1),
+                TotalSets = validEntries.Count,
                 LastPerformedDate = validEntries.OrderByDescending(x => x.Date).FirstOrDefault()?.Date.ToString("yyyy-MM-dd")
             };
         }
@@ -285,11 +311,12 @@ namespace ExerciseAPI.Services
         {
             var timeZone = ResolveTimeZone(timeZoneId);
             var query = _context.UserExercise
-                .Where(ue => ue.UserId == userId && ue.Weight.HasValue && ue.Reps.HasValue)
+                .Where(ue => ue.UserId == userId)
                 .Where(CountsTowardsStats)
                 .Include(ue => ue.Exercise)
                 .ThenInclude(e => e!.MuscleGroupMappings)
                 .ThenInclude(mapping => mapping.MuscleGroup)
+                .Include(ue => ue.Sets)
                 .AsQueryable();
 
             if (startDate.HasValue)
@@ -305,8 +332,22 @@ namespace ExerciseAPI.Services
             }
 
             var entries = await query.ToListAsync();
-            var validEntries = entries
-                .Where(x => _e1rmCalculator.IsValidSet(x.Weight!.Value, x.Reps!.Value))
+            var setRecords = entries
+                .SelectMany(entry => entry.Sets
+                    .Select(set => new SetRecord
+                    {
+                        Date = entry.Date,
+                        Weight = set.Weight,
+                        Reps = set.Reps,
+                        Rpe = set.RPE,
+                        IsWarmup = set.IsWarmup,
+                        Exercise = entry.Exercise,
+                        ExerciseId = entry.ExerciseId
+                    }))
+                .ToList();
+
+            var validEntries = setRecords
+                .Where(x => _e1rmCalculator.IsValidSet(x.Weight, x.Reps))
                 .ToList();
 
             var bestByExercise = validEntries
@@ -314,7 +355,7 @@ namespace ExerciseAPI.Services
                 .GroupBy(x => x.ExerciseId)
                 .ToDictionary(
                     group => group.Key,
-                    group => group.Max(x => _e1rmCalculator.CalculateBrzycki(x.Weight!.Value, x.Reps!.Value, x.RPE)));
+                    group => group.Max(x => _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe)));
 
             var hardEntries = validEntries
                 .Where(x => bestByExercise.TryGetValue(x.ExerciseId, out var best) && IsHardSet(x, best))
@@ -336,7 +377,7 @@ namespace ExerciseAPI.Services
                     {
                         mapping.Key,
                         mapping.Name,
-                        HardSets = (entry.Sets ?? 1) * mapping.Weight
+                        HardSets = mapping.Weight
                     })
                 .GroupBy(x => new { x.Key, x.Name })
                 .OrderBy(x => x.Key.Name)
@@ -354,7 +395,7 @@ namespace ExerciseAPI.Services
                 .Select(day => new TrainingActivityDayDto
                 {
                     Date = day.Key.ToString("yyyy-MM-dd"),
-                    HardSets = day.Sum(x => x.Sets ?? 1)
+                    HardSets = day.Sum(x => 1m)
                 })
                 .ToList();
 
@@ -364,13 +405,13 @@ namespace ExerciseAPI.Services
                 .Select(week => new WeeklyTrainingTrendDto
                 {
                     Week = week.Key.ToString("yyyy-MM-dd"),
-                    HardSets = week.Sum(x => x.Sets ?? 1),
-                    AverageRpe = entries
-                        .Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key && x.RPE.HasValue)
+                    HardSets = week.Sum(x => 1m),
+                    AverageRpe = setRecords
+                        .Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key && x.Rpe.HasValue)
                         .Any()
-                        ? (decimal?)Math.Round(entries
-                            .Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key && x.RPE.HasValue)
-                            .Select(x => (double)x.RPE!.Value)
+                        ? (decimal?)Math.Round(setRecords
+                            .Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key && x.Rpe.HasValue)
+                            .Select(x => (double)x.Rpe!.Value)
                             .Average(), 2)
                         : null
                 })
@@ -384,10 +425,10 @@ namespace ExerciseAPI.Services
             };
         }
 
-        private static bool IsHardSet(UserExercise entry, decimal bestE1Rm)
+        private static bool IsHardSet(SetRecord entry, decimal bestE1Rm)
         {
             return !entry.IsWarmup
-                && (bestE1Rm <= 0m || entry.Weight!.Value >= bestE1Rm * 0.5m);
+                && (bestE1Rm <= 0m || entry.Weight >= bestE1Rm * 0.5m);
         }
 
         private static DateTime GetWeekStart(DateTime date)
@@ -436,6 +477,21 @@ namespace ExerciseAPI.Services
         }
 
         private static string GetRepRange(int reps) => reps <= 5 ? "1-5" : reps <= 10 ? "6-10" : "11-15";
+
+        /// <summary>
+        /// Flattened record of a single workout set with its owning exercise context.
+        /// Used by analytics queries that previously consumed aggregated UserExercise rows.
+        /// </summary>
+        private class SetRecord
+        {
+            public DateTime Date { get; set; }
+            public decimal Weight { get; set; }
+            public int Reps { get; set; }
+            public decimal? Rpe { get; set; }
+            public bool IsWarmup { get; set; }
+            public Exercise? Exercise { get; set; }
+            public int ExerciseId { get; set; }
+        }
 
         private static IEnumerable<(string Key, string Name, decimal Weight)> GetMuscleWeights(Exercise? exercise)
         {

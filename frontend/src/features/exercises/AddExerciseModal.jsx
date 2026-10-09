@@ -22,30 +22,59 @@ export default function AddExerciseModal({
   const [exLoading, setExLoading] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [search, setSearch] = useState("");
-  const [sets, setSets] = useState("");
-  const [reps, setReps] = useState("");
-  const [weight, setWeight] = useState("");
-  const [rpe, setRpe] = useState("");
+  const [setCount, setSetCount] = useState("");
+  const [setRows, setSetRows] = useState([]);
   const [isWarmup, setIsWarmup] = useState(false);
   const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
 
   const isSessionLog = Boolean(sessionId) && Boolean(initialExercise);
 
+  const initSetRows = (count, initialData = null) => {
+    const rows = [];
+    for (let i = 1; i <= count; i++) {
+      if (initialData && initialData.Sets && initialData.Sets[i - 1]) {
+        const s = initialData.Sets[i - 1];
+        rows.push({
+          setNumber: i,
+          weight: s.Weight != null ? String(s.Weight) : "",
+          reps: s.Reps != null ? String(s.Reps) : "",
+          rpe: s.RPE != null ? String(s.RPE) : "",
+          isWarmup: s.IsWarmup || false,
+        });
+      } else {
+        rows.push({
+          setNumber: i,
+          weight: "",
+          reps: "",
+          rpe: "",
+          isWarmup: false,
+        });
+      }
+    }
+    setSetRows(rows);
+  };
+
   useEffect(() => {
     if (!open) return;
 
-    // Prefilled from a workout card: jump straight to the numbers step.
     setSelectedExercise(initialExercise ?? null);
     setSelectedCategory(initialExercise?.category ?? null);
     setStep(initialExercise ? 2 : 0);
     setSearch("");
-    setSets(initialEntry?.sets != null ? String(initialEntry.sets) : "");
-    setReps(initialEntry?.reps != null ? String(initialEntry.reps) : "");
-    setWeight(initialEntry?.weight != null ? String(initialEntry.weight) : "");
-    setRpe(initialEntry?.rpe != null ? String(initialEntry.rpe) : "");
     setIsWarmup(initialEntry?.isWarmup === true);
     setDate(defaultDate || new Date().toISOString().slice(0, 10));
+
+    if (initialEntry?.Sets?.length) {
+      setSetCount(String(initialEntry.Sets.length));
+      initSetRows(initialEntry.Sets.length, initialEntry);
+    } else if (initialEntry?.sets != null) {
+      setSetCount(String(initialEntry.sets));
+      initSetRows(initialEntry.sets);
+    } else {
+      setSetCount("");
+      setSetRows([]);
+    }
   }, [open, initialExercise, initialEntry, defaultDate]);
 
   useEffect(() => {
@@ -67,32 +96,67 @@ export default function AddExerciseModal({
     if (step === 2) { setStep(1); }
   };
 
+  const handleSetCountChange = (e) => {
+    const count = parseInt(e.target.value) || 0;
+    setSetCount(e.target.value);
+    if (count > 0 && count <= 50) {
+      initSetRows(count);
+    } else {
+      setSetRows([]);
+    }
+  };
+
+  const updateSetRow = (index, field, value) => {
+    setSetRows(prev => prev.map((row, i) => i === index ? { ...row, [field]: value } : row));
+  };
+
+  const fillAllFromFirst = () => {
+    if (setRows.length === 0) return;
+    const first = setRows[0];
+    const filled = setRows.map((row, i) => i === 0 ? row : { ...row, weight: first.weight, reps: first.reps, rpe: first.rpe });
+    setSetRows(filled);
+  };
+
   const handleSubmit = async () => {
     if (!user?.id) { toast("Brak UserId w tokenie!", "error"); return; }
-    if (rpe && (parseFloat(rpe) < 1 || parseFloat(rpe) > 10)) {
-      toast("RPE musi być w zakresie 1-10", "error"); return;
+
+    const setsToSend = setRows
+      .filter(row => row.weight !== "" || row.reps !== "" || row.rpe !== "")
+      .map((row, idx) => ({
+        setNumber: idx + 1,
+        weight: row.weight ? parseFloat(row.weight) : 0,
+        reps: row.reps ? parseInt(row.reps) : 0,
+        rpe: row.rpe ? parseFloat(row.rpe) : null,
+        isWarmup: row.isWarmup,
+      }));
+
+    if (setsToSend.length === 0) {
+      toast("Wypełnij co najmniej jedną serię", "error");
+      return;
     }
+
+    for (const s of setsToSend) {
+      if (s.rpe !== null && (s.rpe < 1 || s.rpe > 10)) {
+        toast("RPE musi być w zakresie 1-10", "error"); return;
+      }
+    }
+
     setLoading(true);
     try {
-      const payload = {
-        sets: sets ? parseInt(sets) : null,
-        reps: reps ? parseInt(reps) : null,
-        weight: weight ? parseFloat(weight) : null,
-        rpe: rpe ? parseFloat(rpe) : null,
-        isWarmup,
-      };
-
       if (sessionId) {
         await workoutAPI.logSet({
           sessionId,
           userExerciseId: initialEntry?.userExerciseId ?? null,
           exerciseId: selectedExercise.id,
-          ...payload,
+          Sets: setsToSend,
         });
         toast("Zapisano serie w treningu.");
       } else {
         await addUserExercise({
-          userId: user.id, exerciseId: selectedExercise.id, ...payload, date,
+          userId: user.id,
+          exerciseId: selectedExercise.id,
+          Sets: setsToSend,
+          date,
         });
         toast("Ćwiczenie dodane!");
       }
@@ -155,6 +219,15 @@ export default function AddExerciseModal({
         .aem-btn-submit { padding: 10px 20px; background: var(--color-accent); color: var(--color-bg-base); border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
         .aem-btn-submit:hover { background: var(--color-accent-hover); }
         .aem-btn-submit:disabled { background: var(--color-border-subtle); color: var(--color-fg-muted); cursor: default; }
+        .aem-sets-header { display: grid; grid-template-columns: 50px 1fr 80px 80px 80px; gap: 8px; padding: 8px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--color-fg-muted); font-family: 'DM Sans', sans-serif; font-weight: 600; border-bottom: 1px solid var(--color-border-subtle); margin-bottom: 4px; }
+        .aem-set-row { display: grid; grid-template-columns: 50px 1fr 80px 80px 80px; gap: 8px; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--color-border-subtle); }
+        .aem-set-row:last-child { border-bottom: none; }
+        .aem-set-col { display: flex; align-items: center; }
+        .aem-set-nr { justify-content: center; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--color-fg-secondary); }
+        .aem-set-input { width: 100%; padding: 8px 10px; font-size: 13px; }
+        .aem-set-warmup input { transform: scale(1.1); }
+        .aem-btn-fill { margin-top: 12px; padding: 8px 16px; background: none; border: 1px solid var(--color-border-default); border-radius: 8px; color: var(--color-fg-secondary); font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+        .aem-btn-fill:hover { border-color: var(--color-accent); color: var(--color-accent); background: rgba(252,76,2,0.06); }
       `}</style>
 
       <div className="aem-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -206,30 +279,47 @@ export default function AddExerciseModal({
                     <img src={`http://localhost:8000${selectedExercise.gifUrl}`} alt={selectedExercise.name} />
                   </div>
                 )}
-                {[
-                  { label: "Serie", value: sets, set: setSets },
-                  { label: "Powtórzenia", value: reps, set: setReps },
-                  { label: "Waga (kg)", value: weight, set: setWeight },
-                  { label: "RPE (1-10)", value: rpe, set: setRpe, hint: "opcjonalne" },
-                ].map(({ label, value, set, hint }) => (
-                  <div key={label} className="aem-field">
-                    <label className="aem-label">
-                      {label}
-                      {label.startsWith("RPE") && (
-                        <span
-                          title="RPE to poziom zmęczenia w skali 1-10 (ile powtórzeń miałeś w zapasie). Np. RPE 8 = dałbyś radę zrobić jeszcze 2 powtórzenia. Uzupełnienie tego pola pozwala precyzyjnie oszacować Twoją siłę (e1RM), nawet jeśli nie robisz serii do załamania."
-                          aria-label="Wyjaśnienie RPE"
-                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 15, height: 15, marginLeft: 6, border: '1px solid currentColor', borderRadius: '50%', fontSize: 10, cursor: 'help' }}
-                        >?</span>
-                      )}
-                      {hint && <span style={{ fontSize: 11, color: 'var(--color-fg-muted)', fontWeight: 400, marginLeft: 6 }}>({hint})</span>}
-                    </label>
-                    <input className="aem-input" type="number" min={label.startsWith("RPE") ? 1 : undefined} max={label.startsWith("RPE") ? 10 : undefined} step={label.startsWith("RPE") ? 0.5 : undefined} value={value} onChange={e => set(e.target.value)} />
-                  </div>
-                ))}
+                <div className="aem-field">
+                  <label className="aem-label">Liczba serii</label>
+                  <input className="aem-input" type="number" min="1" max="50" value={setCount} onChange={handleSetCountChange} placeholder="np. 3" />
+                  <span className="aem-hint">Podaj liczbę serii, by wygenerować wiersze poniżej</span>
+                </div>
+                {setRows.length > 0 && (
+                  <>
+                    <div className="aem-sets-header">
+                      <div className="aem-set-col aem-set-nr">Seria</div>
+                      <div className="aem-set-col aem-set-weight">Ciężar (kg)</div>
+                      <div className="aem-set-col aem-set-reps">Powt.</div>
+                      <div className="aem-set-col aem-set-rpe">RPE</div>
+                      <div className="aem-set-col aem-set-warmup">Rozgrzew.</div>
+                    </div>
+                    {setRows.map((row, idx) => (
+                      <div key={idx} className="aem-set-row">
+                        <div className="aem-set-col aem-set-nr"><strong>{row.setNumber}</strong></div>
+                        <div className="aem-set-col aem-set-weight">
+                          <input className="aem-input aem-set-input" type="number" step="0.5" min="0" value={row.weight} onChange={e => updateSetRow(idx, 'weight', e.target.value)} placeholder="—" />
+                        </div>
+                        <div className="aem-set-col aem-set-reps">
+                          <input className="aem-input aem-set-input" type="number" min="1" max="1000" value={row.reps} onChange={e => updateSetRow(idx, 'reps', e.target.value)} placeholder="—" />
+                        </div>
+                        <div className="aem-set-col aem-set-rpe">
+                          <input className="aem-input aem-set-input" type="number" step="0.5" min="1" max="10" value={row.rpe} onChange={e => updateSetRow(idx, 'rpe', e.target.value)} placeholder="—" />
+                        </div>
+                        <div className="aem-set-col aem-set-warmup">
+                          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                            <input type="checkbox" checked={row.isWarmup} onChange={e => updateSetRow(idx, 'isWarmup', e.target.checked)} />
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                    <button type="button" className="aem-btn-fill" onClick={fillAllFromFirst}>
+                      Wypełnij wszystkie 1. serią
+                    </button>
+                  </>
+                )}
                 <label className="aem-field" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                   <input type="checkbox" checked={isWarmup} onChange={e => setIsWarmup(e.target.checked)} />
-                  <span className="aem-label" style={{ marginBottom: 0, textTransform: 'none', letterSpacing: 0 }}>Seria rozgrzewkowa</span>
+                  <span className="aem-label" style={{ marginBottom: 0, textTransform: 'none', letterSpacing: 0 }}>Całe ćwiczenie jako rozgrzewkowe</span>
                 </label>
                 <div className="aem-field">
                   <label className="aem-label">Data</label>

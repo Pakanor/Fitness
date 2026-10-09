@@ -19,18 +19,47 @@ namespace ExerciseAPI.DTOs
         [Range(1, int.MaxValue)]
         public int ExerciseId { get; set; }
 
-        [Range(1, 100)]
-        public int? Sets { get; set; }
+        /// <summary>Individual set data. Use this for logging individual sets.</summary>
+        public LogSingleSetDto? Set { get; set; }
 
+        /// <summary>Multiple sets for bulk logging. If provided, Set is ignored.</summary>
+        public List<LogSingleSetDto>? Sets { get; set; }
+
+        /// <summary>Legacy: Number of sets (deprecated, use Sets collection)</summary>
+        [Range(1, 100)]
+        public int? SetsCount { get; set; }
+
+        /// <summary>Legacy: Reps per set (deprecated, use Sets collection)</summary>
         [Range(1, 1000)]
         public int? Reps { get; set; }
 
+        /// <summary>Legacy: Weight per set (deprecated, use Sets collection)</summary>
         [Range(0, 1000)]
         public decimal? Weight { get; set; }
 
+        /// <summary>Legacy: RPE per set (deprecated, use Sets collection)</summary>
         [Range(typeof(decimal), "1", "10")]
         public decimal? RPE { get; set; }
+
+        /// <summary>Legacy: Is warmup (deprecated, use Sets collection)</summary>
         public bool IsWarmup { get; set; }
+    }
+
+    public class LogSingleSetDto
+    {
+        [Range(1, 100)]
+        public int SetNumber { get; set; }
+
+        [Range(1, 1000)]
+        public int Reps { get; set; }
+
+        [Range(0, 1000)]
+        public decimal Weight { get; set; }
+
+        [Range(typeof(decimal), "1", "10")]
+        public decimal? RPE { get; set; }
+
+        public bool IsWarmup { get; set; } = false;
     }
 
     public class SessionExerciseDto
@@ -40,12 +69,38 @@ namespace ExerciseAPI.DTOs
         public string ExerciseName { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
         public string GifUrl { get; set; } = string.Empty;
-        public int? Sets { get; set; }
+        
+        /// <summary>Individual sets for this exercise</summary>
+        public List<SessionSetDto> Sets { get; set; } = new();
+
+        /// <summary>Legacy: Total sets count (deprecated)</summary>
+        public int? SetsCount { get; set; }
+
+        /// <summary>Legacy: Reps per set (deprecated)</summary>
         public int? Reps { get; set; }
+
+        /// <summary>Legacy: Weight per set (deprecated)</summary>
         public decimal? Weight { get; set; }
+
+        /// <summary>Legacy: RPE per set (deprecated)</summary>
+        public decimal? RPE { get; set; }
+
+        /// <summary>Legacy: Is warmup (deprecated)</summary>
+        public bool IsWarmup { get; set; }
+
+        /// <summary>Legacy: Total volume (deprecated, use Sets sum)</summary>
+        public decimal Volume { get; set; }
+    }
+
+    public class SessionSetDto
+    {
+        public int Id { get; set; }
+        public int SetNumber { get; set; }
+        public decimal Weight { get; set; }
+        public int Reps { get; set; }
         public decimal? RPE { get; set; }
         public bool IsWarmup { get; set; }
-        public decimal Volume { get; set; }
+        public decimal Volume => Weight * Reps;
     }
 
     public class WorkoutSessionResponseDto

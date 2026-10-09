@@ -30,6 +30,7 @@ namespace ExerciseAPI.Services
             var target = DateTime.SpecifyKind(date, DateTimeKind.Utc).Date;
             return _context.WorkoutSessions
                 .Include(s => s.Exercises)
+                    .ThenInclude(e => e.Sets)
                 .Where(s => s.UserId == userId && s.Date == target && s.Exercises.Any())
                 .FirstOrDefaultAsync();
         }
@@ -39,6 +40,7 @@ namespace ExerciseAPI.Services
             return _context.WorkoutSessions
                 .Include(s => s.Template)
                 .Include(s => s.Exercises)
+                    .ThenInclude(e => e.Sets)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
         }
 
@@ -46,6 +48,7 @@ namespace ExerciseAPI.Services
         {
             return _context.WorkoutSessions
                 .Include(s => s.Exercises)
+                    .ThenInclude(e => e.Sets)
                 .Where(s => s.UserId == userId && s.Status == WorkoutStatus.InProgress)
                 .OrderByDescending(s => s.Date)
                 .FirstOrDefaultAsync();
@@ -55,6 +58,7 @@ namespace ExerciseAPI.Services
         {
             return _context.WorkoutSessions
                 .Include(s => s.Exercises)
+                    .ThenInclude(e => e.Sets)
                 .Include(s => s.Template)
                 .Where(s => s.UserId == userId
                     && s.Status != WorkoutStatus.Completed
@@ -189,8 +193,9 @@ namespace ExerciseAPI.Services
             return session;
         }
 
-        public async Task<(UserExercise Entry, WorkoutSession Session)> LogSet(int userId, LogSetDto dto, decimal? userWeight = null)        {
-            var session = await GetOwnedSession(userId, dto.SessionId);
+        public async Task<(UserExercise Entry, WorkoutSession Session)> LogSet(int userId, LogSetDto dto, decimal? userWeight = null)
+        {
+            var session = await GetOwnedSessionWithSets(userId, dto.SessionId);
 
             if (session.Status == WorkoutStatus.Planned && session.Date.Date > DateTime.UtcNow.Date)
                 throw new SessionStateException("Najpierw rozpocznij trening, aby zapisywać serie.");
@@ -224,44 +229,74 @@ namespace ExerciseAPI.Services
 
                 session.Exercises.Add(entry);
                 _context.UserExercise.Add(entry);
+                await _context.SaveChangesAsync(); // Save to get the ID for sets
             }
 
-            entry.Sets = dto.Sets;
-            entry.Reps = dto.Reps;
-            entry.Weight = dto.Weight;
-            entry.RPE = dto.RPE;
-            entry.IsWarmup = dto.IsWarmup;
+            // Handle new format: individual sets
+            var setsToLog = new List<LogSingleSetDto>();
+            
+            if (dto.Sets != null && dto.Sets.Any())
+            {
+                setsToLog = dto.Sets;
+            }
+            else if (dto.Set != null)
+            {
+                setsToLog.Add(dto.Set);
+            }
+            else if (dto.SetsCount.HasValue || dto.Reps.HasValue || dto.Weight.HasValue)
+            {
+                // Legacy format: create sets from aggregate data
+                var setCount = dto.SetsCount ?? 1;
+                for (int i = 1; i <= setCount; i++)
+                {
+                    setsToLog.Add(new LogSingleSetDto
+                    {
+                        SetNumber = i,
+                        Reps = dto.Reps ?? 0,
+                        Weight = dto.Weight ?? 0,
+                        RPE = dto.RPE,
+                        IsWarmup = dto.IsWarmup
+                    });
+                }
+            }
+
+            // Remove existing sets for this exercise if updating (to allow re-logging)
+            if (dto.UserExerciseId.HasValue)
+            {
+                var existingSets = await _context.WorkoutSets
+                    .Where(s => s.UserExerciseId == entry.Id)
+                    .ToListAsync();
+                _context.WorkoutSets.RemoveRange(existingSets);
+            }
+
+            // Add new sets
+            foreach (var setDto in setsToLog.OrderBy(s => s.SetNumber))
+            {
+                var workoutSet = new WorkoutSet
+                {
+                    UserExerciseId = entry.Id,
+                    SetNumber = setDto.SetNumber,
+                    Weight = setDto.Weight,
+                    Reps = setDto.Reps,
+                    RPE = setDto.RPE,
+                    IsWarmup = setDto.IsWarmup
+                };
+                _context.WorkoutSets.Add(workoutSet);
+                entry.Sets.Add(workoutSet);
+            }
+
             if (session.Status == WorkoutStatus.Planned)
             {
                 session.Status = WorkoutStatus.InProgress;
                 session.StartedAt = DateTime.UtcNow;
             }
 
-            var completed = session.Exercises.Any() && session.Exercises.All(exercise =>
-                exercise.Sets.HasValue && exercise.Reps.HasValue && exercise.Weight.HasValue);
-
-            if (completed)
-            {
-                session.Status = WorkoutStatus.Completed;
-                session.CompletedAt = DateTime.UtcNow;
-            }
-            else if (session.Status == WorkoutStatus.Completed)
-            {
-                session.Status = WorkoutStatus.InProgress;
-                session.CompletedAt = null;
-            }
-
-            entry.Status = completed ? WorkoutStatus.Completed : WorkoutStatus.InProgress;
-            if (completed)
-            {
-                foreach (var exercise in session.Exercises)
-                    exercise.Status = WorkoutStatus.Completed;
-            }
-
             session.UpdatedAt = DateTime.UtcNow;
             session.TotalVolume = CalculateVolume(session);
 
             await _context.SaveChangesAsync();
+            
+            // Update personal record based on best set
             await UpdatePersonalRecordAsync(entry, userWeight);
 
             return (entry, session);
@@ -270,6 +305,10 @@ namespace ExerciseAPI.Services
         public async Task<decimal> RecalculateVolume(WorkoutSession session)
         {
             await _context.Entry(session).Collection(s => s.Exercises).LoadAsync();
+            foreach (var ex in session.Exercises)
+            {
+                await _context.Entry(ex).Collection(e => e.Sets).LoadAsync();
+            }
             var volume = CalculateVolume(session);
             session.TotalVolume = volume;
             return volume;
@@ -278,45 +317,55 @@ namespace ExerciseAPI.Services
         private static decimal CalculateVolume(WorkoutSession session)
         {
             return session.Exercises.Sum(e =>
-                e.Sets.HasValue && e.Reps.HasValue && e.Weight.HasValue
-                    ? e.Sets.Value * e.Reps.Value * e.Weight.Value
-                    : 0m);
+                e.Sets.Where(s => !s.IsWarmup).Sum(s => s.Weight * s.Reps)
+            );
         }
 
         private async Task<WorkoutSession> GetOwnedSession(int userId, int sessionId)
         {
             var session = await _context.WorkoutSessions
                 .Include(s => s.Exercises)
+                    .ThenInclude(e => e.Sets)
                 .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId);
 
             return session ?? throw new SessionNotFoundException("Trening nie istnieje.");
         }
 
+        private async Task<WorkoutSession> GetOwnedSessionWithSets(int userId, int sessionId)
+        {
+            return await GetOwnedSession(userId, sessionId);
+        }
+
         private async Task UpdatePersonalRecordAsync(UserExercise entry, decimal? userWeight)
         {
-            if (!entry.Weight.HasValue || !entry.Reps.HasValue)
+            var bestSet = entry.Sets
+                .Where(s => !s.IsWarmup && s.Weight > 0 && s.Reps > 0)
+                .OrderByDescending(s => s.Weight * (1 + s.Reps / 30.0m))
+                .FirstOrDefault();
+
+            if (bestSet == null)
                 return;
 
             var previousRecord = await _context.PersonalRecords
                 .Where(pr => pr.UserId == entry.UserId
                              && pr.ExerciseId == entry.ExerciseId
-                             && pr.Reps == entry.Reps.Value)
+                             && pr.Reps == bestSet.Reps)
                 .OrderByDescending(pr => pr.Weight)
                 .FirstOrDefaultAsync();
 
-            if (previousRecord != null && entry.Weight <= previousRecord.Weight)
+            if (previousRecord != null && bestSet.Weight <= previousRecord.Weight)
                 return;
 
             _context.PersonalRecords.Add(new PersonalRecord
             {
                 UserId = entry.UserId,
                 ExerciseId = entry.ExerciseId,
-                Weight = entry.Weight.Value,
-                Reps = entry.Reps.Value,
+                Weight = bestSet.Weight,
+                Reps = bestSet.Reps,
                 Date = entry.Date,
                 UserWeightAtTime = userWeight,
                 StrengthToWeightRatio = userWeight.HasValue && userWeight.Value > 0
-                    ? Math.Round(entry.Weight.Value / userWeight.Value, 2)
+                    ? Math.Round(bestSet.Weight / userWeight.Value, 2)
                     : null
             });
 

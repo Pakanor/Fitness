@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import RecordsPage from './pages/RecordsPage';
 import TemplatesPage from './pages/TemplatesPage';
 import ProfilePage from './pages/ProfilePage';
+import AccountSettingsPage from './pages/AccountSettingsPage';
 import LoginForm from './pages/LoginPage';
 import ProtectedRoute from './pages/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
@@ -39,6 +40,7 @@ function App() {
             <Route path="/records" element={<ProtectedRoute><RecordsPage /></ProtectedRoute>} />
             <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/konto/ustawienia" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
           </Routes>
         </AuthProvider>
       </ThemeProvider>

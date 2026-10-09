@@ -38,7 +38,14 @@ namespace AuthAPI.Controllers
                 JobType = user.JobType,
                 Goal = user.Goal,
                 Bmr = user.GetBmr(),
-                Tdee = user.GetTdee()
+                Tdee = user.GetTdee(),
+                ManualCaloricTarget = user.ManualCaloricTarget,
+                ManualProteinG = user.ManualProteinG,
+                ManualCarbsG = user.ManualCarbsG,
+                ManualFatG = user.ManualFatG,
+                WeightUnit = user.WeightUnit,
+                DefaultWeightIncrement = user.DefaultWeightIncrement,
+                DefaultRestTimerSeconds = user.DefaultRestTimerSeconds
             });
         }
 
@@ -47,7 +54,7 @@ namespace AuthAPI.Controllers
         {
             if (!HasCurrentUser) return Unauthorized();
 
-            await _userService.UpdateProfileAsync(CurrentUserId, dto.Username, dto.Email, dto.BirthDate, dto.CurrentWeight, dto.Height, dto.Gender, dto.JobType, dto.Goal);
+            await _userService.UpdateProfileAsync(CurrentUserId, dto.Username, dto.Email, dto.BirthDate, dto.CurrentWeight, dto.Height, dto.Gender, dto.JobType, dto.Goal, dto.ManualCaloricTarget, dto.ManualProteinG, dto.ManualCarbsG, dto.ManualFatG, dto.WeightUnit, dto.DefaultWeightIncrement, dto.DefaultRestTimerSeconds);
             return NoContent();
         }
 
@@ -70,6 +77,37 @@ namespace AuthAPI.Controllers
             await _userService.DeleteAccountAsync(CurrentUserId);
             return NoContent();
         }
+
+        [HttpGet("export")]
+        public async Task<IActionResult> ExportData()
+        {
+            if (!HasCurrentUser) return Unauthorized();
+
+            return Ok(await _userService.ExportUserDataAsync(CurrentUserId));
+        }
+
+        [HttpGet("sessions")]
+        public async Task<IActionResult> GetSessions()
+        {
+            if (!HasCurrentUser) return Unauthorized();
+
+            var sessions = await _userService.GetActiveSessionsAsync(CurrentUserId);
+            if (sessions.Count == 0)
+            {
+                sessions.Add(new ActiveSessionInfo
+                {
+                    SessionId = "current",
+                    Device = "To urządzenie",
+                    Browser = Request.Headers.UserAgent.ToString().Split(' ').FirstOrDefault() ?? "Przeglądarka",
+                    Os = "Nieznany system",
+                    LastActivity = DateTime.UtcNow,
+                    IsCurrent = true
+                });
+            }
+
+            return Ok(sessions);
+        }
+
         [HttpPost("send-reset-password-email")]
         public async Task<IActionResult> SendResetPasswordEmail([FromBody] EmailDto dto)
         {

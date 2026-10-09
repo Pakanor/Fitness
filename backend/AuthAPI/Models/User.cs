@@ -29,6 +29,13 @@ namespace AuthAPI.Models
         public string? Gender { get; set; }
         public string? JobType { get; set; }
         public string? Goal { get; set; }
+        public int? ManualCaloricTarget { get; set; }
+        public decimal? ManualProteinG { get; set; }
+        public decimal? ManualCarbsG { get; set; }
+        public decimal? ManualFatG { get; set; }
+        public string? WeightUnit { get; set; }
+        public decimal? DefaultWeightIncrement { get; set; }
+        public int? DefaultRestTimerSeconds { get; set; }
 
         public decimal GetPalMultiplier()
         {
@@ -72,12 +79,23 @@ namespace AuthAPI.Models
         public string Username { get; set; }
         public string Email { get; set; }
         public string Password { get; set; }
-        public DateTime? BirthDate { get; set; }
-        public decimal? Height { get; set; }
+public DateTime? BirthDate { get; set; }
         public decimal? CurrentWeight { get; set; }
+        public decimal? Height { get; set; }
         public string? Gender { get; set; }
         public string? JobType { get; set; }
         public string? Goal { get; set; }
+
+        // Bilans Kaloryczny – ręczny nadpis
+        public int? ManualCaloricTarget { get; set; }
+        public decimal? ManualProteinG { get; set; }
+        public decimal? ManualCarbsG { get; set; }
+        public decimal? ManualFatG { get; set; }
+
+        // Parametry Treningowe
+        public string? WeightUnit { get; set; } // "kg" lub "lbs"
+        public decimal? DefaultWeightIncrement { get; set; }
+        public int? DefaultRestTimerSeconds { get; set; }
     }
     public class LoginDto
     {
@@ -94,6 +112,15 @@ namespace AuthAPI.Models
         public string? Gender { get; set; }
         public string? JobType { get; set; }
         public string? Goal { get; set; }
+
+        public int? ManualCaloricTarget { get; set; }
+        public decimal? ManualProteinG { get; set; }
+        public decimal? ManualCarbsG { get; set; }
+        public decimal? ManualFatG { get; set; }
+
+        public string? WeightUnit { get; set; }
+        public decimal? DefaultWeightIncrement { get; set; }
+        public int? DefaultRestTimerSeconds { get; set; }
     }
 
     public class ProfileResponseDto
@@ -108,6 +135,15 @@ namespace AuthAPI.Models
         public string? Goal { get; set; }
         public decimal? Bmr { get; set; }
         public decimal? Tdee { get; set; }
+
+        public int? ManualCaloricTarget { get; set; }
+        public decimal? ManualProteinG { get; set; }
+        public decimal? ManualCarbsG { get; set; }
+        public decimal? ManualFatG { get; set; }
+
+        public string? WeightUnit { get; set; }
+        public decimal? DefaultWeightIncrement { get; set; }
+        public int? DefaultRestTimerSeconds { get; set; }
     }
     public class EmailDto
     {

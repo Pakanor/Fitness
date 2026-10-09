@@ -11,6 +11,9 @@ namespace ExerciseAPI.Services
         private readonly AnalyticsQueue _queue;
         private readonly ILogger<AnalyticsBackgroundService> _logger;
 
+        private const int MaxRetries = 3;
+        private static readonly TimeSpan[] RetryDelays = { TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30) };
+
         public AnalyticsBackgroundService(
             IServiceScopeFactory scopeFactory,
             AnalyticsQueue queue,
@@ -27,13 +30,26 @@ namespace ExerciseAPI.Services
 
             await foreach (var evt in _queue.ReadAllAsync(stoppingToken))
             {
-                try
+                var attempt = 0;
+                while (true)
                 {
-                    await ProcessEventAsync(evt, stoppingToken);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to process SetRecordedEvent for SessionId={SessionId}, UserExerciseId={UserExerciseId}", evt.SessionId, evt.UserExerciseId);
+                    try
+                    {
+                        await ProcessEventAsync(evt, stoppingToken);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < MaxRetries)
+                    {
+                        attempt++;
+                        var delay = RetryDelays[Math.Min(attempt - 1, RetryDelays.Length - 1)];
+                        _logger.LogWarning(ex, "Retry {Attempt}/{MaxRetries} for SessionId={SessionId} after {Delay}s", attempt, MaxRetries, evt.SessionId, delay.TotalSeconds);
+                        await Task.Delay(delay, stoppingToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Dead-letter: Failed SetRecordedEvent for SessionId={SessionId}, UserExerciseId={UserExerciseId} after {MaxRetries} retries", evt.SessionId, evt.UserExerciseId, MaxRetries);
+                        break;
+                    }
                 }
             }
         }

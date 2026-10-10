@@ -48,12 +48,32 @@ const getWeekDates = () => {
 };
 
 const computeTdee = (profile) => {
+  if (!profile) return 0;
+  if (profile.ManualCaloricTarget && profile.ManualCaloricTarget > 0) {
+    return profile.ManualCaloricTarget;
+  }
+  const manualProtein = profile.ManualProteinG || 0;
+  const manualCarbs = profile.ManualCarbsG || 0;
+  const manualFat = profile.ManualFatG || 0;
+  const manualMacroKcal = manualProtein * 4 + manualCarbs * 4 + manualFat * 9;
+  if (manualMacroKcal > 0) return manualMacroKcal;
   const bmr = profile?.bmr || 0;
   const pal = JOB_PAL[profile?.jobType] || 1.2;
   let tdee = Math.round(bmr * pal);
   if (profile?.goal === 'loss') tdee = Math.round(tdee * 0.8);
   if (profile?.goal === 'gain') tdee = Math.round(tdee * 1.1);
   return tdee;
+};
+
+const computeMacrosFromProfile = (profile) => {
+  const manualProtein = profile?.ManualProteinG || 0;
+  const manualCarbs = profile?.ManualCarbsG || 0;
+  const manualFat = profile?.ManualFatG || 0;
+  const manualMacroKcal = manualProtein * 4 + manualCarbs * 4 + manualFat * 9;
+  const manualTarget = profile?.ManualCaloricTarget && profile.ManualCaloricTarget > 0
+    ? profile.ManualCaloricTarget
+    : manualMacroKcal > 0 ? manualMacroKcal : null;
+  return { manualProtein, manualCarbs, manualFat, manualMacroKcal, manualTarget };
 };
 
 const computeMacros = (tdee, goal) => {
@@ -665,6 +685,12 @@ function DashboardPage() {
   const [streak, setStreak] = useState(0);
 
   useEffect(() => {
+    const onUpdated = (e) => setProfile(e.detail);
+    window.addEventListener('profileUpdated', onUpdated);
+    return () => window.removeEventListener('profileUpdated', onUpdated);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
@@ -714,9 +740,13 @@ function DashboardPage() {
 
   const todayStr = toDateStr(new Date());
   const tdee = useMemo(() => computeTdee(profile), [profile]);
+  const { manualProtein, manualCarbs, manualFat, manualMacroKcal } = useMemo(
+    () => computeMacrosFromProfile(profile),
+    [profile]
+  );
   const macros = useMemo(() => computeMacros(tdee, profile?.goal), [tdee, profile?.goal]);
 
-  const consumed = totals?.energy || 0;
+  const consumed = (totals?.energy || 0) + manualMacroKcal;
   const kcalPct = tdee > 0 ? Math.min(100, (consumed / tdee) * 100) : 0;
   const kcalOver = tdee > 0 && consumed > tdee;
 
@@ -816,9 +846,9 @@ function DashboardPage() {
                     <div className={`db-progress-fill ${kcalOver ? 'over' : ''}`} style={{ width: `${kcalPct}%` }} />
                   </div>
 
-                  <MacroBar label="Białko" current={totals?.proteins || 0} target={macros.protein} />
-                  <MacroBar label="Węglowodany" current={totals?.sugars || 0} target={macros.carbs} />
-                  <MacroBar label="Tłuszcz" current={totals?.fat || 0} target={macros.fat} />
+<MacroBar label="Białko" current={(totals?.proteins || 0) + manualProtein} target={macros.protein} />
+                   <MacroBar label="Węglowodany" current={(totals?.sugars || 0) + manualCarbs} target={macros.carbs} />
+                   <MacroBar label="Tłuszcz" current={(totals?.fat || 0) + manualFat} target={macros.fat} />
 
                   <hr className="db-divider" />
 
@@ -921,7 +951,7 @@ function DashboardPage() {
                             <button
                               key={incomplete.id}
                               className="db-incomplete-date"
-                              onClick={() => navigate(`/exercises?date=${date}`)}
+                              onClick={() => navigate(`/exercise-start?date=${date}`)}
                             >
                               <span>{label}</span>
                               <span className="db-incomplete-date-count">{incomplete.exerciseCount} ćw.</span>

@@ -40,9 +40,10 @@ function AccountSettingsPage() {
 
   useEffect(() => {
     fetchProfile().then((data) => {
+      const hasManual = data.manualProteinG || data.manualCarbsG || data.manualFatG;
       setProfile(data);
-      setForm({ ...data, birthDate: data.birthDate ? data.birthDate.slice(0, 10) : '', manualProteinG: '', manualCarbsG: '', manualFatG: '' });
-      setManualMacrosEnabled(false);
+      setForm({ ...data, birthDate: data.birthDate ? data.birthDate.slice(0, 10) : '', manualProteinG: data.manualProteinG || '', manualCarbsG: data.manualCarbsG || '', manualFatG: data.manualFatG || '' });
+      setManualMacrosEnabled(hasManual);
     }).catch(() => setStatus('Nie udało się pobrać ustawień.'));
   }, []);
 
@@ -63,7 +64,7 @@ function AccountSettingsPage() {
     ? macroCalories
     : calculatedTarget || profile?.tdee;
 
-  const saveProfile = async (fields, message) => {
+const saveProfile = async (fields, message) => {
     setSaving(true);
     setStatus('');
     try {
@@ -81,9 +82,10 @@ function AccountSettingsPage() {
       const refreshed = await fetchProfile();
       setProfile(refreshed);
       setForm({ ...refreshed, birthDate: refreshed.birthDate ? refreshed.birthDate.slice(0, 10) : '', manualProteinG: manualMacrosEnabled ? refreshed.manualProteinG || '' : '', manualCarbsG: manualMacrosEnabled ? refreshed.manualCarbsG || '' : '', manualFatG: manualMacrosEnabled ? refreshed.manualFatG || '' : '' });
+      window.dispatchEvent(new CustomEvent('profileUpdated', { detail: refreshed }));
       setStatus(message);
     } catch (error) {
-      setStatus(error.message || 'Nie udało się zapisać zmian.');
+      setStatus(error.message || 'Nie uda się zapisać zmian.');
     } finally {
       setSaving(false);
     }

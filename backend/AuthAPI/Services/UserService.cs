@@ -151,9 +151,24 @@ namespace AuthAPI.Services
             };
         }
 
-        public Task<List<ActiveSessionInfo>> GetActiveSessionsAsync(int userId)
+        public async Task<List<ActiveSessionInfo>> GetActiveSessionsAsync(int userId)
         {
-            return Task.FromResult(new List<ActiveSessionInfo>());
+            var sessions = await _userRepo.GetActiveSessionsAsync(userId);
+            return sessions.Select(s => new ActiveSessionInfo
+            {
+                SessionId = s.Id.ToString(),
+                Device = s.Device,
+                Browser = s.Browser,
+                Os = s.Os,
+                LastActivity = s.LastActivity,
+                IsCurrent = false,
+                SessionToken = s.SessionToken
+            }).ToList();
+        }
+
+        public Task<bool> RevokeSessionAsync(int sessionId, int userId)
+        {
+            return _userRepo.RevokeSessionAsync(sessionId, userId);
         }
 
 

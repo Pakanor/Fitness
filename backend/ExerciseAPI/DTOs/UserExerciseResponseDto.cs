@@ -22,7 +22,8 @@ namespace ExerciseAPI.DTOs
         /// <summary>Legacy: RPE per set (deprecated, use Sets)</summary>
         public decimal? RPE { get; set; }
 
-        /// <summary>Legacy: Is warmup (deprecated, use Sets)</summary>
-        public bool IsWarmup { get; set; }
+        public Models.SetType SetType { get; set; } = Models.SetType.Normal;
+
+        public Guid? SupersetGroupId { get; set; }
     }
 }

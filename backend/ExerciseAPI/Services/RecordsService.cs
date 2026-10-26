@@ -163,7 +163,7 @@ namespace ExerciseAPI.Services
                         Weight = set.Weight,
                         Reps = set.Reps,
                         Rpe = set.RPE,
-                        IsWarmup = set.IsWarmup,
+                        SetType = set.SetType,
                         Exercise = entry.Exercise
                     }))
                 .ToList();
@@ -176,7 +176,7 @@ namespace ExerciseAPI.Services
                 .ToList();
 
             var bestExerciseE1Rm = validEntries
-                .Where(x => !x.IsWarmup)
+                .Where(x => x.SetType != Models.SetType.Warmup)
                 .Select(x => _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe))
                 .DefaultIfEmpty(0m)
                 .Max();
@@ -337,12 +337,12 @@ namespace ExerciseAPI.Services
                     .Select(set => new SetRecord
                     {
                         Date = entry.Date,
+                        ExerciseId = entry.ExerciseId,
                         Weight = set.Weight,
                         Reps = set.Reps,
                         Rpe = set.RPE,
-                        IsWarmup = set.IsWarmup,
-                        Exercise = entry.Exercise,
-                        ExerciseId = entry.ExerciseId
+                        SetType = set.SetType,
+                        Exercise = entry.Exercise
                     }))
                 .ToList();
 
@@ -427,8 +427,11 @@ namespace ExerciseAPI.Services
 
         private static bool IsHardSet(SetRecord entry, decimal bestE1Rm)
         {
-            return !entry.IsWarmup
-                && (bestE1Rm <= 0m || entry.Weight >= bestE1Rm * 0.5m);
+            if (entry.SetType == Models.SetType.Warmup)
+                return false;
+            if (entry.SetType == Models.SetType.Dropset)
+                return true;
+            return bestE1Rm <= 0m || entry.Weight >= bestE1Rm * 0.5m;
         }
 
         private static DateTime GetWeekStart(DateTime date)
@@ -488,7 +491,8 @@ namespace ExerciseAPI.Services
             public decimal Weight { get; set; }
             public int Reps { get; set; }
             public decimal? Rpe { get; set; }
-            public bool IsWarmup { get; set; }
+            public Models.SetType SetType { get; set; }
+            public bool IsWarmup { get; set; } // legacy for compatibility
             public Exercise? Exercise { get; set; }
             public int ExerciseId { get; set; }
         }

@@ -42,7 +42,7 @@ namespace ExerciseAPI.Controllers
                         set.Weight,
                         set.Reps,
                         set.RPE,
-                        set.IsWarmup,
+                        SetType = set.SetType,
                     }))
                 .ToList();
 
@@ -72,7 +72,7 @@ namespace ExerciseAPI.Controllers
                         set.Weight,
                         set.Reps,
                         set.RPE,
-                        set.IsWarmup,
+                        SetType = set.SetType,
                     }))
                 .ToList();
 

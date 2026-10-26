@@ -20,7 +20,7 @@ namespace ExerciseAPI.Services
         public decimal Weight { get; init; }
         public int Reps { get; init; }
         public decimal? RPE { get; init; }
-        public bool IsWarmup { get; init; }
+        public Models.SetType SetType { get; init; } = Models.SetType.Normal;
     }
 
     public interface IAnalyticsQueue

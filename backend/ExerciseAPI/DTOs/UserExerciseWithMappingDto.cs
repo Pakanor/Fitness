@@ -1,3 +1,5 @@
+using ExerciseAPI.Models;
+
 namespace ExerciseAPI.DTOs
 {
     public class UserExerciseWithMappingDto
@@ -6,7 +8,8 @@ namespace ExerciseAPI.DTOs
         public DateTime Date { get; set; }
         public int Sets { get; set; }
         public decimal? RPE { get; set; }
-        public bool IsWarmup { get; set; }
+        public SetType SetType { get; set; } = SetType.Normal;
+        public Guid? SupersetGroupId { get; set; }
         public decimal ChestMain { get; set; }
         public decimal DeltoidAnterior { get; set; }
         public decimal DeltoidLateral { get; set; }

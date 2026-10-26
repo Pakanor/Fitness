@@ -41,8 +41,9 @@ namespace ExerciseAPI.DTOs
         [Range(typeof(decimal), "1", "10")]
         public decimal? RPE { get; set; }
 
-        /// <summary>Legacy: Is warmup (deprecated, use Sets collection)</summary>
-        public bool IsWarmup { get; set; }
+        public Models.SetType SetType { get; set; } = Models.SetType.Normal;
+
+        public Guid? SupersetGroupId { get; set; }
     }
 
     public class LogSingleSetDto
@@ -59,7 +60,7 @@ namespace ExerciseAPI.DTOs
         [Range(typeof(decimal), "1", "10")]
         public decimal? RPE { get; set; }
 
-        public bool IsWarmup { get; set; } = false;
+        public Models.SetType SetType { get; set; } = Models.SetType.Normal;
     }
 
     public class SessionExerciseDto
@@ -69,6 +70,7 @@ namespace ExerciseAPI.DTOs
         public string ExerciseName { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;
         public string GifUrl { get; set; } = string.Empty;
+        public Guid? SupersetGroupId { get; set; }
         
         /// <summary>Individual sets for this exercise</summary>
         public List<SessionSetDto> Sets { get; set; } = new();
@@ -85,8 +87,8 @@ namespace ExerciseAPI.DTOs
         /// <summary>Legacy: RPE per set (deprecated)</summary>
         public decimal? RPE { get; set; }
 
-        /// <summary>Legacy: Is warmup (deprecated)</summary>
-        public bool IsWarmup { get; set; }
+        /// <summary>Legacy: Set type (deprecated)</summary>
+        public Models.SetType SetType { get; set; } = Models.SetType.Normal;
 
         /// <summary>Legacy: Total volume (deprecated, use Sets sum)</summary>
         public decimal Volume { get; set; }
@@ -99,7 +101,7 @@ namespace ExerciseAPI.DTOs
         public decimal Weight { get; set; }
         public int Reps { get; set; }
         public decimal? RPE { get; set; }
-        public bool IsWarmup { get; set; }
+        public Models.SetType SetType { get; set; } = Models.SetType.Normal;
         public decimal Volume => Weight * Reps;
     }
 

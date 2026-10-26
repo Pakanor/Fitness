@@ -231,7 +231,8 @@ namespace ExerciseAPI.Services
                     Session = session,
                     TemplateId = session.TemplateId,
                     StartMode = session.StartMode,
-                    Status = WorkoutStatus.InProgress
+                    Status = WorkoutStatus.InProgress,
+                    SupersetGroupId = dto.SupersetGroupId
                 };
 
                 session.Exercises.Add(entry);
@@ -260,7 +261,7 @@ namespace ExerciseAPI.Services
                         Reps = dto.Reps ?? 0,
                         Weight = dto.Weight ?? 0,
                         RPE = dto.RPE,
-                        IsWarmup = dto.IsWarmup
+                        SetType = dto.SetType
                     });
                 }
             }
@@ -282,16 +283,15 @@ namespace ExerciseAPI.Services
                     Weight = setDto.Weight,
                     Reps = setDto.Reps,
                     RPE = setDto.RPE,
-                    IsWarmup = setDto.IsWarmup
+                    SetType = setDto.SetType
                 };
                 _context.WorkoutSets.Add(workoutSet);
                 entry.Sets.Add(workoutSet);
             }
 
-            if (session.Status == WorkoutStatus.Planned)
+            if (dto.SupersetGroupId.HasValue)
             {
-                session.Status = WorkoutStatus.InProgress;
-                session.StartedAt = DateTime.UtcNow;
+                entry.SupersetGroupId = dto.SupersetGroupId;
             }
 
             session.UpdatedAt = DateTime.UtcNow;
@@ -312,7 +312,7 @@ namespace ExerciseAPI.Services
                     Weight = s.Weight,
                     Reps = s.Reps,
                     RPE = s.RPE,
-                    IsWarmup = s.IsWarmup
+                    SetType = s.SetType
                 }).ToList()
             };
 
@@ -336,7 +336,7 @@ namespace ExerciseAPI.Services
         private static decimal CalculateVolume(WorkoutSession session)
         {
             return session.Exercises.Sum(e =>
-                e.Sets.Where(s => !s.IsWarmup).Sum(s => s.Weight * s.Reps)
+                e.Sets.Where(s => s.SetType != Models.SetType.Warmup).Sum(s => s.Weight * s.Reps)
             );
         }
 
@@ -381,7 +381,7 @@ namespace ExerciseAPI.Services
                         Reps = dto.Reps ?? 0,
                         Weight = dto.Weight ?? 0,
                         RPE = dto.RPE,
-                        IsWarmup = dto.IsWarmup
+                        SetType = dto.SetType
                     });
                 }
             }
@@ -407,7 +407,7 @@ namespace ExerciseAPI.Services
                 if (set.RPE.HasValue && (set.RPE < 1 || set.RPE > 10))
                     throw new SessionStateException($"RPE w serii {set.SetNumber} musi być w zakresie 1-10.");
 
-                if (!set.IsWarmup && set.Weight == 0 && set.Reps == 0)
+                if (set.SetType == Models.SetType.Warmup && set.Weight == 0 && set.Reps == 0)
                     throw new SessionStateException($"Seria {set.SetNumber} musi mieć ciężar lub powtórzenia.");
             }
         }

@@ -197,7 +197,7 @@ namespace ExerciseAPI.Controllers
                     {
                         userExerciseId = entry.Id,
                         exerciseId = entry.ExerciseId,
-                        sets = entry.Sets.Select(s => new { s.Id, s.SetNumber, s.Weight, s.Reps, s.RPE, s.IsWarmup, Volume = s.Weight * s.Reps }),
+                        sets = entry.Sets.Select(s => new { s.Id, s.SetNumber, s.Weight, s.Reps, s.RPE, SetType = s.SetType, Volume = s.Weight * s.Reps }),
                     },
                     session = response
                 });
@@ -267,13 +267,14 @@ namespace ExerciseAPI.Controllers
                                 Weight = s.Weight,
                                 Reps = s.Reps,
                                 RPE = s.RPE,
-                                IsWarmup = s.IsWarmup
+                                SetType = s.SetType
                             }).ToList(),
                             SetsCount = sets.Count,
                             Reps = sets.FirstOrDefault()?.Reps,
                             Weight = sets.FirstOrDefault()?.Weight,
                             RPE = sets.FirstOrDefault()?.RPE,
-                            IsWarmup = sets.FirstOrDefault()?.IsWarmup ?? false,
+                            SetType = sets.FirstOrDefault()?.SetType ?? Models.SetType.Normal,
+                            SupersetGroupId = e.SupersetGroupId,
                             Volume = sets.Sum(s => s.Weight * s.Reps)
                         };
                     })

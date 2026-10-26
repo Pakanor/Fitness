@@ -14,6 +14,7 @@ namespace ExerciseAPI.Models
         public WorkoutStatus? Status { get; set; }
 
         public int? SessionId { get; set; }
+        public Guid? SupersetGroupId { get; set; }
 
         public Exercise? Exercise { get; set; }
         public WorkoutSession? Session { get; set; }

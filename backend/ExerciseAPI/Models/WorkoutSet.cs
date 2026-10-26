@@ -14,7 +14,7 @@ namespace ExerciseAPI.Models
 
         public decimal? RPE { get; set; }
 
-        public bool IsWarmup { get; set; }
+        public SetType SetType { get; set; } = SetType.Normal;
 
         public UserExercise UserExercise { get; set; } = null!;
     }

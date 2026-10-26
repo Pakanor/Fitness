@@ -220,7 +220,8 @@ namespace ExerciseAPI.Controllers
             {
                 UserId = CurrentUserId,
                 ExerciseId = dto.ExerciseId,
-                Date = date
+                Date = date,
+                SupersetGroupId = dto.SupersetGroupId
             };
 
             _context.UserExercise.Add(entity);
@@ -246,7 +247,7 @@ namespace ExerciseAPI.Controllers
                         Reps = dto.Reps ?? 0,
                         Weight = dto.Weight ?? 0,
                         RPE = dto.RPE,
-                        IsWarmup = dto.IsWarmup
+                        SetType = dto.SetType
                     });
                 }
             }
@@ -260,7 +261,7 @@ namespace ExerciseAPI.Controllers
                     Weight = setDto.Weight,
                     Reps = setDto.Reps,
                     RPE = setDto.RPE,
-                    IsWarmup = setDto.IsWarmup
+                    SetType = setDto.SetType
                 };
                 _context.WorkoutSets.Add(workoutSet);
             }
@@ -269,7 +270,7 @@ namespace ExerciseAPI.Controllers
 
             // Update personal record based on best set
             var bestSet = setsToCreate
-                .Where(s => !s.IsWarmup && s.Weight > 0 && s.Reps > 0)
+                .Where(s => s.SetType != Models.SetType.Warmup && s.Weight > 0 && s.Reps > 0)
                 .OrderByDescending(s => s.Weight * (1 + s.Reps / 30.0m))
                 .FirstOrDefault();
 
@@ -315,13 +316,14 @@ namespace ExerciseAPI.Controllers
                     Weight = s.Weight,
                     Reps = s.Reps,
                     RPE = s.RPE,
-                    IsWarmup = s.IsWarmup
+                    SetType = s.SetType
                 }).ToList(),
                 SetsCount = setsToCreate.Count,
                 Reps = firstSet?.Reps,
                 Weight = firstSet?.Weight,
                 RPE = firstSet?.RPE,
-                IsWarmup = firstSet?.IsWarmup ?? false,
+                SetType = firstSet?.SetType ?? Models.SetType.Normal,
+                SupersetGroupId = entity.SupersetGroupId,
                 Date = entity.Date
             };
 
@@ -399,7 +401,7 @@ namespace ExerciseAPI.Controllers
                     reps = firstSet?.Reps,
                     weight = firstSet?.Weight,
                     rpe = firstSet?.RPE,
-                    isWarmup = firstSet?.IsWarmup ?? false,
+                    isWarmup = firstSet?.SetType == Models.SetType.Warmup,
                     templateId = ue.TemplateId,
                     sessionId = ue.SessionId,
                     sessionStatus = daySession != null
@@ -489,7 +491,7 @@ await _context.SaveChangesAsync();
                         Reps = dto.Reps ?? 0,
                         Weight = dto.Weight ?? 0,
                         RPE = dto.RPE,
-                        IsWarmup = dto.IsWarmup
+                        SetType = dto.SetType
                     });
                 }
             }
@@ -515,7 +517,7 @@ await _context.SaveChangesAsync();
                 if (set.RPE.HasValue && (set.RPE < 1 || set.RPE > 10))
                     return $"RPE w serii {set.SetNumber} musi być w zakresie 1-10.";
 
-                if (!set.IsWarmup && set.Weight == 0 && set.Reps == 0)
+                if (set.SetType == Models.SetType.Warmup && set.Weight == 0 && set.Reps == 0)
                     return $"Seria {set.SetNumber} musi mieć ciężar lub powtórzenia.";
             }
 

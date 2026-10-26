@@ -65,7 +65,14 @@ export const fetchActiveSessions = async () => {
   return response.json();
 };
 
-const MEASUREMENT_URL = 'http://localhost:8000/api/body-measurements';
+export const revokeSession = async (sessionId) => {
+  const response = await fetch(`${USER_URL}/sessions/${sessionId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Błąd odwoływania sesji');
+  return response.json();
+};
 
 export const createBodyMeasurement = async (data) => {
   const res = await fetch(`${MEASUREMENT_URL}`, {

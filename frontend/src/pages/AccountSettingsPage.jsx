@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import { useAuth } from '../context/AuthContext';
-import { fetchProfile, updateUserProfile, changePassword, exportUserData, deleteUserAccount, fetchActiveSessions } from '../api/authAPI';
+import { fetchProfile, updateUserProfile, changePassword, exportUserData, deleteUserAccount, fetchActiveSessions, revokeSession as revokeSessionApi, logoutUser } from '../api/authAPI';
 
 const ACTIVITIES = [
   { value: 'sedentary', label: 'Siedzaca', pal: 1.2 },
@@ -121,6 +121,27 @@ const saveProfile = async (fields, message) => {
     navigate('/login', { replace: true });
   };
 
+  const revokeSession = async (sessionId, isCurrent) => {
+    if (isCurrent) {
+      await logoutUser();
+      setUser(null);
+      navigate('/login', { replace: true });
+      return;
+    }
+    if (!window.confirm('Czy na pewno odwołać tę sesję?')) return;
+    setStatus('');
+    try {
+      await revokeSessionApi(sessionId);
+      setStatus('Sesję odwołano.');
+      const refreshed = await fetchActiveSessions();
+      setSessions(refreshed);
+    } catch (error) {
+      setStatus(error.message || 'Nie udało się odwołać sesji.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (!profile) return <><Header /><main style={{ padding: 24 }}>Ładowanie ustawień...</main></>;
 
   return <div style={{ minHeight: '100vh', background: 'var(--color-bg-base)', color: 'var(--color-fg-primary)', fontFamily: "'DM Sans', sans-serif" }}>
@@ -144,7 +165,7 @@ const saveProfile = async (fields, message) => {
 
         <section style={cardStyle}><h2 style={{ margin: '0 0 16px', fontSize: 17 }}>Parametry treningowe</h2><div style={{ display: 'grid', gap: 14 }}><Field label="Jednostka ciężaru"><select value={form.weightUnit || 'kg'} onChange={(e) => update('weightUnit', e.target.value)} style={inputStyle}><option value="kg">Kilogramy (kg)</option><option value="lbs">Funt (lbs)</option></select></Field><Field label="Domyślny skok ciężaru"><input type="number" min="0" step="0.25" value={form.defaultWeightIncrement || ''} onChange={(e) => update('defaultWeightIncrement', e.target.value)} placeholder="np. 2.5" style={inputStyle} /></Field><Field label="Timer przerw (sekundy)"><input type="number" min="0" step="5" value={form.defaultRestTimerSeconds || ''} onChange={(e) => update('defaultRestTimerSeconds', e.target.value)} placeholder="np. 90" style={inputStyle} /></Field><button onClick={() => saveProfile({}, 'Parametry treningowe zapisane.')} disabled={saving} style={buttonStyle}>Zapisz parametry</button></div></section>
 
-        <section style={cardStyle}><h2 style={{ margin: '0 0 16px', fontSize: 17 }}>Bezpieczeństwo i sesje</h2><div style={{ display: 'grid', gap: 12 }}><Field label="Adres e-mail"><input type="email" value={form.email || ''} onChange={(e) => update('email', e.target.value)} style={inputStyle} /></Field><button onClick={() => saveProfile({}, 'Adres e-mail zapisany.')} disabled={saving} style={buttonStyle}>Zmień adres e-mail</button><hr style={{ width: '100%', border: 0, borderTop: '1px solid var(--color-border-subtle)' }} /><Field label="Aktualne hasło"><input type="password" value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} style={inputStyle} /></Field><Field label="Nowe hasło"><input type="password" value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} style={inputStyle} /></Field><button onClick={savePassword} disabled={saving || !passwords.currentPassword || !passwords.newPassword} style={buttonStyle}>Zmień hasło</button><div><strong style={{ fontSize: 13 }}>Aktywne urządzenia</strong>{sessions.length ? sessions.map((session) => <div key={session.sessionId} style={{ marginTop: 8, fontSize: 12 }}>{session.device} · {session.browser} · {session.os}{session.isCurrent ? ' · To urządzenie' : ''}</div>) : <p style={{ margin: '6px 0 0', color: 'var(--color-fg-muted)', fontSize: 12 }}>Brak zarejestrowanych sesji.</p>}</div></div></section>
+        <section style={cardStyle}><h2 style={{ margin: '0 0 16px', fontSize: 17 }}>Bezpieczeństwo i sesje</h2><div style={{ display: 'grid', gap: 12 }}><Field label="Adres e-mail"><input type="email" value={form.email || ''} onChange={(e) => update('email', e.target.value)} style={inputStyle} /></Field><button onClick={() => saveProfile({}, 'Adres e-mail zapisany.')} disabled={saving} style={buttonStyle}>Zmień adres e-mail</button><hr style={{ width: '100%', border: 0, borderTop: '1px solid var(--color-border-subtle)' }} /><Field label="Aktualne hasło"><input type="password" value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} style={inputStyle} /></Field><Field label="Nowe hasło"><input type="password" value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} style={inputStyle} /></Field><button onClick={savePassword} disabled={saving || !passwords.currentPassword || !passwords.newPassword} style={buttonStyle}>Zmień hasło</button><div><strong style={{ fontSize: 13 }}>Aktywne urządzenia</strong>{sessions.length ? sessions.map((session) => <div key={session.sessionId} style={{ marginTop: 8, fontSize: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}><span>{session.device} · {session.browser} · {session.os}{session.isCurrent ? ' · To urządzenie' : ''}</span><button onClick={() => revokeSession(session.sessionId, session.isCurrent)} disabled={saving} style={buttonStyle}>{session.isCurrent ? 'Wyloguj z tego urządzenia' : 'Odrzuć sesję'}</button></div>) : <p style={{ margin: '6px 0 0', color: 'var(--color-fg-muted)', fontSize: 12 }}>Brak zarejestrowanych sesji.</p>}</div></div></section>
 
         <section style={cardStyle}><h2 style={{ margin: '0 0 16px', fontSize: 17 }}>Dane i prywatność</h2><p style={{ color: 'var(--color-fg-muted)', fontSize: 13 }}>Pobierz kopię danych zapisanych w FitnessApp albo usuń konto.</p><div style={{ display: 'grid', gap: 10 }}><button onClick={downloadData} style={buttonStyle}>Pobierz kopię danych JSON</button><button onClick={removeAccount} style={{ ...buttonStyle, background: 'var(--color-error)', color: '#fff' }}>Usuń konto</button></div></section>
       </div>

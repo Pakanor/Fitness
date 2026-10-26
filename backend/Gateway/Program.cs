@@ -92,8 +92,9 @@ bool TryReadJwtPayload(string token, out Dictionary<string, string> claims)
     {
         var signingInput = $"{parts[0]}.{parts[1]}";
         var expectedSignature = Base64UrlDecode(parts[2]);
-        var secret = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "SUPER_SECRET_KEY_123456789012345678901234567890");
-        using var hmac = new HMACSHA256(secret);
+        var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Jwt:Key is not set.");
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(jwtKey));
         var actualSignature = hmac.ComputeHash(Encoding.UTF8.GetBytes(signingInput));
 
         if (!CryptographicOperations.FixedTimeEquals(expectedSignature, actualSignature))

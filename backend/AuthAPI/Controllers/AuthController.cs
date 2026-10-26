@@ -22,7 +22,7 @@ namespace AuthAPI.Controllers
         public AuthController(IAuthService authService, JwtService jwtService, UserLogrepository userRepo, IHttpContextAccessor httpContextAccessor, IWebHostEnvironment env)
             : base(httpContextAccessor)
         {
-_authService = authService;
+            _authService = authService;
             _jwtService = jwtService;
             _userRepo = userRepo;
             _httpContextAccessor = httpContextAccessor;
@@ -31,7 +31,7 @@ _authService = authService;
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody]RegisterDto dto)
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             await _authService.RegisterAsync(dto);
             return Ok(new { message = "Rejestracja zakończona pomyślnie." });
@@ -54,8 +54,12 @@ _authService = authService;
         }
 
         [HttpPost("logout")]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
+            var token = Request.Cookies["FitnessApp-Auth"];
+            if (!string.IsNullOrEmpty(token))
+                await _userRepo.RevokeSessionByTokenAsync(token);
+
             Response.Cookies.Delete("FitnessApp-Auth");
             return Ok(new { message = "Wylogowano pomyślnie." });
         }
@@ -65,11 +69,28 @@ _authService = authService;
         {
             try
             {
-                var tokenString = await _authService.LoginAsync(dto);
-                if (string.IsNullOrEmpty(tokenString))
+                var (tokenString, user) = await _authService.LoginAsync(dto);
+                if (string.IsNullOrEmpty(tokenString) || user == null)
                 {
                     return Unauthorized("Nieprawidłowy login lub hasło.");
                 }
+
+                var (device, browser, os) = UserAgentParser.Parse(Request.Headers.UserAgent.ToString());
+                var ip = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+
+                var session = new UserSession
+                {
+                    UserId = user.ID,
+                    SessionToken = tokenString,
+                    Device = device,
+                    Browser = browser,
+                    Os = os,
+                    IpAddress = ip,
+                    CreatedAt = DateTime.UtcNow,
+                    LastActivity = DateTime.UtcNow,
+                    IsActive = true
+                };
+                await _userRepo.AddSessionAsync(session);
 
                 Response.Cookies.Append("FitnessApp-Auth", tokenString, new CookieOptions
                 {
@@ -105,9 +126,9 @@ _authService = authService;
             var result = _userRepo.UpdateUserAsync(user);
 
             
+            
 
             return Ok(new { message = "Email został zweryfikowany." });
-
 
 
 

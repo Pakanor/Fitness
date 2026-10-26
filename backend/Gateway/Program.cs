@@ -52,6 +52,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.Use(async (context, next) =>
 {

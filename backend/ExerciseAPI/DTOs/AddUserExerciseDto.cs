@@ -1,4 +1,5 @@
 using ExerciseAPI.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace ExerciseAPI.DTOs
 {
@@ -24,5 +25,8 @@ namespace ExerciseAPI.DTOs
         public decimal? RPE { get; set; }
 
         public SetType SetType { get; set; } = SetType.Normal;
+
+        [MaxLength(200)]
+        public string? Notes { get; set; } = null;
     }
 }

@@ -44,6 +44,9 @@ namespace ExerciseAPI.DTOs
         public Models.SetType SetType { get; set; } = Models.SetType.Normal;
 
         public Guid? SupersetGroupId { get; set; }
+
+        [MaxLength(200)]
+        public string? Notes { get; set; } = null;
     }
 
     public class LogSingleSetDto
@@ -71,6 +74,9 @@ namespace ExerciseAPI.DTOs
         public string Category { get; set; } = string.Empty;
         public string GifUrl { get; set; } = string.Empty;
         public Guid? SupersetGroupId { get; set; }
+        
+        [MaxLength(200)]
+        public string? Notes { get; set; }
         
         /// <summary>Individual sets for this exercise</summary>
         public List<SessionSetDto> Sets { get; set; } = new();

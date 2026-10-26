@@ -90,6 +90,14 @@ export default function TrainingOverview({ startDate, endDate }) {
 
   return (
     <div className="analytics-overview-grid">
+      {(overview.weeklyStreak !== undefined && overview.weeklyStreak !== null) && (
+        <section className="analytics-panel analytics-panel-wide">
+          <h2>Streak tygodniowy</h2>
+          <div style={{ padding: "12px 4px", fontSize: "16px" }}>
+            <strong>{overview.weeklyStreak}</strong> {overview.weeklyStreak === 1 ? "tydzień" : overview.weeklyStreak < 5 ? "tygodnie" : "tygodni"} z >= 3 treningami (tylko ukończone)
+          </div>
+        </section>
+      )}
       <section className="analytics-panel analytics-panel-wide">
         <h2>Średnia objętość efektywna wg partii (hard sets / tydzień)</h2>
         <ResponsiveContainer width="100%" height={145}>
@@ -133,6 +141,20 @@ export default function TrainingOverview({ startDate, endDate }) {
         )}
         <div className="activity-legend"><span>mniej</span><i /><i /><i /><i /><span>więcej</span></div>
       </section>
+
+      {(overview.insights && overview.insights.length > 0) && (
+        <section className="analytics-panel analytics-panel-wide">
+          <h2>Insights</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "8px 4px" }}>
+            {overview.insights.map((insight, idx) => (
+              <div key={idx} style={{ padding: "8px 10px", borderRadius: "6px", background: insight.severity === "warn" ? "rgba(239,68,68,0.1)" : "rgba(59,130,246,0.1)", border: "1px solid var(--color-border-subtle)" }}>
+                <div style={{ fontWeight: 600 }}>{insight.title}</div>
+                <div style={{ fontSize: "13px", color: "var(--color-fg-muted)" }}>{insight.description}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="analytics-panel">
         <h2>Objętość tygodniowa vs średnie RPE</h2>

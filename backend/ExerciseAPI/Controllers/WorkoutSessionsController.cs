@@ -187,10 +187,41 @@ namespace ExerciseAPI.Controllers
             if (!HasCurrentUser)
                 return Unauthorized();
 
+            if (dto == null)
+                return BadRequest("Brak danych.");
+
             try
             {
                 var (entry, session) = await _sessionService.LogSet(CurrentUserId, dto, (decimal)UserWeight);
                 var response = await MapToResponseAsync(session);
+                
+                bool isPr = false;
+                try
+                {
+                    var setsToCheck = entry.Sets
+                        .Where(s => s.SetType != Models.SetType.Warmup && s.Weight > 0 && s.Reps > 0)
+                        .ToList();
+                    if (setsToCheck.Any())
+                    {
+                        var bestWeightReps = setsToCheck
+                            .OrderByDescending(s => s.Weight * (1 + s.Reps / 30.0m))
+                            .First();
+                        
+                        var existingPr = await _context.PersonalRecords
+                            .Where(pr => pr.UserId == CurrentUserId && pr.ExerciseId == entry.ExerciseId)
+                            .OrderByDescending(pr => pr.Weight * (1 + pr.Reps / 30.0m))
+                            .FirstOrDefaultAsync();
+                        
+                        if (existingPr == null || 
+                            bestWeightReps.Weight * (1 + bestWeightReps.Reps / 30.0m) > existingPr.Weight * (1 + existingPr.Reps / 30.0m) ||
+                            (bestWeightReps.Weight * (1 + bestWeightReps.Reps / 30.0m) == existingPr.Weight * (1 + existingPr.Reps / 30.0m) && bestWeightReps.Weight > existingPr.Weight))
+                        {
+                            isPr = true;
+                        }
+                    }
+                }
+                catch { }
+                
                 return Ok(new
                 {
                     entry = new
@@ -199,7 +230,8 @@ namespace ExerciseAPI.Controllers
                         exerciseId = entry.ExerciseId,
                         sets = entry.Sets.Select(s => new { s.Id, s.SetNumber, s.Weight, s.Reps, s.RPE, SetType = s.SetType, Volume = s.Weight * s.Reps }),
                     },
-                    session = response
+                    session = response,
+                    isPr = isPr
                 });
             }
             catch (SessionNotFoundException ex)
@@ -275,6 +307,7 @@ namespace ExerciseAPI.Controllers
                             RPE = sets.FirstOrDefault()?.RPE,
                             SetType = sets.FirstOrDefault()?.SetType ?? Models.SetType.Normal,
                             SupersetGroupId = e.SupersetGroupId,
+                            Notes = e.Notes,
                             Volume = sets.Sum(s => s.Weight * s.Reps)
                         };
                     })

@@ -25,6 +25,7 @@ export default function AddExerciseModal({
   const [setCount, setSetCount] = useState("");
   const [setRows, setSetRows] = useState([]);
   const [setType, setSetType] = useState("Normal");
+  const [notes, setNotes] = useState("");
   const [supersetGroupId, setSupersetGroupId] = useState(null);
   const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
@@ -74,7 +75,8 @@ export default function AddExerciseModal({
     setSearch("");
     setSetType(initialEntry?.SetType || initialEntry?.setType || "Normal");
     setSupersetGroupId(initialEntry?.SupersetGroupId || initialEntry?.supersetGroupId || null);
-    setDate(defaultDate || new Date().toISOString().slice(0, 10));
+    setNotes(initialEntry?.Notes || initialEntry?.notes || "");
+    setDate(defaultDate || (initialEntry?.date || initialEntry?.Date) ? String(initialEntry?.date || initialEntry?.Date).slice(0,10) : new Date().toISOString().slice(0, 10));
 
     if (initialEntry?.Sets?.length) {
       setSetCount(String(initialEntry.Sets.length));
@@ -155,23 +157,30 @@ export default function AddExerciseModal({
     setLoading(true);
     try {
       if (sessionId) {
-        await workoutAPI.logSet({
+        const payload = {
           sessionId,
           userExerciseId: initialEntry?.userExerciseId ?? null,
           exerciseId: selectedExercise.id,
           Sets: setsToSend,
-          SupersetGroupId: supersetGroupId,
+          SupersetGroupId: supersetGroupId || null,
           SetType: setType,
-        });
-        toast("Zapisano serie w treningu.");
+          Notes: notes && notes.trim() ? notes.trim().slice(0,200) : null,
+        };
+        const res = await workoutAPI.logSet(payload);
+        if (res?.isPr) {
+          toast("Nowy rekord osobisty! 🏆", "success");
+        } else {
+          toast("Zapisano serie w treningu.");
+        }
       } else {
         await addUserExercise({
           userId: user.id,
           exerciseId: selectedExercise.id,
           Sets: setsToSend,
           date,
-          SupersetGroupId: supersetGroupId,
+          SupersetGroupId: supersetGroupId || null,
           SetType: setType,
+          Notes: notes && notes.trim() ? notes.trim().slice(0,200) : null,
         });
         toast("Ćwiczenie dodane!");
       }
@@ -345,9 +354,8 @@ export default function AddExerciseModal({
                   </select>
                 </div>
                 <div className="aem-field">
-                  <label className="aem-label">ID grupy superserii (opcjonalne)</label>
-                  <input className="aem-input" placeholder="np. uuid lub zostaw puste" value={supersetGroupId || ""} onChange={e => setSupersetGroupId(e.target.value || null)} />
-                  <span className="aem-hint">Ćwiczenia z tym samym SupersetGroupId tworzą superserię.</span>
+                  <label className="aem-label">Notatki (opcjonalne)</label>
+                  <input className="aem-input" maxLength={200} placeholder="np. uwagi dla trenera" value={notes} onChange={e => setNotes(e.target.value)} />
                 </div>
                 <div className="aem-field">
                   <label className="aem-label">Data</label>

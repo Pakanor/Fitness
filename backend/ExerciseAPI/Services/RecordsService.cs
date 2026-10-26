@@ -417,11 +417,139 @@ namespace ExerciseAPI.Services
                 })
                 .ToList();
 
+            // Weekly streak: count consecutive weeks with >= 3 completed sessions (Monday start)
+            int? weeklyStreak = null;
+            try
+            {
+                var completedSessions = await _context.WorkoutSessions
+                    .Where(s => s.UserId == userId && s.Status == WorkoutStatus.Completed)
+                    .ToListAsync();
+
+                if (completedSessions.Any())
+                {
+                    var allQualifyingSet = completedSessions
+                        .Select(s => GetWeekStart(ToUserLocalDate(s.Date, timeZone)))
+                        .GroupBy(d => d)
+                        .Where(g => g.Count() >= 3)
+                        .Select(g => g.Key)
+                        .ToHashSet();
+
+                    if (allQualifyingSet.Any())
+                    {
+                        var currentWeekStart = GetWeekStart(ToUserLocalDate(DateTime.UtcNow, timeZone));
+                        int consecutive = 0;
+                        var cw = currentWeekStart;
+                        for (int i = 0; i < 200; i++)
+                        {
+                            var tw = cw.AddDays(-7 * i);
+                            if (allQualifyingSet.Contains(tw))
+                                consecutive++;
+                            else
+                                break;
+                        }
+                        weeklyStreak = consecutive;
+                    }
+                }
+            }
+            catch { }
+
+            // Generate insights
+            var insights = new List<InsightDto>();
+            try
+            {
+                if (muscleVolume != null && muscleVolume.Any())
+                {
+                    var avg = muscleVolume.Average(m => (double)m.HardSets);
+                    foreach (var mv in muscleVolume)
+                    {
+                        if ((double)mv.HardSets < 10 && avg > 12)
+                        {
+                            insights.Add(new InsightDto
+                            {
+                                Type = "UnderTrainedMuscle",
+                                Title = $"Niedostateczna objętość: {mv.Name}",
+                                Description = $"Średnia {mv.HardSets} hard sets/tydzień przy średniej dla pozostałych partii ~{Math.Round(avg, 1)}. Rozważ zwiększenie objętości.",
+                                Severity = "warn",
+                                MuscleKey = mv.Key
+                            });
+                        }
+                    }
+                }
+
+                var benchmarkExercises = await _context.Exercises
+                    .Where(e => e.IsBenchmark)
+                    .ToListAsync();
+                var threeWeeksAgo = DateTime.UtcNow.AddDays(-21);
+                foreach (var bench in benchmarkExercises)
+                {
+                    var lastPerf = await _context.UserExercise
+                        .Where(ue => ue.UserId == userId && ue.ExerciseId == bench.Id)
+                        .Where(CountsTowardsStats)
+                        .OrderByDescending(ue => ue.Date)
+                        .FirstOrDefaultAsync();
+                    if (lastPerf == null || lastPerf.Date < threeWeeksAgo)
+                    {
+                        insights.Add(new InsightDto
+                        {
+                            Type = "StaleBenchmark",
+                            Title = $"Brak wykonania: {bench.Name}",
+                            Description = lastPerf == null 
+                                ? "Ćwiczenie benchmarkowe nie było jeszcze wykonywane." 
+                                : $"Nie wykonywane od {Math.Round((DateTime.UtcNow - lastPerf.Date.ToUniversalTime()).TotalDays, 0)} dni (ponad 3 tygodnie).",
+                            Severity = "info",
+                            ExerciseId = bench.Id
+                        });
+                    }
+                }
+
+                foreach (var bench in benchmarkExercises)
+                {
+                    var benchEntries = await _context.UserExercise
+                        .Where(ue => ue.UserId == userId && ue.ExerciseId == bench.Id)
+                        .Where(CountsTowardsStats)
+                        .Include(ue => ue.Sets)
+                        .OrderByDescending(ue => ue.Date)
+                        .Take(10)
+                        .ToListAsync();
+                    
+                    if (benchEntries.Count >= 4)
+                    {
+                        var sessionE1RMs = benchEntries
+                            .Take(4)
+                            .Select(ue => {
+                                var best = ue.Sets
+                                    .Where(s => s.Weight > 0 && s.Reps > 0 && s.SetType != Models.SetType.Warmup)
+                                    .Select(s => _e1rmCalculator.CalculateBrzycki(s.Weight, s.Reps, s.RPE))
+                                    .DefaultIfEmpty(0)
+                                    .Max();
+                                return best;
+                            })
+                            .ToList();
+                        
+                        bool noGrowth = sessionE1RMs[0] <= sessionE1RMs[1] && sessionE1RMs[1] <= sessionE1RMs[2] && sessionE1RMs[2] <= sessionE1RMs[3];
+                        if (noGrowth && sessionE1RMs[0] > 0)
+                        {
+                            insights.Add(new InsightDto
+                            {
+                                Type = "Plateau",
+                                Title = $"Plateau: {bench.Name}",
+                                Description = "e1RM nie rośnie przez ostatnie 4 sesje. Rozważ zmianę programu, objętości lub intensywności.",
+                                Severity = "warn",
+                                ExerciseId = bench.Id
+                            });
+                        }
+                    }
+                }
+            }
+            catch { }
+
             return new GlobalAnalyticsResponseDto
             {
                 MuscleVolume = muscleVolume,
                 Activity = activity,
-                WeeklyTrend = weeklyTrend
+                WeeklyTrend = weeklyTrend,
+                WeeklyStreak = weeklyStreak,
+                Insights = insights
             };
         }
 

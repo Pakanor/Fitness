@@ -81,6 +81,15 @@ namespace AuthAPI.Services
             await _userRepo.UpdateUserAsync(user);
         }
 
+        public async Task ResetPasswordAsync(string token, string newPassword)
+        {
+            var userId = _jwtService.ValidatePasswordResetToken(token);
+            if (userId == null) throw new Exception("Nieprawidłowy lub przeterminowany token.");
+            var user = await _userRepo.GetByIdAsync(userId.Value);
+            if (user == null) throw new Exception("Użytkownik nie istnieje.");
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            await _userRepo.UpdateUserAsync(user);
+        }
         public async Task DeleteAccountAsync(int userId)
         {
             var user = await GetCurrentUserAsync(userId);

@@ -12,7 +12,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllers();
 
 builder.Services.AddScoped<IProductOperationsService, ProductOperationsService>();
 builder.Services.AddScoped<ICalorieCalculatorService, CalorieCalculatorService>();
@@ -95,10 +95,6 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 
 app.UseAuthorization();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapControllers();
 using (var scope = app.Services.CreateScope())

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:8000/api/auth';
+const USER_URL = 'http://localhost:8000/api/user';
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -27,8 +28,6 @@ export const fetchProfile = async () => {
   if (!response.ok) throw new Error('Błąd pobierania profilu');
   return response.json();
 };
-
-const USER_URL = 'http://localhost:8000/api/user';
 
 export const updateUserProfile = async (data) => {
   const res = await fetch(`${USER_URL}/profile`, {

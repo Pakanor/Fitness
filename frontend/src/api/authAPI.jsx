@@ -1,24 +1,20 @@
-import axios from 'axios';
+import apiClient, { API_BASE_URL } from './client';
 
-const API_URL = 'http://localhost:8000/api/auth';
-
-const apiClient = axios.create({
-  baseURL: API_URL,
-  withCredentials: true,
-});
+const USER_URL = `${API_BASE_URL}/api/user`;
+const MEASUREMENT_URL = `${API_BASE_URL}/api/body-measurements`;
 
 export const registerUser = async (formData) => {
-  const response = await apiClient.post('/register', formData);
+  const response = await apiClient.post('/api/auth/register', formData);
   return response.data;
 };
 
 export const loginUser = async (formData) => {
-  const response = await apiClient.post('/login', formData);
+  const response = await apiClient.post('/api/auth/login', formData);
   return response.data;
 };
 
 export const fetchMe = async () => {
-  const response = await apiClient.get('/me');
+  const response = await apiClient.get('/api/auth/me');
   return response.data;
 };
 
@@ -27,8 +23,6 @@ export const fetchProfile = async () => {
   if (!response.ok) throw new Error('Błąd pobierania profilu');
   return response.json();
 };
-
-const USER_URL = 'http://localhost:8000/api/user';
 
 export const updateUserProfile = async (data) => {
   const res = await fetch(`${USER_URL}/profile`, {
@@ -41,7 +35,7 @@ export const updateUserProfile = async (data) => {
 };
 
 export const logoutUser = async () => {
-  await apiClient.post('/logout');
+  await apiClient.post('/api/auth/logout');
 };
 
 export const changePassword = async (data) => {

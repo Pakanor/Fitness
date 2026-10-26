@@ -15,14 +15,18 @@ namespace AuthAPI.Controllers
         private readonly IAuthService _authService;
         private readonly JwtService _jwtService;
         private readonly UserLogrepository _userRepo;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IWebHostEnvironment _env;
 
 
-        public AuthController(IAuthService authService, JwtService jwtService, UserLogrepository userRepo, IHttpContextAccessor httpContextAccessor)
+        public AuthController(IAuthService authService, JwtService jwtService, UserLogrepository userRepo, IHttpContextAccessor httpContextAccessor, IWebHostEnvironment env)
             : base(httpContextAccessor)
         {
-            _authService = authService;
-           _jwtService = jwtService;
+_authService = authService;
+            _jwtService = jwtService;
             _userRepo = userRepo;
+            _httpContextAccessor = httpContextAccessor;
+            _env = env;
 
         }
 
@@ -70,7 +74,7 @@ namespace AuthAPI.Controllers
                 Response.Cookies.Append("FitnessApp-Auth", tokenString, new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = false,
+                    Secure = !_env.IsDevelopment(),
                     SameSite = SameSiteMode.Lax,
                     Path = "/"
                 });
@@ -102,7 +106,7 @@ namespace AuthAPI.Controllers
 
             
 
-            return Ok("Email został zweryfikowany.");
+            return Ok(new { message = "Email został zweryfikowany." });
 
 
 

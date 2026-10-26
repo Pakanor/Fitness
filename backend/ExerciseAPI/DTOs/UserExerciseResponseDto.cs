@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ExerciseAPI.DTOs
 {
     public class UserExerciseResponseDto
@@ -25,5 +27,8 @@ namespace ExerciseAPI.DTOs
         public Models.SetType SetType { get; set; } = Models.SetType.Normal;
 
         public Guid? SupersetGroupId { get; set; }
+
+        [MaxLength(200)]
+        public string? Notes { get; set; }
     }
 }

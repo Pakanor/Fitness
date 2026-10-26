@@ -62,7 +62,16 @@ var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD")
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql($"Host=localhost;Port=5443;Database=exercise;Username=fitnessapp;Password={dbPassword}"));
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.SuppressModelStateInvalidFilter = true;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();

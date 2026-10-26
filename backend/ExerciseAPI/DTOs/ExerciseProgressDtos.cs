@@ -80,10 +80,22 @@ namespace ExerciseAPI.DTOs
         public decimal? AverageRpe { get; set; }
     }
 
+    public class InsightDto
+    {
+        public string Type { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Severity { get; set; } = "info";
+        public int? ExerciseId { get; set; }
+        public string? MuscleKey { get; set; }
+    }
+
     public class GlobalAnalyticsResponseDto
     {
         public List<GlobalMuscleVolumeDto> MuscleVolume { get; set; } = new();
         public List<TrainingActivityDayDto> Activity { get; set; } = new();
         public List<WeeklyTrainingTrendDto> WeeklyTrend { get; set; } = new();
+        public int? WeeklyStreak { get; set; }
+        public List<InsightDto> Insights { get; set; } = new();
     }
 }

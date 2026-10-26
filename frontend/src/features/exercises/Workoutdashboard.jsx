@@ -625,6 +625,11 @@ function ExerciseCard({ entry, onDelete, prev, onLogSet, locked }) {
           )}
         </div>
         <div className="stats-row">
+          {entry.notes && (
+            <div className="stat" style={{ flex: "1 1 100%" }}>
+              <span className="stat-label" style={{ textAlign: "left" }}>Notatka: {entry.notes}</span>
+            </div>
+          )}
           {entry.sets != null && (
             <div className="stat">
               <span className="stat-value">{entry.sets}</span>

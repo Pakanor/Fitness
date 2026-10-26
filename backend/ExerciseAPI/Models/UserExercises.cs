@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace ExerciseAPI.Models
 {
     public class UserExercise
@@ -15,6 +17,9 @@ namespace ExerciseAPI.Models
 
         public int? SessionId { get; set; }
         public Guid? SupersetGroupId { get; set; }
+
+        [MaxLength(200)]
+        public string? Notes { get; set; }
 
         public Exercise? Exercise { get; set; }
         public WorkoutSession? Session { get; set; }

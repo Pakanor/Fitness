@@ -224,6 +224,12 @@ namespace ExerciseAPI.Controllers
                 SupersetGroupId = dto.SupersetGroupId
             };
 
+            if (!string.IsNullOrWhiteSpace(dto.Notes))
+            {
+                var trimmed = dto.Notes.Trim();
+                entity.Notes = trimmed.Length > 200 ? trimmed.Substring(0, 200) : trimmed;
+            }
+
             _context.UserExercise.Add(entity);
             await _context.SaveChangesAsync();
 
@@ -324,7 +330,8 @@ namespace ExerciseAPI.Controllers
                 RPE = firstSet?.RPE,
                 SetType = firstSet?.SetType ?? Models.SetType.Normal,
                 SupersetGroupId = entity.SupersetGroupId,
-                Date = entity.Date
+                Date = entity.Date,
+                Notes = entity.Notes
             };
 
             return Ok(response);

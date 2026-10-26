@@ -197,8 +197,17 @@ namespace ExerciseAPI.Services
 
         public async Task<(UserExercise Entry, WorkoutSession Session)> LogSet(int userId, LogSetDto dto, decimal? userWeight = null)
         {
-            var session = await GetOwnedSessionWithSets(userId, dto.SessionId);
-
+            if (dto == null)
+                throw new SessionStateException("Brak danych.");
+            
+            var session = await _context.WorkoutSessions
+                .Include(s => s.Exercises)
+                    .ThenInclude(e => e.Sets)
+                .FirstOrDefaultAsync(s => s.Id == dto.SessionId && s.UserId == userId);
+                
+            if (session == null)
+                throw new SessionNotFoundException("Trening nie istnieje.");
+            
             if (session.Status == WorkoutStatus.Completed)
                 throw new SessionStateException("Zakończony trening jest zablokowany do edycji. Użyj opcji 'Wznów trening'.");
 
@@ -211,11 +220,21 @@ namespace ExerciseAPI.Services
 
             if (dto.UserExerciseId.HasValue)
             {
-                entry = session.Exercises.FirstOrDefault(e => e.Id == dto.UserExerciseId.Value)
+                entry = session.Exercises?.FirstOrDefault(e => e.Id == dto.UserExerciseId.Value)
                     ?? throw new SessionNotFoundException("Ćwiczenie nie należy do tego treningu.");
 
                 if (entry.ExerciseId != dto.ExerciseId)
                     throw new SessionStateException("Ćwiczenie nie należy do tego treningu.");
+
+                if (!string.IsNullOrWhiteSpace(dto.Notes))
+                {
+                    var trimmed = dto.Notes.Trim();
+                    entry.Notes = trimmed.Length > 200 ? trimmed.Substring(0, 200) : trimmed;
+                }
+                else if (dto.Notes == "")
+                {
+                    entry.Notes = null;
+                }
             }
             else
             {
@@ -235,6 +254,13 @@ namespace ExerciseAPI.Services
                     SupersetGroupId = dto.SupersetGroupId
                 };
 
+                if (!string.IsNullOrWhiteSpace(dto.Notes))
+                {
+                    var trimmed = dto.Notes.Trim();
+                    entry.Notes = trimmed.Length > 200 ? trimmed.Substring(0, 200) : trimmed;
+                }
+
+                session.Exercises ??= new List<UserExercise>();
                 session.Exercises.Add(entry);
                 _context.UserExercise.Add(entry);
                 await _context.SaveChangesAsync();
@@ -273,6 +299,9 @@ namespace ExerciseAPI.Services
                     .ToListAsync();
                 _context.WorkoutSets.RemoveRange(existingSets);
             }
+
+            if (entry.Sets == null)
+                entry.Sets = new List<WorkoutSet>();
 
             foreach (var setDto in setsToLog.OrderBy(s => s.SetNumber))
             {
@@ -317,6 +346,9 @@ namespace ExerciseAPI.Services
             };
 
             await _analyticsQueue.EnqueueAsync(evt);
+
+            // Reload entry with sets to ensure we have latest
+            await _context.Entry(entry).Collection(e => e.Sets).LoadAsync();
 
             return (entry, session);
         }

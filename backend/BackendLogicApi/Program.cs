@@ -36,43 +36,40 @@ builder.Services.AddCors(options =>
                       });
 });
 
-var jwtKey = builder.Configuration["Jwt:Key"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
-if (!string.IsNullOrWhiteSpace(jwtKey) && !string.IsNullOrWhiteSpace(jwtIssuer) && !string.IsNullOrWhiteSpace(jwtAudience))
-{
-    builder.Services.AddAuthentication("Bearer")
-        .AddJwtBearer("Bearer", options =>
-        {
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = jwtIssuer,
-                ValidAudience = jwtAudience,
-                IssuerSigningKey = new SymmetricSecurityKey(
-                     Encoding.UTF8.GetBytes(jwtKey))
-            };
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("Jwt:Key is not set.");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+    ?? throw new InvalidOperationException("Jwt:Issuer is not set.");
+var jwtAudience = builder.Configuration["Jwt:Audience"]
+    ?? throw new InvalidOperationException("Jwt:Audience is not set.");
 
-            options.Events = new JwtBearerEvents
+builder.Services.AddAuthentication("Bearer")
+    .AddJwtBearer("Bearer", options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                 Encoding.UTF8.GetBytes(jwtKey))
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
             {
-                OnMessageReceived = context =>
+                if (context.Request.Cookies.ContainsKey("FitnessApp-Auth"))
                 {
-                    if (context.Request.Cookies.ContainsKey("FitnessApp-Auth"))
-                    {
-                        context.Token = context.Request.Cookies["FitnessApp-Auth"];
-                    }
-                    return Task.CompletedTask;
+                    context.Token = context.Request.Cookies["FitnessApp-Auth"];
                 }
-            };
-        });
-}
-else
-{
-    builder.Services.AddAuthentication();
-}
+                return Task.CompletedTask;
+            }
+        };
+    });
 
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD")
                  ?? throw new InvalidOperationException(

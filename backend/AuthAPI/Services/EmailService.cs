@@ -31,7 +31,7 @@ namespace AuthAPI.Services
                 Body = body,
                 IsBodyHtml = true
             };
-            mailMessage.To.Add("robert.p3@o2.pl");
+            mailMessage.To.Add(to);
             await smtpClient.SendMailAsync(mailMessage);
 
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using AuthAPI.Models;
 using AuthAPI.Services;
+using AuthAPI.DataAccess;
 
 namespace AuthAPI.Controllers
 {
@@ -12,12 +13,13 @@ namespace AuthAPI.Controllers
     public class UserController : FitnessControllerBase
     {
         private readonly IUserService _userService;
-        
+        private readonly UserLogrepository _userRepo;
 
-        public UserController(IUserService userService, IHttpContextAccessor httpContextAccessor)
+        public UserController(IUserService userService, UserLogrepository userRepo, IHttpContextAccessor httpContextAccessor)
             : base(httpContextAccessor)
         {
             _userService = userService;
+            _userRepo = userRepo;
         }
 
         [HttpGet("profile")]
@@ -91,24 +93,36 @@ namespace AuthAPI.Controllers
         {
             if (!HasCurrentUser) return Unauthorized();
 
+            var currentToken = Request.Cookies["FitnessApp-Auth"];
             var sessions = await _userService.GetActiveSessionsAsync(CurrentUserId);
-            if (sessions.Count == 0)
-            {
-                sessions.Add(new ActiveSessionInfo
-                {
-                    SessionId = "current",
-                    Device = "To urządzenie",
-                    Browser = Request.Headers.UserAgent.ToString().Split(' ').FirstOrDefault() ?? "Przeglądarka",
-                    Os = "Nieznany system",
-                    LastActivity = DateTime.UtcNow,
-                    IsCurrent = true
-                });
-            }
+            foreach (var session in sessions)
+                session.IsCurrent = !string.IsNullOrEmpty(session.SessionToken) && session.SessionToken == currentToken;
 
             return Ok(sessions);
         }
 
-        [HttpPost("send-reset-password-email")]
+        [HttpDelete("sessions/{sessionId}")]
+        public async Task<IActionResult> RevokeSession(int sessionId)
+        {
+            if (!HasCurrentUser) return Unauthorized();
+
+            var revoked = await _userService.RevokeSessionAsync(sessionId, CurrentUserId);
+            if (!revoked) return NotFound(new { message = "Sesja nie została znaleziona." });
+
+            var currentToken = Request.Cookies["FitnessApp-Auth"];
+            var session = await _userRepo.GetSessionByIdAsync(sessionId);
+            if (session != null && session.SessionToken == currentToken)
+                Response.Cookies.Delete("FitnessApp-Auth");
+
+            return Ok(new { message = "Sesję unieważniono." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromQuery] string token, [FromBody] ResetPasswordDto dto)
+        {
+            await _userService.ResetPasswordAsync(token, dto.NewPassword);
+            return Ok("Hasło zostało zresetowane.");
+        }
         public async Task<IActionResult> SendResetPasswordEmail([FromBody] EmailDto dto)
         {
             await _userService.SendPasswordResetLinkAsync(dto.Email);

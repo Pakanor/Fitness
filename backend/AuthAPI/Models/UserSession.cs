@@ -11,7 +11,6 @@ namespace AuthAPI.Models
         public int UserId { get; set; }
 
         [Required]
-        [MaxLength(100)]
         public string SessionToken { get; set; } = "";
 
         [Required]
@@ -25,6 +24,10 @@ namespace AuthAPI.Models
         [Required]
         [MaxLength(200)]
         public string Os { get; set; } = "";
+
+        [Required]
+        [MaxLength(100)]
+        public string IpAddress { get; set; } = "";
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -24,7 +24,8 @@ export default function AddExerciseModal({
   const [search, setSearch] = useState("");
   const [setCount, setSetCount] = useState("");
   const [setRows, setSetRows] = useState([]);
-  const [isWarmup, setIsWarmup] = useState(false);
+  const [setType, setSetType] = useState("Normal");
+  const [supersetGroupId, setSupersetGroupId] = useState(null);
   const [date, setDate] = useState(defaultDate || new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
 
@@ -37,10 +38,19 @@ export default function AddExerciseModal({
         const s = initialData.Sets[i - 1];
         rows.push({
           setNumber: i,
-          weight: s.Weight != null ? String(s.Weight) : "",
-          reps: s.Reps != null ? String(s.Reps) : "",
-          rpe: s.RPE != null ? String(s.RPE) : "",
-          isWarmup: s.IsWarmup || false,
+          weight: s.Weight != null ? String(s.Weight) : (s.weight != null ? String(s.weight) : ""),
+          reps: s.Reps != null ? String(s.Reps) : (s.reps != null ? String(s.reps) : ""),
+          rpe: s.RPE != null ? String(s.RPE) : (s.rpe != null ? String(s.rpe) : ""),
+          setType: s.SetType != null ? s.SetType : (s.setType != null ? s.setType : "Normal"),
+        });
+      } else if (initialData && initialData.sets && initialData.sets[i - 1]) {
+        const s = initialData.sets[i - 1];
+        rows.push({
+          setNumber: i,
+          weight: s.Weight != null ? String(s.Weight) : (s.weight != null ? String(s.weight) : ""),
+          reps: s.Reps != null ? String(s.Reps) : (s.reps != null ? String(s.reps) : ""),
+          rpe: s.RPE != null ? String(s.RPE) : (s.rpe != null ? String(s.rpe) : ""),
+          setType: s.SetType != null ? s.SetType : (s.setType != null ? s.setType : "Normal"),
         });
       } else {
         rows.push({
@@ -48,7 +58,7 @@ export default function AddExerciseModal({
           weight: "",
           reps: "",
           rpe: "",
-          isWarmup: false,
+          setType: "Normal",
         });
       }
     }
@@ -62,7 +72,8 @@ export default function AddExerciseModal({
     setSelectedCategory(initialExercise?.category ?? null);
     setStep(initialExercise ? 2 : 0);
     setSearch("");
-    setIsWarmup(initialEntry?.isWarmup === true);
+    setSetType(initialEntry?.SetType || initialEntry?.setType || "Normal");
+    setSupersetGroupId(initialEntry?.SupersetGroupId || initialEntry?.supersetGroupId || null);
     setDate(defaultDate || new Date().toISOString().slice(0, 10));
 
     if (initialEntry?.Sets?.length) {
@@ -113,7 +124,7 @@ export default function AddExerciseModal({
   const fillAllFromFirst = () => {
     if (setRows.length === 0) return;
     const first = setRows[0];
-    const filled = setRows.map((row, i) => i === 0 ? row : { ...row, weight: first.weight, reps: first.reps, rpe: first.rpe });
+    const filled = setRows.map((row, i) => i === 0 ? row : { ...row, weight: first.weight, reps: first.reps, rpe: first.rpe, setType: first.setType });
     setSetRows(filled);
   };
 
@@ -127,7 +138,7 @@ export default function AddExerciseModal({
         weight: row.weight ? parseFloat(row.weight) : 0,
         reps: row.reps ? parseInt(row.reps) : 0,
         rpe: row.rpe ? parseFloat(row.rpe) : null,
-        isWarmup: row.isWarmup,
+        setType: row.setType || setType || "Normal",
       }));
 
     if (setsToSend.length === 0) {
@@ -149,6 +160,8 @@ export default function AddExerciseModal({
           userExerciseId: initialEntry?.userExerciseId ?? null,
           exerciseId: selectedExercise.id,
           Sets: setsToSend,
+          SupersetGroupId: supersetGroupId,
+          SetType: setType,
         });
         toast("Zapisano serie w treningu.");
       } else {
@@ -157,6 +170,8 @@ export default function AddExerciseModal({
           exerciseId: selectedExercise.id,
           Sets: setsToSend,
           date,
+          SupersetGroupId: supersetGroupId,
+          SetType: setType,
         });
         toast("Ćwiczenie dodane!");
       }
@@ -291,7 +306,7 @@ export default function AddExerciseModal({
                       <div className="aem-set-col aem-set-weight">Ciężar (kg)</div>
                       <div className="aem-set-col aem-set-reps">Powt.</div>
                       <div className="aem-set-col aem-set-rpe">RPE</div>
-                      <div className="aem-set-col aem-set-warmup">Rozgrzew.</div>
+                      <div className="aem-set-col aem-set-warmup">Typ</div>
                     </div>
                     {setRows.map((row, idx) => (
                       <div key={idx} className="aem-set-row">
@@ -306,9 +321,12 @@ export default function AddExerciseModal({
                           <input className="aem-input aem-set-input" type="number" step="0.5" min="1" max="10" value={row.rpe} onChange={e => updateSetRow(idx, 'rpe', e.target.value)} placeholder="—" />
                         </div>
                         <div className="aem-set-col aem-set-warmup">
-                          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                            <input type="checkbox" checked={row.isWarmup} onChange={e => updateSetRow(idx, 'isWarmup', e.target.checked)} />
-                          </label>
+                          <select className="aem-input aem-set-input" value={row.setType || 'Normal'} onChange={e => updateSetRow(idx, 'setType', e.target.value)}>
+                            <option value="Normal">Normal</option>
+                            <option value="Warmup">Rozgrz.</option>
+                            <option value="Dropset">Dropset</option>
+                            <option value="ToFailure">Do upadku</option>
+                          </select>
                         </div>
                       </div>
                     ))}
@@ -317,10 +335,20 @@ export default function AddExerciseModal({
                     </button>
                   </>
                 )}
-                <label className="aem-field" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={isWarmup} onChange={e => setIsWarmup(e.target.checked)} />
-                  <span className="aem-label" style={{ marginBottom: 0, textTransform: 'none', letterSpacing: 0 }}>Całe ćwiczenie jako rozgrzewkowe</span>
-                </label>
+                <div className="aem-field">
+                  <label className="aem-label">Typ dla całego ćwiczenia / domyślny</label>
+                  <select className="aem-input" value={setType} onChange={e => setSetType(e.target.value)}>
+                    <option value="Normal">Normal</option>
+                    <option value="Warmup">Rozgrzewka</option>
+                    <option value="Dropset">Dropset</option>
+                    <option value="ToFailure">Do upadku</option>
+                  </select>
+                </div>
+                <div className="aem-field">
+                  <label className="aem-label">ID grupy superserii (opcjonalne)</label>
+                  <input className="aem-input" placeholder="np. uuid lub zostaw puste" value={supersetGroupId || ""} onChange={e => setSupersetGroupId(e.target.value || null)} />
+                  <span className="aem-hint">Ćwiczenia z tym samym SupersetGroupId tworzą superserię.</span>
+                </div>
                 <div className="aem-field">
                   <label className="aem-label">Data</label>
                   <input className="aem-input" type="date" value={date} onChange={e => setDate(e.target.value)} style={{ colorScheme: 'dark' }} disabled={Boolean(sessionId)} />

@@ -81,6 +81,15 @@ namespace AuthAPI.Services
             await _userRepo.UpdateUserAsync(user);
         }
 
+        public async Task ResetPasswordAsync(string token, string newPassword)
+        {
+            var userId = _jwtService.ValidatePasswordResetToken(token);
+            if (userId == null) throw new Exception("Nieprawidłowy lub przeterminowany token.");
+            var user = await _userRepo.GetByIdAsync(userId.Value);
+            if (user == null) throw new Exception("Użytkownik nie istnieje.");
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            await _userRepo.UpdateUserAsync(user);
+        }
         public async Task DeleteAccountAsync(int userId)
         {
             var user = await GetCurrentUserAsync(userId);
@@ -142,9 +151,24 @@ namespace AuthAPI.Services
             };
         }
 
-        public Task<List<ActiveSessionInfo>> GetActiveSessionsAsync(int userId)
+        public async Task<List<ActiveSessionInfo>> GetActiveSessionsAsync(int userId)
         {
-            return Task.FromResult(new List<ActiveSessionInfo>());
+            var sessions = await _userRepo.GetActiveSessionsAsync(userId);
+            return sessions.Select(s => new ActiveSessionInfo
+            {
+                SessionId = s.Id.ToString(),
+                Device = s.Device,
+                Browser = s.Browser,
+                Os = s.Os,
+                LastActivity = s.LastActivity,
+                IsCurrent = false,
+                SessionToken = s.SessionToken
+            }).ToList();
+        }
+
+        public Task<bool> RevokeSessionAsync(int sessionId, int userId)
+        {
+            return _userRepo.RevokeSessionAsync(sessionId, userId);
         }
 
 

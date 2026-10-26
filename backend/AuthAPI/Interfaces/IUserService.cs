@@ -10,8 +10,10 @@ namespace AuthAPI.Interfaces
         Task ChangePasswordAsync(int userId, string currentPassword, string newPassword);
         Task DeleteAccountAsync(int userId);
         Task SendPasswordResetLinkAsync(string email);
+        Task ResetPasswordAsync(string token, string newPassword);
         Task<object> ExportUserDataAsync(int userId);
         Task<List<ActiveSessionInfo>> GetActiveSessionsAsync(int userId);
+        Task<bool> RevokeSessionAsync(int sessionId, int userId);
     }
 
     public class ActiveSessionInfo
@@ -22,5 +24,6 @@ namespace AuthAPI.Interfaces
         public DateTime LastActivity { get; set; }
         public bool IsCurrent { get; set; }
         public string SessionId { get; set; } = "";
+        public string SessionToken { get; set; } = "";
     }
 }

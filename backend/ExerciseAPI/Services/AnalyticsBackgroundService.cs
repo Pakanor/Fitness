@@ -90,14 +90,14 @@ namespace ExerciseAPI.Services
         private static decimal CalculateVolume(WorkoutSession session)
         {
             return session.Exercises.Sum(e =>
-                e.Sets.Where(s => !s.IsWarmup).Sum(s => s.Weight * s.Reps)
+                e.Sets.Where(s => s.SetType != Models.SetType.Warmup).Sum(s => s.Weight * s.Reps)
             );
         }
 
         private static async Task UpdatePersonalRecordAsync(AppDbContext db, UserExercise entry, decimal? userWeight, CancellationToken ct)
         {
             var bestSet = entry.Sets
-                .Where(s => !s.IsWarmup && s.Weight > 0 && s.Reps > 0)
+                .Where(s => s.SetType != Models.SetType.Warmup && s.Weight > 0 && s.Reps > 0)
                 .OrderByDescending(s => s.Weight * (1 + s.Reps / 30.0m))
                 .FirstOrDefault();
 

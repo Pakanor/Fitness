@@ -66,7 +66,7 @@ namespace AuthAPI.Services
 
 
 
-        public async Task<string> LoginAsync(LoginDto dto)
+        public async Task<(string Token, User User)> LoginAsync(LoginDto dto)
         {
             var user = await _userRepo.GetByEmailOrLoginAsync(dto.EmailOrLogin);
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
@@ -80,7 +80,7 @@ namespace AuthAPI.Services
             }
 
 
-            return _jwtService.GenerateToken(user);
+            return (_jwtService.GenerateToken(user), user);
 
 
         }

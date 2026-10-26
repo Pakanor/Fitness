@@ -10,6 +10,7 @@ namespace AuthAPI.DataAccess
 
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<BodyMeasurement> BodyMeasurements { get; set; } = null!;
+        public DbSet<UserSession> UserSessions { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -36,6 +37,15 @@ namespace AuthAPI.DataAccess
             modelBuilder.Entity<User>()
                 .Property(u => u.CreatedAt)
                 .HasDefaultValueSql("NOW()");
+
+            modelBuilder.Entity<UserSession>()
+                .HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserSession>()
+                .HasIndex(s => s.UserId);
 
 
         }

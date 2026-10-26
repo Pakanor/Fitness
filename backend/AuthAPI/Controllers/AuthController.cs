@@ -106,7 +106,7 @@ _authService = authService;
 
             
 
-            return Ok("Email został zweryfikowany.");
+            return Ok(new { message = "Email został zweryfikowany." });
 
 
 

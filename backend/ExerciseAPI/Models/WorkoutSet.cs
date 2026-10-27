@@ -16,6 +16,8 @@ namespace ExerciseAPI.Models
 
         public SetType SetType { get; set; } = SetType.Normal;
 
+        public int? DurationSeconds { get; set; }
+
         public UserExercise UserExercise { get; set; } = null!;
     }
 }

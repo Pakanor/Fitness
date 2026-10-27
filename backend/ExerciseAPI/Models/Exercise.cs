@@ -32,6 +32,8 @@ namespace ExerciseAPI.Models
 
         public bool IsBenchmark { get; set; }
 
+        public LoadType LoadType { get; set; } = LoadType.External;
+
         public ICollection<ExerciseMuscleGroup> MuscleGroupMappings { get; set; } = new List<ExerciseMuscleGroup>();
     }
 }

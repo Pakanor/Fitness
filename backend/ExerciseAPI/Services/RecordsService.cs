@@ -1,6 +1,5 @@
 using ExerciseAPI.Data;
 using ExerciseAPI.DTOs;
-using ExerciseAPI.Interfaces;
 using ExerciseAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -10,8 +9,6 @@ namespace ExerciseAPI.Services
     public class RecordsService
     {
         private readonly AppDbContext _context;
-        private readonly OneRepMaxCalculator _calculator;
-        private readonly IE1RMCalculatorService _e1rmCalculator;
 
         private static readonly string[] MainCompoundLifts = new[]
         {
@@ -19,11 +16,9 @@ namespace ExerciseAPI.Services
             "przysiad", "wyciskanie sztangi", "martwy ciąg", "wyciskanie nad głowę"
         };
 
-        public RecordsService(AppDbContext context, OneRepMaxCalculator calculator, IE1RMCalculatorService e1rmCalculator)
+        public RecordsService(AppDbContext context)
         {
             _context = context;
-            _calculator = calculator;
-            _e1rmCalculator = e1rmCalculator;
         }
 
         /// <summary>
@@ -92,12 +87,12 @@ namespace ExerciseAPI.Services
                     .Select(g =>
                     {
                         var bestSet = g.OrderByDescending(x =>
-                            _calculator.CalculateEpley(x.Weight, x.Reps))
+                            E1RMCalculator.CalculateE1RM(x.Weight, x.Reps))
                             .First();
                         return new OneRepMaxDataPointDto
                         {
                             Date = g.Key,
-                            Estimated1RM = _calculator.CalculateEpley(
+                            Estimated1RM = E1RMCalculator.CalculateE1RM(
                                 bestSet.Weight, bestSet.Reps)
                         };
                     })
@@ -172,12 +167,12 @@ namespace ExerciseAPI.Services
             var allTimeMax = 0m;
 
             var validEntries = setRecords
-                .Where(x => _e1rmCalculator.IsValidSet(x.Weight, x.Reps))
+                .Where(x => E1RMCalculator.IsValidSet(x.Weight, x.Reps))
                 .ToList();
 
             var bestExerciseE1Rm = validEntries
                 .Where(x => x.SetType != Models.SetType.Warmup)
-                .Select(x => _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe))
+                .Select(x => E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe))
                 .DefaultIfEmpty(0m)
                 .Max();
 
@@ -191,7 +186,7 @@ namespace ExerciseAPI.Services
                         Weight = x.Weight,
                         Reps = x.Reps,
                         Rpe = x.Rpe,
-                        E1RM = _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe)
+                        E1RM = E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe)
                     })
                     .Where(x => x.E1RM > 0)
                     .OrderByDescending(x => x.E1RM)
@@ -215,7 +210,7 @@ namespace ExerciseAPI.Services
                     HasRpe = best.Rpe.HasValue
                 });
 
-                allTimeMax = _e1rmCalculator.CalculateBest(best.Weight, best.Reps, best.Rpe, allTimeMax);
+                allTimeMax = E1RMCalculator.CalculateBest(best.Weight, best.Reps, best.Rpe, allTimeMax);
             }
 
             var hardEntries = validEntries
@@ -347,7 +342,7 @@ namespace ExerciseAPI.Services
                 .ToList();
 
             var validEntries = setRecords
-                .Where(x => _e1rmCalculator.IsValidSet(x.Weight, x.Reps))
+                .Where(x => E1RMCalculator.IsValidSet(x.Weight, x.Reps))
                 .ToList();
 
             var bestByExercise = validEntries
@@ -355,7 +350,7 @@ namespace ExerciseAPI.Services
                 .GroupBy(x => x.ExerciseId)
                 .ToDictionary(
                     group => group.Key,
-                    group => group.Max(x => _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe)));
+                    group => group.Max(x => E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe)));
 
             var hardEntries = validEntries
                 .Where(x => bestByExercise.TryGetValue(x.ExerciseId, out var best) && IsHardSet(x, best))
@@ -519,7 +514,7 @@ namespace ExerciseAPI.Services
                             .Select(ue => {
                                 var best = ue.Sets
                                     .Where(s => s.Weight > 0 && s.Reps > 0 && s.SetType != Models.SetType.Warmup)
-                                    .Select(s => _e1rmCalculator.CalculateBrzycki(s.Weight, s.Reps, s.RPE))
+                                    .Select(s => E1RMCalculator.CalculateE1RM(s.Weight, s.Reps, s.RPE))
                                     .DefaultIfEmpty(0)
                                     .Max();
                                 return best;

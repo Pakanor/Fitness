@@ -87,13 +87,13 @@ namespace ExerciseAPI.Services
                     .Select(g =>
                     {
                         var bestSet = g.OrderByDescending(x =>
-                            E1RMCalculator.CalculateE1RM(x.Weight, x.Reps))
+                            E1RMCalculator.CalculateE1RM(x.Weight, x.Reps) ?? 0m)
                             .First();
                         return new OneRepMaxDataPointDto
                         {
                             Date = g.Key,
                             Estimated1RM = E1RMCalculator.CalculateE1RM(
-                                bestSet.Weight, bestSet.Reps)
+                                bestSet.Weight, bestSet.Reps) ?? 0m
                         };
                     })
                     .OrderBy(h => h.Date)
@@ -173,6 +173,8 @@ namespace ExerciseAPI.Services
             var bestExerciseE1Rm = validEntries
                 .Where(x => x.SetType != Models.SetType.Warmup)
                 .Select(x => E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe))
+                .Where(x => x.HasValue)
+                .Select(x => x.Value)
                 .DefaultIfEmpty(0m)
                 .Max();
 
@@ -188,7 +190,7 @@ namespace ExerciseAPI.Services
                         Rpe = x.Rpe,
                         E1RM = E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe)
                     })
-                    .Where(x => x.E1RM > 0)
+                    .Where(x => x.E1RM.HasValue && x.E1RM.Value > 0)
                     .OrderByDescending(x => x.E1RM)
                     .ThenByDescending(x => x.Weight)
                     .FirstOrDefault();
@@ -203,7 +205,7 @@ namespace ExerciseAPI.Services
                 dataPoints.Add(new ExerciseProgressPointDto
                 {
                     Date = day.Key.ToString("yyyy-MM-dd"),
-                    MaxE1RM = best.E1RM,
+                    MaxE1RM = best.E1RM.Value,
                     TopSetWeight = topSet.Weight,
                     TopSetReps = topSet.Reps,
                     TopSetRpe = topSet.Rpe,
@@ -350,7 +352,9 @@ namespace ExerciseAPI.Services
                 .GroupBy(x => x.ExerciseId)
                 .ToDictionary(
                     group => group.Key,
-                    group => group.Max(x => E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe)));
+                    group => group.Select(x => E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe))
+                                 .Where(v => v.HasValue).Select(v => v.Value)
+                                 .DefaultIfEmpty(0m).Max());
 
             var hardEntries = validEntries
                 .Where(x => bestByExercise.TryGetValue(x.ExerciseId, out var best) && IsHardSet(x, best))
@@ -515,6 +519,7 @@ namespace ExerciseAPI.Services
                                 var best = ue.Sets
                                     .Where(s => s.Weight > 0 && s.Reps > 0 && s.SetType != Models.SetType.Warmup)
                                     .Select(s => E1RMCalculator.CalculateE1RM(s.Weight, s.Reps, s.RPE))
+                                    .Where(v => v.HasValue).Select(v => v.Value)
                                     .DefaultIfEmpty(0)
                                     .Max();
                                 return best;
@@ -548,13 +553,14 @@ namespace ExerciseAPI.Services
             };
         }
 
-        private static bool IsHardSet(SetRecord entry, decimal bestE1Rm)
+        private static bool IsHardSet(SetRecord entry, decimal? bestE1Rm)
         {
+            var best = bestE1Rm ?? 0m;
             if (entry.SetType == Models.SetType.Warmup)
                 return false;
             if (entry.SetType == Models.SetType.Dropset)
                 return true;
-            return bestE1Rm <= 0m || entry.Weight >= bestE1Rm * 0.5m;
+            return best <= 0m || entry.Weight >= best * 0.5m;
         }
 
         private static DateTime GetWeekStart(DateTime date)

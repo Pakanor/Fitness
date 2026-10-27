@@ -66,6 +66,23 @@ namespace ExerciseAPI.Services
                                 changed = true;
                         }
                     }
+                    // LoadType - look in remaining columns
+                    var nameLower = parts[1].Trim('"').ToLowerInvariant();
+                    var inferredLoadType = InferLoadType(nameLower);
+                    if (inferredLoadType.HasValue && existing.LoadType != inferredLoadType.Value)
+                    {
+                        existing.LoadType = inferredLoadType.Value;
+                        changed = true;
+                    }
+                    else if (parts.Length > 3 + muscleColumns.Count)
+                    {
+                        var lt = parts[3 + muscleColumns.Count].Trim().Trim('"');
+                        if (Enum.TryParse<LoadType>(lt, true, out var parsedLt) && existing.LoadType != parsedLt)
+                        {
+                            existing.LoadType = parsedLt;
+                            changed = true;
+                        }
+                    }
                     if (changed) updatedCount++;
                 }
                 else
@@ -77,6 +94,7 @@ namespace ExerciseAPI.Services
                         Name = parts[1].Trim('"'),
                         Description = null,
                         Category = parts[2].Trim('"'),
+                        LoadType = LoadType.External
                     };
 
                     for (int j = 0; j < muscleColumns.Count && (3 + j) < parts.Length; j++)
@@ -85,6 +103,21 @@ namespace ExerciseAPI.Services
                         if (decimal.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal coeff))
                         {
                             SetMuscleCoefficient(exercise, muscleColumns[j], coeff);
+                        }
+                    }
+
+                    var nameLowerNew = exercise.Name.ToLowerInvariant();
+                    var inferred = InferLoadType(nameLowerNew);
+                    if (inferred.HasValue)
+                    {
+                        exercise.LoadType = inferred.Value;
+                    }
+                    else if (parts.Length > 3 + muscleColumns.Count)
+                    {
+                        var lt = parts[3 + muscleColumns.Count].Trim().Trim('"');
+                        if (Enum.TryParse<LoadType>(lt, true, out var parsedLt))
+                        {
+                            exercise.LoadType = parsedLt;
                         }
                     }
 
@@ -189,6 +222,28 @@ namespace ExerciseAPI.Services
             }
 
             return updatedCount;
+        }
+
+
+        private static LoadType? InferLoadType(string nameLower)
+        {
+            if (nameLower.Contains("push-up") || nameLower.Contains("push up") || nameLower.Contains("pompki") ||
+                nameLower.Contains("pull-up") || nameLower.Contains("pull up") || nameLower.Contains("chin-up") ||
+                nameLower.Contains("podciaganie") || nameLower.Contains("podciąganie") ||
+                nameLower.Contains("dip") || nameLower.Contains("dipy") ||
+                nameLower.Contains("plank"))
+            {
+                return LoadType.Bodyweight;
+            }
+            if (nameLower.Contains("assisted"))
+            {
+                return LoadType.Assisted;
+            }
+            if (nameLower.Contains("plank") || nameLower.Contains("hold") || nameLower.Contains("static"))
+            {
+                // plank could be timed/bodyweight; per instructions mark bodyweight by keywords including plank
+            }
+            return null;
         }
 
         private static bool SetMuscleCoefficient(Exercise e, string column, decimal value)

@@ -54,7 +54,7 @@ namespace ExerciseAPI.DTOs
         [Range(1, 100)]
         public int SetNumber { get; set; }
 
-        [Range(1, 1000)]
+        [Range(0, 1000)]
         public int Reps { get; set; }
 
         [Range(0, 1000)]
@@ -64,6 +64,8 @@ namespace ExerciseAPI.DTOs
         public decimal? RPE { get; set; }
 
         public Models.SetType SetType { get; set; } = Models.SetType.Normal;
+
+        public int? DurationSeconds { get; set; }
     }
 
     public class SessionExerciseDto
@@ -108,6 +110,7 @@ namespace ExerciseAPI.DTOs
         public int Reps { get; set; }
         public decimal? RPE { get; set; }
         public Models.SetType SetType { get; set; } = Models.SetType.Normal;
+        public int? DurationSeconds { get; set; }
         public decimal Volume => Weight * Reps;
     }
 

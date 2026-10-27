@@ -267,7 +267,8 @@ namespace ExerciseAPI.Controllers
                     Weight = setDto.Weight,
                     Reps = setDto.Reps,
                     RPE = setDto.RPE,
-                    SetType = setDto.SetType
+                    SetType = setDto.SetType,
+                    DurationSeconds = setDto.DurationSeconds
                 };
                 _context.WorkoutSets.Add(workoutSet);
             }
@@ -322,7 +323,8 @@ namespace ExerciseAPI.Controllers
                     Weight = s.Weight,
                     Reps = s.Reps,
                     RPE = s.RPE,
-                    SetType = s.SetType
+                    SetType = s.SetType,
+                    DurationSeconds = s.DurationSeconds
                 }).ToList(),
                 SetsCount = setsToCreate.Count,
                 Reps = firstSet?.Reps,

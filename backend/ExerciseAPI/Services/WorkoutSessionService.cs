@@ -312,7 +312,8 @@ namespace ExerciseAPI.Services
                     Weight = setDto.Weight,
                     Reps = setDto.Reps,
                     RPE = setDto.RPE,
-                    SetType = setDto.SetType
+                    SetType = setDto.SetType,
+                    DurationSeconds = setDto.DurationSeconds
                 };
                 _context.WorkoutSets.Add(workoutSet);
                 entry.Sets.Add(workoutSet);

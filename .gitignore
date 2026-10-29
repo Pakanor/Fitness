@@ -1,41 +1,50 @@
-# ---- .NET / backend ----
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
-*.user
-*.suo
-.vs/
-*.userprefs
-project.lock.json
-project.fragment.lock.json
-artifacts/
-
-# ---- Node / frontend ----
+# Dependencies
 node_modules/
-/frontend/build/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# Vite
+dist/
+.vite/
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnp.js
+pnpm-debug.log*
 
-# ---- Local-only tooling / agent notes ----
-/.vscode/
-/frontend/ssd/
-# Local dev helper scripts (run-dev.sh, start-all.sh) — machine specific
-*.sh
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# ---- Secrets & environment ----
-# .env holds the real RAPIDAPI_KEY / POSTGRES_PASSWORD. Keep local.
-/.env
-/.env.local
-/.env.*.local
-!.env.example
-*.pem
-*.pfx
-*.key
-id_rsa*
-
-# ---- OS ----
+# OS
 .DS_Store
 Thumbs.db
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+
+# Misc
+coverage/

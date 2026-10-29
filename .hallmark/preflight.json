@@ -1,0 +1,27 @@
+{
+  "scanned": "2026-10-28T15:05:00Z",
+  "target": "frontend/src",
+  "mode": "redesign",
+  "depth": "full",
+  "lockedSystem": "design.md (root, overrides all signals below)",
+  "findings": {
+    "designMd": "genre: editorial · shape: Stage-hero landing (HomePage); rest are app screens inside the shell · theme: Sport (deal 1/3, seed fitness-tracker-logging-workouts-732e·073fe46f·2026-10-28·r0) · axes: light/display-condensed/chromatic-volt · posture: restrained",
+    "tokens": "design.md tokens (frontend/src/styles/hallmark-tokens.css) are source of truth: paper oklch(98% 0.005 250), ink oklch(16% 0.080 260), accent volt oklch(88% 0.200 120), Saira Condensed display / Albert Sans body / JetBrains Mono outlier",
+    "projectTokens": "frontend/src/styles/tokens.css keeps the project's own dark theme + #fc4c02 orange (retained, not used by the Hallmark page)",
+    "framework": "React 19 + react-scripts CRA + MUI 7 + react-router 7 (frontend/package.json)",
+    "product": "fitness tracker: / login / register / verify / calorie-tracker / exercises / exercises/history / exercise-start / dashboard / records / templates / profile / konto/ustawienia; Polish copy on HomePage",
+    "signals": "design.md present (locked system), no .hallmark/brand-spec.md, TOGETHER_API_KEY not set (no comp step), git tree clean",
+    "genre": "editorial (consumer fitness app; matches design.md)"
+  },
+  "preserve": [
+    "content: every fact, claim, name, price, date and quote the pages state (HomePage's three testimonials are invented — Floor 46a binds, flagged for removal)",
+    "wiring: all routes, links, fields, handlers, ids, keys, types, hrefs, data-testid hooks",
+    "files: none deleted, no route removed, no component tree replaced without user-approved file-level plan",
+    "brand: project's own tokens and orange accent retained in tokens.css"
+  ],
+  "introduce": [
+    "Hallmark tokens.css and base.css already present beside the project's stylesheet; index.css imports them after tokens.css",
+    "Sport theme build: Stage-hero landing, editorial genre, sign-up job, restrained motion",
+    "sloplint --render sweep until clean; finish review; material-ask closeout"
+  ]
+}

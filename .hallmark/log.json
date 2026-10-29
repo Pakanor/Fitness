@@ -1,0 +1,20 @@
+[
+ {
+  "shape": "Stage-hero landing (HomePage)",
+  "theme": "sport",
+  "axes": "light/display-condensed/chromatic-volt",
+  "hero": "Stage",
+  "nav": "edge-aligned, wordmark and one action",
+  "footer": "letter close",
+  "imagery": "screenshots 1 (product home, headless Chrome)",
+  "photos": [],
+  "entry": "sign-up landing",
+  "fingerprint": "stage-hero-landing",
+  "sections": "Hero,Bento(named moments),Pricing table,Rows(questions),Close band,Footer",
+  "signature": "the real product screenshot shown large in the Stage hero",
+  "waived": "none",
+  "prompt": "continue with the implementation (headless)",
+  "date": "2026-10-29",
+  "mode": "build"
+ }
+]

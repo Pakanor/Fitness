@@ -198,23 +198,31 @@ namespace ExerciseAPI.Controllers
                 bool isPr = false;
                 try
                 {
-                    var setsToCheck = entry.Sets
-                        .Where(s => s.SetType != Models.SetType.Warmup && s.Weight > 0 && s.Reps > 0)
+                    var workingSets = entry.Sets
+                        .Select(s => new WorkingSetInput
+                        {
+                            Weight = s.Weight,
+                            Reps = s.Reps,
+                            Rpe = s.RPE,
+                            SetType = s.SetType
+                        })
                         .ToList();
-                    if (setsToCheck.Any())
+
+                    var bestE1RM = WorkingSet.GetBestE1RM(WorkingSet.Select(workingSets));
+                    var bestSet = WorkingSet.Select(workingSets, bestE1RM)
+                        .OrderByDescending(s => E1RMCalculator.CalculateE1RM(s.Weight, s.Reps, s.Rpe) ?? 0m)
+                        .FirstOrDefault();
+
+                    if (bestSet.Reps > 0)
                     {
-                        var bestWeightReps = setsToCheck
-                            .OrderByDescending(s => s.Weight * (1 + s.Reps / 30.0m))
-                            .First();
-                        
                         var existingPr = await _context.PersonalRecords
                             .Where(pr => pr.UserId == CurrentUserId && pr.ExerciseId == entry.ExerciseId)
                             .OrderByDescending(pr => pr.Weight * (1 + pr.Reps / 30.0m))
                             .FirstOrDefaultAsync();
-                        
-                        if (existingPr == null || 
-                            bestWeightReps.Weight * (1 + bestWeightReps.Reps / 30.0m) > existingPr.Weight * (1 + existingPr.Reps / 30.0m) ||
-                            (bestWeightReps.Weight * (1 + bestWeightReps.Reps / 30.0m) == existingPr.Weight * (1 + existingPr.Reps / 30.0m) && bestWeightReps.Weight > existingPr.Weight))
+
+                        if (existingPr == null ||
+                            bestSet.Weight * (1 + bestSet.Reps / 30.0m) > existingPr.Weight * (1 + existingPr.Reps / 30.0m) ||
+                            (bestSet.Weight * (1 + bestSet.Reps / 30.0m) == existingPr.Weight * (1 + existingPr.Reps / 30.0m) && bestSet.Weight > existingPr.Weight))
                         {
                             isPr = true;
                         }

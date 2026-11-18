@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using ExerciseAPI.Data;
 using ExerciseAPI.Models;
+using ExerciseAPI.Services;
 
 namespace ExerciseAPI.Services
 {
@@ -90,7 +91,15 @@ namespace ExerciseAPI.Services
         private static decimal CalculateVolume(WorkoutSession session)
         {
             return session.Exercises.Sum(e =>
-                e.Sets.Where(s => s.SetType != Models.SetType.Warmup).Sum(s => s.Weight * s.Reps)
+                e.Sets
+                    .Where(s => WorkingSet.Counts(new WorkingSetInput
+                    {
+                        Weight = s.Weight,
+                        Reps = s.Reps,
+                        Rpe = s.RPE,
+                        SetType = s.SetType
+                    }))
+                    .Sum(s => s.Weight * s.Reps)
             );
         }
 

@@ -51,7 +51,13 @@ namespace ExerciseAPI.Services
 
             var setRecords = userExercises
                 .SelectMany(x => x.Sets
-                    .Where(s => s.Weight > 0 && s.Reps > 0)
+                    .Where(s => WorkingSet.Counts(new WorkingSetInput
+                    {
+                        Weight = s.Weight,
+                        Reps = s.Reps,
+                        Rpe = s.RPE,
+                        SetType = s.SetType
+                    }))
                     .Select(s => new
                     {
                         x.Date,
@@ -163,20 +169,28 @@ namespace ExerciseAPI.Services
                     }))
                 .ToList();
 
-            var dataPoints = new List<ExerciseProgressPointDto>();
-            var allTimeMax = 0m;
-
-            var validEntries = setRecords
-                .Where(x => E1RMCalculator.IsValidSet(x.Weight, x.Reps))
+            var workingSets = setRecords
+                .Select(x => new WorkingSetInput
+                {
+                    Weight = x.Weight,
+                    Reps = x.Reps,
+                    Rpe = x.Rpe,
+                    SetType = x.SetType
+                })
                 .ToList();
 
-            var bestExerciseE1Rm = validEntries
-                .Where(x => x.SetType != Models.SetType.Warmup)
-                .Select(x => E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe))
-                .Where(x => x.HasValue)
-                .Select(x => x.Value)
-                .DefaultIfEmpty(0m)
-                .Max();
+            var validIndices = workingSets
+                .Select((ws, i) => new { ws, i })
+                .Where(x => WorkingSet.Counts(x.ws))
+                .Select(x => x.i)
+                .ToList();
+
+            var validEntries = validIndices.Select(i => setRecords[i]).ToList();
+
+            var bestExerciseE1Rm = WorkingSet.GetBestE1RM(workingSets.Where((_, i) => validIndices.Contains(i)));
+
+            var dataPoints = new List<ExerciseProgressPointDto>();
+            var allTimeMax = 0m;
 
             var days = validEntries.GroupBy(x => x.Date.Date);
 
@@ -216,7 +230,13 @@ namespace ExerciseAPI.Services
             }
 
             var hardEntries = validEntries
-                .Where(x => IsHardSet(x, bestExerciseE1Rm))
+                .Where(x => WorkingSet.Counts(new WorkingSetInput
+                {
+                    Weight = x.Weight,
+                    Reps = x.Reps,
+                    Rpe = x.Rpe,
+                    SetType = x.SetType
+                }, bestExerciseE1Rm))
                 .ToList();
 
             var muscleAnalytics = hardEntries
@@ -343,21 +363,44 @@ namespace ExerciseAPI.Services
                     }))
                 .ToList();
 
-            var validEntries = setRecords
-                .Where(x => E1RMCalculator.IsValidSet(x.Weight, x.Reps))
+            var workingSets = setRecords
+                .Select(x => new WorkingSetInput
+                {
+                    Weight = x.Weight,
+                    Reps = x.Reps,
+                    Rpe = x.Rpe,
+                    SetType = x.SetType
+                })
                 .ToList();
 
+            var validIndices = workingSets
+                .Select((ws, i) => new { ws, i })
+                .Where(x => WorkingSet.Counts(x.ws))
+                .Select(x => x.i)
+                .ToList();
+
+            var validEntries = validIndices.Select(i => setRecords[i]).ToList();
+
             var bestByExercise = validEntries
-                .Where(x => !x.IsWarmup)
                 .GroupBy(x => x.ExerciseId)
                 .ToDictionary(
                     group => group.Key,
-                    group => group.Select(x => E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe))
-                                 .Where(v => v.HasValue).Select(v => v.Value)
-                                 .DefaultIfEmpty(0m).Max());
+                    group => WorkingSet.GetBestE1RM(group.Select(x => new WorkingSetInput
+                    {
+                        Weight = x.Weight,
+                        Reps = x.Reps,
+                        Rpe = x.Rpe,
+                        SetType = x.SetType
+                    })));
 
             var hardEntries = validEntries
-                .Where(x => bestByExercise.TryGetValue(x.ExerciseId, out var best) && IsHardSet(x, best))
+                .Where(x => bestByExercise.TryGetValue(x.ExerciseId, out var best) && WorkingSet.Counts(new WorkingSetInput
+                {
+                    Weight = x.Weight,
+                    Reps = x.Reps,
+                    Rpe = x.Rpe,
+                    SetType = x.SetType
+                }, best))
                 .ToList();
 
             var periodStart = startDate?.Date
@@ -516,12 +559,16 @@ namespace ExerciseAPI.Services
                         var sessionE1RMs = benchEntries
                             .Take(4)
                             .Select(ue => {
-                                var best = ue.Sets
-                                    .Where(s => s.Weight > 0 && s.Reps > 0 && s.SetType != Models.SetType.Warmup)
-                                    .Select(s => E1RMCalculator.CalculateE1RM(s.Weight, s.Reps, s.RPE))
-                                    .Where(v => v.HasValue).Select(v => v.Value)
-                                    .DefaultIfEmpty(0)
-                                    .Max();
+                                var workingSets = ue.Sets
+                                    .Select(s => new WorkingSetInput
+                                    {
+                                        Weight = s.Weight,
+                                        Reps = s.Reps,
+                                        Rpe = s.RPE,
+                                        SetType = s.SetType
+                                    })
+                                    .ToList();
+                                var best = WorkingSet.GetBestE1RM(WorkingSet.Select(workingSets));
                                 return best;
                             })
                             .ToList();
@@ -551,16 +598,6 @@ namespace ExerciseAPI.Services
                 WeeklyStreak = weeklyStreak,
                 Insights = insights
             };
-        }
-
-        private static bool IsHardSet(SetRecord entry, decimal? bestE1Rm)
-        {
-            var best = bestE1Rm ?? 0m;
-            if (entry.SetType == Models.SetType.Warmup)
-                return false;
-            if (entry.SetType == Models.SetType.Dropset)
-                return true;
-            return best <= 0m || entry.Weight >= best * 0.5m;
         }
 
         private static DateTime GetWeekStart(DateTime date)
@@ -621,7 +658,6 @@ namespace ExerciseAPI.Services
             public int Reps { get; set; }
             public decimal? Rpe { get; set; }
             public Models.SetType SetType { get; set; }
-            public bool IsWarmup { get; set; } // legacy for compatibility
             public Exercise? Exercise { get; set; }
             public int ExerciseId { get; set; }
         }

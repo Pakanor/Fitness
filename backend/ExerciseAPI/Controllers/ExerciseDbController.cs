@@ -276,12 +276,23 @@ namespace ExerciseAPI.Controllers
             await _context.SaveChangesAsync();
 
             // Update personal record based on best set
-            var bestSet = setsToCreate
-                .Where(s => s.SetType != Models.SetType.Warmup && s.Weight > 0 && s.Reps > 0)
-                .OrderByDescending(s => s.Weight * (1 + s.Reps / 30.0m))
+            var workingSets = setsToCreate
+                .Select(s => new WorkingSetInput
+                {
+                    Weight = s.Weight,
+                    Reps = s.Reps,
+                    Rpe = s.RPE,
+                    SetType = s.SetType
+                })
+                .ToList();
+
+            var bestE1RM = WorkingSet.GetBestE1RM(WorkingSet.Select(workingSets));
+            var bestSet = workingSets
+                .Where(s => WorkingSet.Counts(s, bestE1RM))
+                .OrderByDescending(s => E1RMCalculator.CalculateE1RM(s.Weight, s.Reps, s.Rpe) ?? 0m)
                 .FirstOrDefault();
 
-            if (bestSet != null)
+            if (bestSet.Reps > 0)
             {
                 var previousRecord = await _context.PersonalRecords
                     .Where(pr => pr.UserId == entity.UserId && pr.ExerciseId == entity.ExerciseId && pr.Reps == bestSet.Reps)

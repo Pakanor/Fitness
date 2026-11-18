@@ -78,6 +78,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ExerciseDbImportService>();
 builder.Services.AddHostedService<ExerciseStartupSeeder>();
 builder.Services.AddScoped<RecordsService>();
+builder.Services.AddScoped<PersonalRecordsService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.ITemplateService, ExerciseAPI.Services.TemplateService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutStartModeService, ExerciseAPI.Services.WorkoutStartModeService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutStatusService, ExerciseAPI.Services.WorkoutStatusService>();

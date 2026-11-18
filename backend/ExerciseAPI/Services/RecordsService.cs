@@ -63,6 +63,7 @@ namespace ExerciseAPI.Services
                         x.Date,
                         Weight = s.Weight,
                         Reps = s.Reps,
+                        Rpe = s.RPE,
                         x.Name,
                         x.Category,
                         x.IsBenchmark
@@ -93,13 +94,13 @@ namespace ExerciseAPI.Services
                     .Select(g =>
                     {
                         var bestSet = g.OrderByDescending(x =>
-                            E1RMCalculator.CalculateE1RM(x.Weight, x.Reps) ?? 0m)
+                            Performance.E1RM(new PerformanceSet(x.Weight, x.Reps, x.Rpe)) ?? 0m)
                             .First();
                         return new OneRepMaxDataPointDto
                         {
                             Date = g.Key,
-                            Estimated1RM = E1RMCalculator.CalculateE1RM(
-                                bestSet.Weight, bestSet.Reps) ?? 0m
+                            Estimated1RM = Performance.E1RM(
+                                new PerformanceSet(bestSet.Weight, bestSet.Reps, bestSet.Rpe)) ?? 0m
                         };
                     })
                     .OrderBy(h => h.Date)
@@ -202,7 +203,7 @@ namespace ExerciseAPI.Services
                         Weight = x.Weight,
                         Reps = x.Reps,
                         Rpe = x.Rpe,
-                        E1RM = E1RMCalculator.CalculateE1RM(x.Weight, x.Reps, x.Rpe)
+                        E1RM = Performance.E1RM(new PerformanceSet(x.Weight, x.Reps, x.Rpe))
                     })
                     .Where(x => x.E1RM.HasValue && x.E1RM.Value > 0)
                     .OrderByDescending(x => x.E1RM)
@@ -219,14 +220,14 @@ namespace ExerciseAPI.Services
                 dataPoints.Add(new ExerciseProgressPointDto
                 {
                     Date = day.Key.ToString("yyyy-MM-dd"),
-                    MaxE1RM = best.E1RM.Value,
+                    MaxE1RM = best.E1RM!.Value,
                     TopSetWeight = topSet.Weight,
                     TopSetReps = topSet.Reps,
                     TopSetRpe = topSet.Rpe,
                     HasRpe = best.Rpe.HasValue
                 });
 
-                allTimeMax = E1RMCalculator.CalculateBest(best.Weight, best.Reps, best.Rpe, allTimeMax);
+                allTimeMax = Math.Max(allTimeMax, best.E1RM.Value);
             }
 
             var hardEntries = validEntries
@@ -300,8 +301,15 @@ namespace ExerciseAPI.Services
                 .ToList();
 
             var allTimePr = validEntries
-                .OrderByDescending(x => x.Weight)
-                .ThenByDescending(x => x.Reps)
+                .Select(x => new
+                {
+                    x.Weight,
+                    x.Reps,
+                    E1RM = Performance.E1RM(new PerformanceSet(x.Weight, x.Reps, x.Rpe))
+                })
+                .Where(x => x.E1RM.HasValue)
+                .OrderByDescending(x => x.E1RM!.Value)
+                .ThenByDescending(x => x.Weight)
                 .FirstOrDefault();
 
             return new ExerciseProgressResponseDto

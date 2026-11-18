@@ -81,8 +81,6 @@ namespace ExerciseAPI.Services
             session.TotalVolume = CalculateVolume(session);
             session.UpdatedAt = DateTime.UtcNow;
 
-            await UpdatePersonalRecordAsync(db, entry, evt.UserWeight, ct);
-
             await db.SaveChangesAsync(ct);
 
             _logger.LogDebug("Analytics updated for SessionId={SessionId}, TotalVolume={Volume}", session.Id, session.TotalVolume);
@@ -101,40 +99,6 @@ namespace ExerciseAPI.Services
                     }))
                     .Sum(s => s.Weight * s.Reps)
             );
-        }
-
-        private static async Task UpdatePersonalRecordAsync(AppDbContext db, UserExercise entry, decimal? userWeight, CancellationToken ct)
-        {
-            var bestSet = entry.Sets
-                .Where(s => s.SetType != Models.SetType.Warmup && s.Weight > 0 && s.Reps > 0)
-                .OrderByDescending(s => s.Weight * (1 + s.Reps / 30.0m))
-                .FirstOrDefault();
-
-            if (bestSet == null)
-                return;
-
-            var previousRecord = await db.PersonalRecords
-                .Where(pr => pr.UserId == entry.UserId
-                             && pr.ExerciseId == entry.ExerciseId
-                             && pr.Reps == bestSet.Reps)
-                .OrderByDescending(pr => pr.Weight)
-                .FirstOrDefaultAsync(ct);
-
-            if (previousRecord != null && bestSet.Weight <= previousRecord.Weight)
-                return;
-
-            db.PersonalRecords.Add(new PersonalRecord
-            {
-                UserId = entry.UserId,
-                ExerciseId = entry.ExerciseId,
-                Weight = bestSet.Weight,
-                Reps = bestSet.Reps,
-                Date = entry.Date,
-                UserWeightAtTime = userWeight,
-                StrengthToWeightRatio = userWeight.HasValue && userWeight.Value > 0
-                    ? Math.Round(bestSet.Weight / userWeight.Value, 2)
-                    : null
-            });
         }
     }
 }

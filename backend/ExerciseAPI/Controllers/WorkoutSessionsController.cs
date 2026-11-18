@@ -20,15 +20,18 @@ namespace ExerciseAPI.Controllers
     {
         private readonly IWorkoutSessionService _sessionService;
         private readonly AppDbContext _context;
+        private readonly PersonalRecordsService _personalRecords;
 
         public WorkoutSessionsController(
             IWorkoutSessionService sessionService,
             AppDbContext context,
+            PersonalRecordsService personalRecords,
             IHttpContextAccessor httpContextAccessor)
             : base(httpContextAccessor)
         {
             _sessionService = sessionService;
             _context = context;
+            _personalRecords = personalRecords;
         }
 
         [HttpGet]
@@ -208,25 +211,9 @@ namespace ExerciseAPI.Controllers
                         })
                         .ToList();
 
-                    var bestE1RM = WorkingSet.GetBestE1RM(WorkingSet.Select(workingSets));
-                    var bestSet = WorkingSet.Select(workingSets, bestE1RM)
-                        .OrderByDescending(s => E1RMCalculator.CalculateE1RM(s.Weight, s.Reps, s.Rpe) ?? 0m)
-                        .FirstOrDefault();
-
-                    if (bestSet.Reps > 0)
-                    {
-                        var existingPr = await _context.PersonalRecords
-                            .Where(pr => pr.UserId == CurrentUserId && pr.ExerciseId == entry.ExerciseId)
-                            .OrderByDescending(pr => pr.Weight * (1 + pr.Reps / 30.0m))
-                            .FirstOrDefaultAsync();
-
-                        if (existingPr == null ||
-                            bestSet.Weight * (1 + bestSet.Reps / 30.0m) > existingPr.Weight * (1 + existingPr.Reps / 30.0m) ||
-                            (bestSet.Weight * (1 + bestSet.Reps / 30.0m) == existingPr.Weight * (1 + existingPr.Reps / 30.0m) && bestSet.Weight > existingPr.Weight))
-                        {
-                            isPr = true;
-                        }
-                    }
+                    var outcome = await _personalRecords.RecordAsync(
+                        CurrentUserId, entry.ExerciseId, workingSets, entry.Date, (decimal)UserWeight);
+                    isPr = outcome.IsPr;
                 }
                 catch { }
                 

@@ -18,14 +18,16 @@ namespace ExerciseAPI.Controllers
         private readonly ExerciseDbImportService _importService;
         private readonly AppDbContext _context;
         private readonly IMemoryCache _cache;
+        private readonly PersonalRecordsService _personalRecords;
 
 
-        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, IHttpContextAccessor httpContextAccessor, IMemoryCache cache)
+        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, IHttpContextAccessor httpContextAccessor, IMemoryCache cache, PersonalRecordsService personalRecords)
             : base(httpContextAccessor)
         {
             _importService = importService;
             _context = context;
             _cache = cache;
+            _personalRecords = personalRecords;
         }
         [Authorize(Roles = "Admin")]
 
@@ -275,53 +277,18 @@ namespace ExerciseAPI.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Update personal record based on best set
-            var workingSets = setsToCreate
-                .Select(s => new WorkingSetInput
+            await _personalRecords.RecordAsync(
+                entity.UserId,
+                entity.ExerciseId,
+                setsToCreate.Select(s => new WorkingSetInput
                 {
                     Weight = s.Weight,
                     Reps = s.Reps,
                     Rpe = s.RPE,
                     SetType = s.SetType
-                })
-                .ToList();
-
-            var bestE1RM = WorkingSet.GetBestE1RM(WorkingSet.Select(workingSets));
-            var bestSet = workingSets
-                .Where(s => WorkingSet.Counts(s, bestE1RM))
-                .OrderByDescending(s => E1RMCalculator.CalculateE1RM(s.Weight, s.Reps, s.Rpe) ?? 0m)
-                .FirstOrDefault();
-
-            if (bestSet.Reps > 0)
-            {
-                var previousRecord = await _context.PersonalRecords
-                    .Where(pr => pr.UserId == entity.UserId && pr.ExerciseId == entity.ExerciseId && pr.Reps == bestSet.Reps)
-                    .OrderByDescending(pr => pr.Weight)
-                    .FirstOrDefaultAsync();
-
-                if (previousRecord == null || bestSet.Weight > previousRecord.Weight)
-                {
-                    decimal userWeight = (decimal)UserWeight;
-                    int? userAge = null;
-
-                    var pr = new PersonalRecord
-                    {
-                        UserId = entity.UserId,
-                        ExerciseId = entity.ExerciseId,
-                        Weight = bestSet.Weight,
-                        Reps = bestSet.Reps,
-                        Date = entity.Date,
-                        UserWeightAtTime = userWeight,
-                        UserAgeAtTime = userAge,
-                        StrengthToWeightRatio = userWeight > 0
-                            ? Math.Round(bestSet.Weight / userWeight, 2)
-                            : null
-                    };
-
-                    _context.PersonalRecords.Add(pr);
-                    await _context.SaveChangesAsync();
-                }
-            }
+                }),
+                entity.Date,
+                (decimal)UserWeight);
 
             var firstSet = setsToCreate.OrderBy(s => s.SetNumber).FirstOrDefault();
             var response = new UserExerciseResponseDto

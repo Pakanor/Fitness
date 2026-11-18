@@ -33,17 +33,8 @@ namespace ExerciseAPI.Services
 
         public static decimal GetBestE1RM(IEnumerable<WorkingSetInput> sets)
         {
-            decimal best = 0m;
-            foreach (var set in sets)
-            {
-                if (set.Reps <= 0 || set.Weight <= 0m)
-                    continue;
-
-                var e1rm = E1RMCalculator.CalculateE1RM(set.Weight, set.Reps, set.Rpe);
-                if (e1rm.HasValue && e1rm.Value > best)
-                    best = e1rm.Value;
-            }
-            return best;
+            return Performance.SessionBest(
+                sets.Select(s => new PerformanceSet(s.Weight, s.Reps, s.Rpe))) ?? 0m;
         }
     }
 }

@@ -77,6 +77,8 @@ builder.Services.AddHttpClient("OpenRouter", (sp, c) => {
 builder.Services.AddAuthentication()
     .AddHeaderAuthentication();
 
+builder.Services.AddScoped<ExerciseAPI.Interfaces.IAiExerciseResolver, ExerciseAPI.Services.AIExerciseResolverService>();
+
 var app = builder.Build();
 
 app.UseCors(MyAllowSpecificOrigins);
@@ -93,6 +95,7 @@ app.UseAuthorization();
 app.UseMiddleware<AiRateLimitMiddleware>();
 
 app.MapControllers();
+
 
 using (var scope = app.Services.CreateScope())
 {

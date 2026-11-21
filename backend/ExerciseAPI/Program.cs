@@ -53,7 +53,7 @@ builder.Services.AddScoped<ClaimsCurrentUserAccessor>();
 builder.Services.AddScoped<ICurrentUserAccessor, FreshCurrentUserAccessor>();
 builder.Services.AddSingleton<ExerciseDbImportService>();
 builder.Services.AddHostedService<ExerciseStartupSeeder>();
-builder.Services.AddScoped<RecordsService>();
+builder.Services.AddScoped<ExerciseAPI.Interfaces.IRecordsService, ExerciseAPI.Services.RecordsService>();
 builder.Services.AddScoped<PersonalRecordsService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.ITemplateService, ExerciseAPI.Services.TemplateService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutStartModeService, ExerciseAPI.Services.WorkoutStartModeService>();

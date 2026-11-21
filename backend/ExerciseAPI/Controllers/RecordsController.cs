@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using ExerciseAPI.Data;
+using ExerciseAPI.Interfaces;
 using ExerciseAPI.Models;
-using ExerciseAPI.Services;
 using System.Text.Json;
 using FitnessApp.Core.Interfaces;
 using FitnessApp.Core.Models;
@@ -16,10 +16,10 @@ namespace ExerciseAPI.Controllers
     public class RecordsController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly RecordsService _recordsService;
+        private readonly IRecordsService _recordsService;
         private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public RecordsController(AppDbContext context, RecordsService recordsService, ICurrentUserAccessor currentUserAccessor)
+        public RecordsController(AppDbContext context, IRecordsService recordsService, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
             _recordsService = recordsService;

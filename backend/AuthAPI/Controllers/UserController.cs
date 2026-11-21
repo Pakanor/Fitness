@@ -133,6 +133,8 @@ namespace AuthAPI.Controllers
             await _userService.ResetPasswordAsync(token, dto.NewPassword);
             return Ok("Hasło zostało zresetowane.");
         }
+
+        [HttpPost("forgot-password")]
         public async Task<IActionResult> SendResetPasswordEmail([FromBody] EmailDto dto)
         {
             await _userService.SendPasswordResetLinkAsync(dto.Email);

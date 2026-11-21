@@ -1,6 +1,8 @@
 ﻿using AuthAPI.DataAccess;
 using AuthAPI.Interfaces;
 using AuthAPI.Models;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -14,6 +16,8 @@ namespace AuthAPI.Services
         private readonly IConfiguration _configuration;
         private readonly JwtService _jwtService;
         private readonly IEmailService _emailService;
+        private readonly ILogger<AuthService> _logger;
+        private readonly IWebHostEnvironment _env;
 
         public class ConflictException : Exception
         {
@@ -21,15 +25,17 @@ namespace AuthAPI.Services
         }
 
 
-
-        public AuthService(UserLogrepository userRepo, IConfiguration configuration, JwtService jwtService, IEmailService emailService)
+        public AuthService(UserLogrepository userRepo, IConfiguration configuration, JwtService jwtService, IEmailService emailService, ILogger<AuthService> logger, IWebHostEnvironment env)
         {
             _userRepo = userRepo;
             _configuration = configuration;
             _emailService = emailService;
             _jwtService = jwtService;
+            _logger = logger;
+            _env = env;
 
         }
+
 
         public async Task RegisterAsync(RegisterDto dto)
         {
@@ -48,22 +54,26 @@ namespace AuthAPI.Services
                 CurrentWeight = dto.CurrentWeight,
                 Gender = dto.Gender,
                 JobType = dto.JobType,
+                Goal = dto.Goal,
                 IsEmailVerified = false
             };
             await _userRepo.AddUserAsync(user);
             var token = _jwtService.GenerateEmailVerificationToken(user);
             var gatewayBaseUrl = _configuration["App:GatewayBaseUrl"] ?? "http://localhost:8000";
             var verificationLink = $"{gatewayBaseUrl}/api/auth/verify?token={token}";
-            await _emailService.SendEmailAsync(
-    user.Email,
-    "Potwierdzenie rejestracji",
-    $"Kliknij <a href=\"{verificationLink}\">tutaj</a>, aby potwierdzić rejestrację."
-);
-
-
-
+            try
+            {
+                await _emailService.SendEmailAsync(
+                    user.Email,
+                    "Potwierdzenie rejestracji",
+                    $"Kliknij <a href=\"{verificationLink}\">tutaj</a>, aby potwierdzić rejestrację."
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send verification email to {Email}. User registered but email not sent.", user.Email);
+            }
         }
-
 
 
         public async Task<(string Token, User User)> LoginAsync(LoginDto dto)
@@ -73,21 +83,13 @@ namespace AuthAPI.Services
             {
                 throw new Exception("Nieprawidłowy login lub hasło.");
             }
-            else if (!user.IsEmailVerified)
+            if (!user.IsEmailVerified && !_env.IsDevelopment())
             {
                 throw new Exception("Nieprawidłowy login lub hasło.");
-
             }
 
-
             return (_jwtService.GenerateToken(user), user);
-
-
         }
 
     }
-
-
-
-
 }

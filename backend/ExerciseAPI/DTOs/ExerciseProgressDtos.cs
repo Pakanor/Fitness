@@ -98,4 +98,23 @@ namespace ExerciseAPI.DTOs
         public int? WeeklyStreak { get; set; }
         public List<InsightDto> Insights { get; set; } = new();
     }
+
+    public record PersonalRecordDto(
+        int Id,
+        int ExerciseId,
+        string ExerciseName,
+        string ExerciseCategory,
+        decimal Weight,
+        int Reps,
+        DateTime Date,
+        decimal? UserWeightAtTime,
+        int? UserAgeAtTime,
+        int? DietStatusAtTime,
+        decimal? StrengthToWeightRatio);
+
+    public record ExerciseSearchDto(
+        int Id,
+        string Name,
+        string Category,
+        bool HasPR);
 }

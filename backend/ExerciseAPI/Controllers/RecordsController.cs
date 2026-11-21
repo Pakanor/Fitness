@@ -1,12 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
-using ExerciseAPI.Data;
 using ExerciseAPI.Interfaces;
-using ExerciseAPI.Models;
-using System.Text.Json;
 using FitnessApp.Core.Interfaces;
-using FitnessApp.Core.Models;
 
 namespace ExerciseAPI.Controllers
 {
@@ -15,13 +10,11 @@ namespace ExerciseAPI.Controllers
     [Authorize]
     public class RecordsController : ControllerBase
     {
-        private readonly AppDbContext _context;
         private readonly IRecordsService _recordsService;
         private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public RecordsController(AppDbContext context, IRecordsService recordsService, ICurrentUserAccessor currentUserAccessor)
+        public RecordsController(IRecordsService recordsService, ICurrentUserAccessor currentUserAccessor)
         {
-            _context = context;
             _recordsService = recordsService;
             _currentUserAccessor = currentUserAccessor;
         }
@@ -33,28 +26,7 @@ namespace ExerciseAPI.Controllers
             if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var records = await _context.PersonalRecords
-                .Where(pr => pr.UserId == currentUser.Id)
-                .Join(_context.Exercises,
-                    pr => pr.ExerciseId,
-                    e => e.Id,
-                    (pr, e) => new
-                    {
-                        pr.Id,
-                        ExerciseId = pr.ExerciseId,
-                        ExerciseName = e.Name,
-                        ExerciseCategory = e.Category,
-                        pr.Weight,
-                        pr.Reps,
-                        pr.Date,
-                        pr.UserWeightAtTime,
-                        pr.UserAgeAtTime,
-                        pr.DietStatusAtTime,
-                        pr.StrengthToWeightRatio
-                    })
-                .OrderByDescending(r => r.Weight)
-                .ToListAsync();
-
+            var records = await _recordsService.GetHistory(currentUser.Id);
             return Ok(records);
         }
 
@@ -65,21 +37,7 @@ namespace ExerciseAPI.Controllers
             if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            if (string.IsNullOrWhiteSpace(query))
-                return Ok(new List<object>());
-
-            var exercises = await _context.Exercises
-                .Where(e => EF.Functions.ILike(e.Name, $"%{query}%"))
-                .Take(20)
-                .Select(e => new
-                {
-                    e.Id,
-                    e.Name,
-                    e.Category,
-                    HasPR = _context.PersonalRecords.Any(pr => pr.UserId == currentUser.Id && pr.ExerciseId == e.Id)
-                })
-                .ToListAsync();
-
+            var exercises = await _recordsService.SearchExercises(currentUser.Id, query);
             return Ok(exercises);
         }
 
@@ -90,27 +48,7 @@ namespace ExerciseAPI.Controllers
             if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var records = await _context.PersonalRecords
-                .Where(pr => pr.UserId == currentUser.Id && pr.ExerciseId == exerciseId)
-                .Join(_context.Exercises,
-                    pr => pr.ExerciseId,
-                    e => e.Id,
-                    (pr, e) => new
-                    {
-                        pr.Id,
-                        ExerciseId = pr.ExerciseId,
-                        ExerciseName = e.Name,
-                        pr.Weight,
-                        pr.Reps,
-                        pr.Date,
-                        pr.UserWeightAtTime,
-                        pr.UserAgeAtTime,
-                        pr.DietStatusAtTime,
-                        pr.StrengthToWeightRatio
-                    })
-                .OrderByDescending(r => r.Date)
-                .ToListAsync();
-
+            var records = await _recordsService.GetExerciseHistory(currentUser.Id, exerciseId);
             return Ok(records);
         }
 

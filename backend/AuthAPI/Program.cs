@@ -2,11 +2,10 @@ using AuthAPI.DataAccess;
 using AuthAPI.Interfaces;
 using AuthAPI.Services;
 using AuthAPI.Services.Validators;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Services;
 using FluentValidation;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +17,10 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<AnthropometryService>();
 builder.Services.AddScoped<UserLogrepository>();
+builder.Services.AddScoped<SessionValidator>();
+builder.Services.AddScoped<ISessionValidator, SessionValidator>();
+builder.Services.AddScoped<ClaimsCurrentUserAccessor>();
+builder.Services.AddScoped<ICurrentUserAccessor, FreshCurrentUserAccessor>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterDtoValidator>();
 
@@ -41,34 +44,6 @@ builder.Services.AddCors(options =>
                       });
 });
 
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-        };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                if (context.Request.Cookies.ContainsKey("FitnessApp-Auth"))
-                {
-                    context.Token = context.Request.Cookies["FitnessApp-Auth"];
-                }
-                return Task.CompletedTask;
-            }
-        };
-    });
-
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD")
                  ?? throw new InvalidOperationException(
                      "DB_PASSWORD is not set. Provide it as an environment variable.");
@@ -88,11 +63,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 
 using (var scope = app.Services.CreateScope())
 {

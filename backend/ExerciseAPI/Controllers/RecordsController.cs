@@ -5,32 +5,36 @@ using ExerciseAPI.Data;
 using ExerciseAPI.Models;
 using ExerciseAPI.Services;
 using System.Text.Json;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Models;
 
 namespace ExerciseAPI.Controllers
 {
     [ApiController]
     [Route("api/records")]
     [Authorize]
-    public class RecordsController : FitnessControllerBase
+    public class RecordsController : ControllerBase
     {
         private readonly AppDbContext _context;
         private readonly RecordsService _recordsService;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public RecordsController(AppDbContext context, RecordsService recordsService, IHttpContextAccessor httpContextAccessor)
-            : base(httpContextAccessor)
+        public RecordsController(AppDbContext context, RecordsService recordsService, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
             _recordsService = recordsService;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         [HttpGet("history")]
         public async Task<IActionResult> GetHistory()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             var records = await _context.PersonalRecords
-                .Where(pr => pr.UserId == CurrentUserId)
+                .Where(pr => pr.UserId == currentUser.Id)
                 .Join(_context.Exercises,
                     pr => pr.ExerciseId,
                     e => e.Id,
@@ -57,7 +61,8 @@ namespace ExerciseAPI.Controllers
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string query)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             if (string.IsNullOrWhiteSpace(query))
@@ -71,7 +76,7 @@ namespace ExerciseAPI.Controllers
                     e.Id,
                     e.Name,
                     e.Category,
-                    HasPR = _context.PersonalRecords.Any(pr => pr.UserId == CurrentUserId && pr.ExerciseId == e.Id)
+                    HasPR = _context.PersonalRecords.Any(pr => pr.UserId == currentUser.Id && pr.ExerciseId == e.Id)
                 })
                 .ToListAsync();
 
@@ -81,11 +86,12 @@ namespace ExerciseAPI.Controllers
         [HttpGet("exercise/{exerciseId}")]
         public async Task<IActionResult> GetExerciseHistory(int exerciseId)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             var records = await _context.PersonalRecords
-                .Where(pr => pr.UserId == CurrentUserId && pr.ExerciseId == exerciseId)
+                .Where(pr => pr.UserId == currentUser.Id && pr.ExerciseId == exerciseId)
                 .Join(_context.Exercises,
                     pr => pr.ExerciseId,
                     e => e.Id,
@@ -111,10 +117,11 @@ namespace ExerciseAPI.Controllers
         [HttpGet("1rm-progression")]
         public async Task<IActionResult> Get1RMProgression()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var result = await _recordsService.Get1RMProgression(CurrentUserId);
+            var result = await _recordsService.Get1RMProgression(currentUser.Id);
             return Ok(result);
         }
 
@@ -124,10 +131,11 @@ namespace ExerciseAPI.Controllers
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var result = await _recordsService.GetExerciseProgress(CurrentUserId, exerciseId, startDate, endDate);
+            var result = await _recordsService.GetExerciseProgress(currentUser.Id, exerciseId, startDate, endDate);
             return Ok(result);
         }
 
@@ -137,10 +145,11 @@ namespace ExerciseAPI.Controllers
             [FromQuery] DateTime? endDate = null,
             [FromQuery] string? timeZone = null)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var result = await _recordsService.GetOverview(CurrentUserId, startDate, endDate, timeZone);
+            var result = await _recordsService.GetOverview(currentUser.Id, startDate, endDate, timeZone);
             return Ok(result);
         }
     }

@@ -43,7 +43,7 @@ namespace AuthAPI.Services
                 Username = dto.Username,
                 Email = dto.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                BirthDate = dto.BirthDate,
+                BirthDate = dto.BirthDate.HasValue ? DateTime.SpecifyKind(dto.BirthDate.Value, DateTimeKind.Utc) : null,
                 Height = dto.Height,
                 CurrentWeight = dto.CurrentWeight,
                 Gender = dto.Gender,

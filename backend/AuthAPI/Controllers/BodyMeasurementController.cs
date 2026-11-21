@@ -1,6 +1,8 @@
 using AuthAPI.DataAccess;
 using AuthAPI.Models;
 using AuthAPI.Services;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,28 +12,28 @@ namespace AuthAPI.Controllers
     [Route("api/body-measurements")]
     [ApiController]
     [Authorize]
-    public class BodyMeasurementController : FitnessControllerBase
+    public class BodyMeasurementController : ControllerBase
     {
         private readonly AppDbContext _context;
         private readonly AnthropometryService _anthropometry;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public BodyMeasurementController(AppDbContext context, AnthropometryService anthropometry, IHttpContextAccessor httpContextAccessor)
-            : base(httpContextAccessor)
+        public BodyMeasurementController(AppDbContext context, AnthropometryService anthropometry, ICurrentUserAccessor currentUserAccessor)
         {
             _context = context;
             _anthropometry = anthropometry;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         [HttpGet("status")]
         public async Task<IActionResult> GetStatus()
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
-            var user = await _context.Users.FindAsync(CurrentUserId);
+            var user = await _context.Users.FindAsync(currentUser.Id);
             if (user == null) return Unauthorized();
 
-            // Gate requires the four core anthropometric fields only.
-            // Gender and activity level refine calculations but do not block the app.
             bool isComplete = user.CurrentWeight.HasValue
                 && user.Height.HasValue
                 && user.BirthDate.HasValue
@@ -55,14 +57,15 @@ namespace AuthAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] BodyMeasurementDto dto)
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
             var (bfPercent, whr, vtaper) = _anthropometry.Calculate(
                 dto.Height, dto.Neck, dto.Waist, dto.Hips, dto.Shoulders, dto.Weight, dto.Gender);
 
             var entity = new BodyMeasurement
             {
-                UserId = CurrentUserId,
+                UserId = currentUser.Id,
                 Height = dto.Height,
                 Neck = dto.Neck,
                 Waist = dto.Waist,
@@ -97,10 +100,11 @@ namespace AuthAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
             var measurements = await _context.BodyMeasurements
-                .Where(bm => bm.UserId == CurrentUserId)
+                .Where(bm => bm.UserId == currentUser.Id)
                 .OrderByDescending(bm => bm.MeasuredAt)
                 .ToListAsync();
 
@@ -110,10 +114,11 @@ namespace AuthAPI.Controllers
         [HttpGet("latest")]
         public async Task<IActionResult> GetLatest()
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
             var measurement = await _context.BodyMeasurements
-                .Where(bm => bm.UserId == CurrentUserId)
+                .Where(bm => bm.UserId == currentUser.Id)
                 .OrderByDescending(bm => bm.MeasuredAt)
                 .FirstOrDefaultAsync();
 
@@ -126,10 +131,11 @@ namespace AuthAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
             var measurement = await _context.BodyMeasurements
-                .FirstOrDefaultAsync(bm => bm.Id == id && bm.UserId == CurrentUserId);
+                .FirstOrDefaultAsync(bm => bm.Id == id && bm.UserId == currentUser.Id);
 
             if (measurement == null)
                 return NotFound();

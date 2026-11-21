@@ -6,6 +6,8 @@ using ExerciseAPI.Interfaces;
 using ExerciseAPI.Models;
 using ExerciseAPI.Services;
 using Microsoft.EntityFrameworkCore;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Models;
 
 namespace ExerciseAPI.Controllers
 {
@@ -16,34 +18,36 @@ namespace ExerciseAPI.Controllers
     [ApiController]
     [Route("api/workouts")]
     [Authorize]
-    public class WorkoutSessionsController : FitnessControllerBase
+    public class WorkoutSessionsController : ControllerBase
     {
         private readonly IWorkoutSessionService _sessionService;
         private readonly AppDbContext _context;
         private readonly PersonalRecordsService _personalRecords;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
         public WorkoutSessionsController(
             IWorkoutSessionService sessionService,
             AppDbContext context,
             PersonalRecordsService personalRecords,
-            IHttpContextAccessor httpContextAccessor)
-            : base(httpContextAccessor)
+            ICurrentUserAccessor currentUserAccessor)
         {
             _sessionService = sessionService;
             _context = context;
             _personalRecords = personalRecords;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetSessionForDate([FromQuery] string date)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             if (!DateTime.TryParse(date, out var parsedDate))
                 return BadRequest("Nieprawidłowy format daty");
 
-            var session = await _sessionService.GetSessionByDate(CurrentUserId, parsedDate);
+            var session = await _sessionService.GetSessionByDate(currentUser.Id, parsedDate);
             if (session == null)
                 return NotFound("Brak zaplanowanego treningu na ten dzień.");
 
@@ -54,10 +58,11 @@ namespace ExerciseAPI.Controllers
         [HttpGet("active")]
         public async Task<IActionResult> GetActiveSession()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var session = await _sessionService.GetActiveSession(CurrentUserId);
+            var session = await _sessionService.GetActiveSession(currentUser.Id);
             if (session == null)
                 return NotFound("Brak niedokończonego treningu.");
 
@@ -68,10 +73,11 @@ namespace ExerciseAPI.Controllers
         [HttpGet("incomplete")]
         public async Task<IActionResult> GetIncompleteSessions()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var sessions = await _sessionService.GetIncompleteSessions(CurrentUserId);
+            var sessions = await _sessionService.GetIncompleteSessions(currentUser.Id);
             return Ok(sessions.Select(session => new
             {
                 session.Id,
@@ -85,10 +91,11 @@ namespace ExerciseAPI.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetSession(int id)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var session = await _sessionService.GetSessionById(id, CurrentUserId);
+            var session = await _sessionService.GetSessionById(id, currentUser.Id);
             if (session == null)
                 return NotFound();
 
@@ -99,12 +106,13 @@ namespace ExerciseAPI.Controllers
         [HttpPost("from-template/{templateId}")]
         public async Task<IActionResult> CreateFromTemplate(int templateId, [FromBody] CreateSessionFromTemplateDto dto)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             try
             {
-                var session = await _sessionService.CreateFromTemplate(CurrentUserId, templateId, dto.Date);
+                var session = await _sessionService.CreateFromTemplate(currentUser.Id, templateId, dto.Date);
                 var response = await MapToResponseAsync(session);
                 return CreatedAtAction(nameof(GetSession), new { id = session.Id }, response);
             }
@@ -121,12 +129,13 @@ namespace ExerciseAPI.Controllers
         [HttpPatch("{id}/start")]
         public async Task<IActionResult> Start(int id)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             try
             {
-                var session = await _sessionService.Start(CurrentUserId, id);
+                var session = await _sessionService.Start(currentUser.Id, id);
                 var response = await MapToResponseAsync(session);
                 return Ok(response);
             }
@@ -143,12 +152,13 @@ namespace ExerciseAPI.Controllers
         [HttpPatch("{id}/finish")]
         public async Task<IActionResult> Finish(int id)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             try
             {
-                var session = await _sessionService.Finish(CurrentUserId, id);
+                var session = await _sessionService.Finish(currentUser.Id, id);
                 var response = await MapToResponseAsync(session);
                 return Ok(response);
             }
@@ -165,12 +175,13 @@ namespace ExerciseAPI.Controllers
         [HttpPatch("{id}/reopen")]
         public async Task<IActionResult> Reopen(int id)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             try
             {
-                var session = await _sessionService.Reopen(CurrentUserId, id);
+                var session = await _sessionService.Reopen(currentUser.Id, id);
                 var response = await MapToResponseAsync(session);
                 return Ok(response);
             }
@@ -187,15 +198,18 @@ namespace ExerciseAPI.Controllers
         [HttpPost("sets")]
         public async Task<IActionResult> LogSet([FromBody] LogSetDto dto)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             if (dto == null)
                 return BadRequest("Brak danych.");
 
+            var userWeight = currentUser.Profile?.Weight ?? UserProfile.Default.Weight;
+
             try
             {
-                var (entry, session) = await _sessionService.LogSet(CurrentUserId, dto, (decimal)UserWeight);
+                var (entry, session) = await _sessionService.LogSet(currentUser.Id, dto, userWeight);
                 var response = await MapToResponseAsync(session);
                 
                 bool isPr = false;
@@ -212,7 +226,7 @@ namespace ExerciseAPI.Controllers
                         .ToList();
 
                     var outcome = await _personalRecords.RecordAsync(
-                        CurrentUserId, entry.ExerciseId, workingSets, entry.Date, (decimal)UserWeight);
+                        currentUser.Id, entry.ExerciseId, workingSets, entry.Date, userWeight);
                     isPr = outcome.IsPr;
                 }
                 catch { }

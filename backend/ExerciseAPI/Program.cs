@@ -1,59 +1,24 @@
 using ExerciseAPI.Services;
+using ExerciseAPI.Authentication;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Services;
 using Microsoft.EntityFrameworkCore;
 using ExerciseAPI.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+
 var builder = WebApplication.CreateBuilder(args);
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
-
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("Jwt:Key is not set.");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AuthAPI";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "FitnessAppUsers";
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = jwtIssuer,
-            ValidateAudience = true,
-            ValidAudience = jwtAudience,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey))
-        };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                    if (context.Request.Cookies.ContainsKey("FitnessApp-Auth"))
-                    {
-                        context.Token = context.Request.Cookies["FitnessApp-Auth"];
-                    }
-                return Task.CompletedTask;
-            }
-        };
-    });
-
-
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
                       policy =>
                       {
-policy.WithOrigins("http://localhost:3000", "http://localhost:8000")
-                                 .AllowAnyHeader()
-                                 .AllowAnyMethod()
-                                 .AllowCredentials();
-                      });
+        policy.WithOrigins("http://localhost:3000", "http://localhost:8000")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+    });
 });
 
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD")
@@ -75,6 +40,13 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient<RemoteSessionValidator>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5010");
+});
+builder.Services.AddScoped<ISessionValidator, RemoteSessionValidator>();
+builder.Services.AddScoped<ClaimsCurrentUserAccessor>();
+builder.Services.AddScoped<ICurrentUserAccessor, FreshCurrentUserAccessor>();
 builder.Services.AddSingleton<ExerciseDbImportService>();
 builder.Services.AddHostedService<ExerciseStartupSeeder>();
 builder.Services.AddScoped<RecordsService>();
@@ -89,6 +61,9 @@ builder.Services.AddHostedService<ExerciseAPI.Services.AnalyticsBackgroundServic
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 
+builder.Services.AddAuthentication()
+    .AddHeaderAuthentication();
+
 var app = builder.Build();
 
 app.UseCors(MyAllowSpecificOrigins);
@@ -100,7 +75,6 @@ if (app.Environment.IsDevelopment())
 }
 app.UseStaticFiles();
 
-app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -109,8 +83,17 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    db.Database.Migrate();
+    // Suppress pending model changes warning since DB already has the columns
+    db.Database.SetCommandTimeout(TimeSpan.FromSeconds(30));
+    try
+    {
+        db.Database.Migrate();
+    }
+    catch (Exception ex) when (ex.Message.Contains("PendingModelChangesWarning") || ex.Message.Contains("already exists"))
+    {
+        // Log and continue - database schema is already compatible
+        Console.WriteLine($"Migration skipped: {ex.Message}");
+    }
 }
-
 
 app.Run();

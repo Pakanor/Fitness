@@ -64,16 +64,12 @@ app.Use(async (context, next) =>
             ?? context.User.FindFirst("unique_name")?.Value;
         var userEmail = context.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
             ?? context.User.FindFirst("email")?.Value;
-        var currentWeight = context.User.FindFirst("current_weight")?.Value;
-        var trainingExperience = context.User.FindFirst("training_experience")?.Value;
-        var caloricTarget = context.User.FindFirst("caloric_target")?.Value;
+        var sessionId = context.User.FindFirst("session_id")?.Value;
 
         context.Request.Headers.Remove("X-User-Id");
+        context.Request.Headers.Remove("X-Session-Id");
         context.Request.Headers.Remove("X-User-Name");
         context.Request.Headers.Remove("X-User-Email");
-        context.Request.Headers.Remove("X-User-Weight");
-        context.Request.Headers.Remove("X-User-TrainingExperience");
-        context.Request.Headers.Remove("X-User-CaloricTarget");
 
         if (!string.IsNullOrWhiteSpace(userId))
         {
@@ -81,16 +77,12 @@ app.Use(async (context, next) =>
             var token = context.Request.Cookies["FitnessApp-Auth"];
             context.Request.Headers["Authorization"] = $"Bearer {token}";
         }
+        if (!string.IsNullOrWhiteSpace(sessionId))
+            context.Request.Headers["X-Session-Id"] = sessionId;
         if (!string.IsNullOrWhiteSpace(userName))
             context.Request.Headers["X-User-Name"] = userName;
         if (!string.IsNullOrWhiteSpace(userEmail))
             context.Request.Headers["X-User-Email"] = userEmail;
-        if (!string.IsNullOrWhiteSpace(currentWeight))
-            context.Request.Headers["X-User-Weight"] = currentWeight;
-        if (!string.IsNullOrWhiteSpace(trainingExperience))
-            context.Request.Headers["X-User-TrainingExperience"] = trainingExperience;
-        if (!string.IsNullOrWhiteSpace(caloricTarget))
-            context.Request.Headers["X-User-CaloricTarget"] = caloricTarget;
     }
 
     await next();

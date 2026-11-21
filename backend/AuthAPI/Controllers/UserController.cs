@@ -4,30 +4,34 @@ using Microsoft.AspNetCore.Mvc;
 using AuthAPI.Models;
 using AuthAPI.Services;
 using AuthAPI.DataAccess;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Models;
 
 namespace AuthAPI.Controllers
 {
     [ApiController]
     [Route("api/user")]
     [Authorize]
-    public class UserController : FitnessControllerBase
+    public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
         private readonly UserLogrepository _userRepo;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public UserController(IUserService userService, UserLogrepository userRepo, IHttpContextAccessor httpContextAccessor)
-            : base(httpContextAccessor)
+        public UserController(IUserService userService, UserLogrepository userRepo, ICurrentUserAccessor currentUserAccessor)
         {
             _userService = userService;
             _userRepo = userRepo;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         [HttpGet("profile")]
         public async Task<IActionResult> GetProfile()
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
-            var user = await _userService.GetCurrentUserAsync(CurrentUserId);
+            var user = await _userService.GetCurrentUserAsync(currentUser.Id);
             if (user == null) return NotFound();
             return Ok(new ProfileResponseDto
             {
@@ -54,9 +58,10 @@ namespace AuthAPI.Controllers
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
-            await _userService.UpdateProfileAsync(CurrentUserId, dto.Username, dto.Email, dto.BirthDate, dto.CurrentWeight, dto.Height, dto.Gender, dto.JobType, dto.Goal, dto.ManualCaloricTarget, dto.ManualProteinG, dto.ManualCarbsG, dto.ManualFatG, dto.WeightUnit, dto.DefaultWeightIncrement, dto.DefaultRestTimerSeconds);
+            await _userService.UpdateProfileAsync(currentUser.Id, dto.Username, dto.Email, dto.BirthDate, dto.CurrentWeight, dto.Height, dto.Gender, dto.JobType, dto.Goal, dto.ManualCaloricTarget, dto.ManualProteinG, dto.ManualCarbsG, dto.ManualFatG, dto.WeightUnit, dto.DefaultWeightIncrement, dto.DefaultRestTimerSeconds);
             return NoContent();
         }
 
@@ -65,36 +70,40 @@ namespace AuthAPI.Controllers
         [HttpPut("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
-            await _userService.ChangePasswordAsync(CurrentUserId, dto.CurrentPassword, dto.NewPassword);
+            await _userService.ChangePasswordAsync(currentUser.Id, dto.CurrentPassword, dto.NewPassword);
             return NoContent();
         }
 
         [HttpDelete("delete")]
         public async Task<IActionResult> DeleteAccount()
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
-            await _userService.DeleteAccountAsync(CurrentUserId);
+            await _userService.DeleteAccountAsync(currentUser.Id);
             return NoContent();
         }
 
         [HttpGet("export")]
         public async Task<IActionResult> ExportData()
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
-            return Ok(await _userService.ExportUserDataAsync(CurrentUserId));
+            return Ok(await _userService.ExportUserDataAsync(currentUser.Id));
         }
 
         [HttpGet("sessions")]
         public async Task<IActionResult> GetSessions()
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
             var currentToken = Request.Cookies["FitnessApp-Auth"];
-            var sessions = await _userService.GetActiveSessionsAsync(CurrentUserId);
+            var sessions = await _userService.GetActiveSessionsAsync(currentUser.Id);
             foreach (var session in sessions)
                 session.IsCurrent = !string.IsNullOrEmpty(session.SessionToken) && session.SessionToken == currentToken;
 
@@ -104,9 +113,10 @@ namespace AuthAPI.Controllers
         [HttpDelete("sessions/{sessionId}")]
         public async Task<IActionResult> RevokeSession(int sessionId)
         {
-            if (!HasCurrentUser) return Unauthorized();
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
-            var revoked = await _userService.RevokeSessionAsync(sessionId, CurrentUserId);
+            var revoked = await _userService.RevokeSessionAsync(sessionId, currentUser.Id);
             if (!revoked) return NotFound(new { message = "Sesja nie została znaleziona." });
 
             var currentToken = Request.Cookies["FitnessApp-Auth"];

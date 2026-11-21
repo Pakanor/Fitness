@@ -8,26 +8,29 @@ using ExerciseAPI.Models;
 using ExerciseAPI.DTOs;
 using ExerciseAPI.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Models;
+
 namespace ExerciseAPI.Controllers
 {
     [ApiController]
 
     [Route("api/[controller]")]
-    public class ExerciseDbController : FitnessControllerBase
+    public class ExerciseDbController : ControllerBase
     {
         private readonly ExerciseDbImportService _importService;
         private readonly AppDbContext _context;
         private readonly IMemoryCache _cache;
         private readonly PersonalRecordsService _personalRecords;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-
-        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, IHttpContextAccessor httpContextAccessor, IMemoryCache cache, PersonalRecordsService personalRecords)
-            : base(httpContextAccessor)
+        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, ICurrentUserAccessor currentUserAccessor, IMemoryCache cache, PersonalRecordsService personalRecords)
         {
             _importService = importService;
             _context = context;
             _cache = cache;
             _personalRecords = personalRecords;
+            _currentUserAccessor = currentUserAccessor;
         }
         [Authorize(Roles = "Admin")]
 
@@ -190,12 +193,12 @@ namespace ExerciseAPI.Controllers
             await _context.SaveChangesAsync();
             return Ok("Zapisano");
         }
-
         [HttpPost("userexercise/add")]
         [Authorize]
         public async Task<IActionResult> AddUserExercise([FromBody] AddUserExerciseDto dto)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             var exerciseExists = await _context.Exercises.AnyAsync(e => e.Id == dto.ExerciseId);
@@ -211,7 +214,7 @@ namespace ExerciseAPI.Controllers
                 : DateTime.UtcNow;
 
             var session = await _context.WorkoutSessions
-                .FirstOrDefaultAsync(s => s.UserId == CurrentUserId && s.Date == date);
+                .FirstOrDefaultAsync(s => s.UserId == currentUser.Id && s.Date == date);
 
             if (session != null)
                 return Conflict(session.Status == WorkoutStatus.Planned
@@ -220,7 +223,7 @@ namespace ExerciseAPI.Controllers
 
             var entity = new UserExercise
             {
-                UserId = CurrentUserId,
+                UserId = currentUser.Id,
                 ExerciseId = dto.ExerciseId,
                 Date = date,
                 SupersetGroupId = dto.SupersetGroupId
@@ -277,6 +280,8 @@ namespace ExerciseAPI.Controllers
 
             await _context.SaveChangesAsync();
 
+            var userWeight = currentUser.Profile?.Weight ?? UserProfile.Default.Weight;
+
             await _personalRecords.RecordAsync(
                 entity.UserId,
                 entity.ExerciseId,
@@ -288,7 +293,7 @@ namespace ExerciseAPI.Controllers
                     SetType = s.SetType
                 }),
                 entity.Date,
-                (decimal)UserWeight);
+                userWeight);
 
             var firstSet = setsToCreate.OrderBy(s => s.SetNumber).FirstOrDefault();
             var response = new UserExerciseResponseDto
@@ -322,7 +327,8 @@ namespace ExerciseAPI.Controllers
         [Authorize]
         public async Task<IActionResult> GetExercisesByDate([FromQuery] string date)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             if (!DateTime.TryParse(date, out var parsedDate))
@@ -332,7 +338,7 @@ namespace ExerciseAPI.Controllers
             var endUtc = startUtc.AddDays(1);
 
             var filtered = await _context.UserExercise
-                .Where(ue => ue.UserId == CurrentUserId && ue.Date >= startUtc && ue.Date < endUtc)
+                .Where(ue => ue.UserId == currentUser.Id && ue.Date >= startUtc && ue.Date < endUtc)
                 .Include(ue => ue.Sets)
                 .ToListAsync();
 
@@ -343,7 +349,7 @@ namespace ExerciseAPI.Controllers
                 .ToListAsync();
 
             var daySession = await _context.WorkoutSessions
-                .FirstOrDefaultAsync(s => s.UserId == CurrentUserId
+                .FirstOrDefaultAsync(s => s.UserId == currentUser.Id
                                           && s.Date == startUtc
                                           && s.Exercises.Any());
 
@@ -407,11 +413,12 @@ namespace ExerciseAPI.Controllers
         [Authorize]
         public async Task<IActionResult> GetUserExercises()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             var exercises = await _context.UserExercise
-                .Where(ue => ue.UserId == CurrentUserId)
+                .Where(ue => ue.UserId == currentUser.Id)
                 .Where(ue => ue.SessionId == null
                     || _context.WorkoutSessions.Any(session =>
                         session.Id == ue.SessionId.Value
@@ -426,12 +433,13 @@ namespace ExerciseAPI.Controllers
         [Authorize]
         public async Task<IActionResult> DeleteUserExercise(int id)
         {
-                if (!HasCurrentUser)
+                var currentUser = _currentUserAccessor.Get();
+                if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
                 var entry = await _context.UserExercise.FindAsync(id);
 
-                if (entry == null || entry.UserId != CurrentUserId)
+                if (entry == null || entry.UserId != currentUser.Id)
                 return NotFound();
 
             WorkoutSession? sessionToRemove = null;
@@ -451,7 +459,7 @@ namespace ExerciseAPI.Controllers
             if (sessionToRemove != null)
                 _context.WorkoutSessions.Remove(sessionToRemove);
 
-await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }

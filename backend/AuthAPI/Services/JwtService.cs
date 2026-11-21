@@ -20,24 +20,28 @@ namespace AuthAPI.Services
             _configuration = configuration;
 
         }
-        public string GenerateToken(User user)
+        public string GenerateToken(User user, Guid? sessionId = null)
         {
             var currentWeight = user.CurrentWeight?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
             var trainingExperience = GetTrainingExperience(user.JobType);
             var caloricTarget = CalculateCaloricTarget(user);
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
-            new Claim(ClaimTypes.NameIdentifier, user.ID.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim("current_weight", currentWeight),
-            new Claim("training_experience", trainingExperience),
-            new Claim("caloric_target", caloricTarget.ToString(CultureInfo.InvariantCulture)),
-            new Claim("isEmailVerified", user.IsEmailVerified.ToString().ToLower()),
+                new Claim(ClaimTypes.NameIdentifier, user.ID.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim("current_weight", currentWeight),
+                new Claim("training_experience", trainingExperience),
+                new Claim("caloric_target", caloricTarget.ToString(CultureInfo.InvariantCulture)),
+                new Claim("isEmailVerified", user.IsEmailVerified.ToString().ToLower()),
+                new Claim(ClaimTypes.Role, "User")
+            };
 
-            new Claim(ClaimTypes.Role, "User")
-        };
+            if (sessionId.HasValue)
+            {
+                claims.Add(new Claim("session_id", sessionId.Value.ToString()));
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

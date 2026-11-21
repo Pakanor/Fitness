@@ -1,9 +1,13 @@
 using ExerciseAPI.Services;
 using ExerciseAPI.Authentication;
+using ExerciseAPI.Options;
+using ExerciseAPI.Middleware;
 using FitnessApp.Core.Interfaces;
 using FitnessApp.Core.Services;
 using Microsoft.EntityFrameworkCore;
 using ExerciseAPI.Data;
+using System.Net.Http.Headers;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,6 +65,15 @@ builder.Services.AddHostedService<ExerciseAPI.Services.AnalyticsBackgroundServic
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 
+builder.Services.Configure<OpenRouterOptions>(builder.Configuration.GetSection("OpenRouter"));
+builder.Services.Configure<AiRateLimitOptions>(builder.Configuration.GetSection("AiRateLimit"));
+
+builder.Services.AddHttpClient("OpenRouter", (sp, c) => {
+    var opts = sp.GetRequiredService<IOptions<OpenRouterOptions>>().Value;
+    c.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
+    c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", opts.ApiKey);
+});
+
 builder.Services.AddAuthentication()
     .AddHeaderAuthentication();
 
@@ -76,6 +89,8 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 
 app.UseAuthorization();
+
+app.UseMiddleware<AiRateLimitMiddleware>();
 
 app.MapControllers();
 

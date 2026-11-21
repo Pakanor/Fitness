@@ -48,3 +48,10 @@ obj/
 
 # Misc
 coverage/
+
+# Local AI Trainer artifacts
+.kilo/
+GLOSSARY.md
+docs/adr/
+cookies.txt
+frontend/docs/

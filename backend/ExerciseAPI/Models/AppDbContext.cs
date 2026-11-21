@@ -20,6 +20,8 @@ namespace ExerciseAPI.Data
         public DbSet<WorkoutTemplate> WorkoutTemplates { get; set; }
         public DbSet<TemplateExercise> TemplateExercises { get; set; }
         public DbSet<WorkoutSession> WorkoutSessions { get; set; }
+        public DbSet<AiInteractionLog> AiInteractionLogs { get; set; }
+        public DbSet<AiUsage> AiUsages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -103,6 +105,23 @@ namespace ExerciseAPI.Data
                     .HasForeignKey(e => e.UserExerciseId)
                     .OnDelete(DeleteBehavior.Cascade);
                 entity.HasIndex(e => new { e.UserExerciseId, e.SetNumber }).IsUnique();
+            });
+
+            modelBuilder.Entity<AiInteractionLog>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasOne(e => e.ChosenExercise)
+                    .WithMany()
+                    .HasForeignKey(e => e.ChosenExerciseId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            modelBuilder.Entity<AiUsage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.UserId, e.Month }).IsUnique();
             });
         }
     }

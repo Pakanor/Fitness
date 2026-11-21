@@ -19,6 +19,7 @@ namespace ExerciseAPI.Services
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<AIExerciseResolverService> _logger;
         private readonly OpenRouterOptions _openRouterOptions;
+        private readonly string _effectiveModel;
         private readonly IMemoryCache _memoryCache;
 
         public AIExerciseResolverService(
@@ -34,6 +35,9 @@ namespace ExerciseAPI.Services
             _env = env;
             _logger = logger;
             _openRouterOptions = openRouterOptions.Value;
+            _effectiveModel = string.IsNullOrWhiteSpace(_openRouterOptions.Model)
+                ? Environment.GetEnvironmentVariable("OPENROUTER_MODEL") ?? "openrouter/auto"
+                : _openRouterOptions.Model;
             _memoryCache = memoryCache;
         }
 
@@ -97,7 +101,7 @@ namespace ExerciseAPI.Services
 
         private async Task<string> BuildKnownExercisesContextAsync(AppDbContext context, int userId)
         {
-            var userExercises = await context.UserExercise
+            var allUserExercises = await context.UserExercise
                 .Where(ue => ue.UserId == userId)
                 .Include(ue => ue.Exercise)
                 .Select(ue => new
@@ -122,8 +126,11 @@ namespace ExerciseAPI.Services
                     Glutes = ue.Exercise!.Glutes,
                     Calves = ue.Exercise!.Calves
                 })
-                .DistinctBy(x => x.ExerciseId)
                 .ToListAsync();
+
+            var userExercises = allUserExercises
+                .DistinctBy(x => x.ExerciseId)
+                .ToList();
 
             var knownExercisesList = userExercises.Select(e =>
             {
@@ -197,7 +204,7 @@ namespace ExerciseAPI.Services
 
             var requestBody = new
             {
-                model = _openRouterOptions.Model,
+                model = _effectiveModel,
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
@@ -215,7 +222,7 @@ namespace ExerciseAPI.Services
 
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync("/chat/completions", content);
+                var response = await client.PostAsync("chat/completions", content);
             var responseString = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -313,7 +320,7 @@ namespace ExerciseAPI.Services
                 var client = _httpClientFactory.CreateClient("OpenRouter");
                 var requestBody = new
                 {
-                    model = _openRouterOptions.Model,
+                    model = _effectiveModel,
                     messages = new[]
                     {
                         new { role = "system", content = $"Translate the following exercise name to {targetLanguage}. Return only the translated name, no explanations." },
@@ -330,7 +337,7 @@ namespace ExerciseAPI.Services
                 });
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync("/chat/completions", content);
+            var response = await client.PostAsync("chat/completions", content);
 
                 if (response.IsSuccessStatusCode)
                 {

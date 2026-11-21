@@ -71,7 +71,11 @@ builder.Services.Configure<AiRateLimitOptions>(builder.Configuration.GetSection(
 builder.Services.AddHttpClient("OpenRouter", (sp, c) => {
     var opts = sp.GetRequiredService<IOptions<OpenRouterOptions>>().Value;
     c.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
-    c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", opts.ApiKey);
+    var envApiKey = Environment.GetEnvironmentVariable("OPENROUTER_API_KEY") ?? "";
+    var apiKey = !string.IsNullOrWhiteSpace(envApiKey)
+        ? envApiKey
+        : (!string.IsNullOrWhiteSpace(opts.ApiKey) ? opts.ApiKey : "");
+    c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 });
 
 builder.Services.AddAuthentication()

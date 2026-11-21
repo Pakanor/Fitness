@@ -1,9 +1,14 @@
 using ExerciseAPI.Services;
+using ExerciseAPI.Options;
+using ExerciseAPI.Middleware;
 using Microsoft.EntityFrameworkCore;
 using ExerciseAPI.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Net.Http.Headers;
+using Microsoft.Extensions.Options;
+
 var builder = WebApplication.CreateBuilder(args);
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
@@ -43,16 +48,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
                       policy =>
                       {
-policy.WithOrigins("http://localhost:3000", "http://localhost:8000")
-                                 .AllowAnyHeader()
-                                 .AllowAnyMethod()
-                                 .AllowCredentials();
+    policy.WithOrigins("http://localhost:3000", "http://localhost:8000")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
                       });
 });
 
@@ -90,6 +94,17 @@ builder.Services.AddHostedService<ExerciseAPI.Services.AnalyticsBackgroundServic
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 
+builder.Services.Configure<OpenRouterOptions>(builder.Configuration.GetSection("OpenRouter"));
+builder.Services.Configure<AiRateLimitOptions>(builder.Configuration.GetSection("AiRateLimit"));
+
+builder.Services.AddHttpClient("OpenRouter", (sp, c) => {
+    var opts = sp.GetRequiredService<IOptions<OpenRouterOptions>>().Value;
+    c.BaseAddress = new Uri("https://openrouter.ai/api/v1/");
+    c.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", opts.ApiKey);
+});
+
+builder.Services.AddScoped<ExerciseAPI.Interfaces.IAiExerciseResolver, ExerciseAPI.Services.AIExerciseResolverService>();
+
 var app = builder.Build();
 
 app.UseCors(MyAllowSpecificOrigins);
@@ -104,7 +119,10 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseMiddleware<AiRateLimitMiddleware>();
+
 app.MapControllers();
+
 
 using (var scope = app.Services.CreateScope())
 {

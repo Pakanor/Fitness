@@ -1,58 +1,15 @@
-using System.Text;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using FitnessApp.Core.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("Jwt:Key is not set.");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AuthAPI";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "FitnessAppUsers";
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = jwtIssuer,
-            ValidateAudience = true,
-            ValidAudience = jwtAudience,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-        };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                if (context.Request.Cookies.TryGetValue("FitnessApp-Auth", out var token))
-                {
-                    context.Token = token;
-                }
-                return Task.CompletedTask;
-            }
-        };
-    });
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
+builder.Services.AddFitnessAuthAsGateway(builder.Configuration);
 
 var app = builder.Build();
 
-app.UseCors("AllowFrontend");
+app.UseCors(FitnessAppAuthExtensions.CorsPolicyName);
 app.UseAuthentication();
 app.Use(async (context, next) =>
 {
@@ -88,7 +45,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseCors("AllowFrontend");
+app.UseCors(FitnessAppAuthExtensions.CorsPolicyName);
 
 app.UseDefaultFiles();
 app.UseStaticFiles();

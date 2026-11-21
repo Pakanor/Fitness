@@ -11,19 +11,7 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy(name: MyAllowSpecificOrigins,
-                      policy =>
-                      {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:8000")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
-    });
-});
+builder.Services.AddFitnessAuthAsExerciseApi(builder.Configuration);
 
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD")
                  ?? throw new InvalidOperationException(
@@ -85,7 +73,7 @@ builder.Services.AddScoped<ExerciseAPI.Interfaces.IAiExerciseResolver, ExerciseA
 
 var app = builder.Build();
 
-app.UseCors(MyAllowSpecificOrigins);
+app.UseCors(FitnessAppAuthExtensions.CorsPolicyName);
 
 if (app.Environment.IsDevelopment())
 {

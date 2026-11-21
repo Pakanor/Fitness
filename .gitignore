@@ -55,3 +55,4 @@ GLOSSARY.md
 docs/adr/
 cookies.txt
 frontend/docs/
+backend/logs/

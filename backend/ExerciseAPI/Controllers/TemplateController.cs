@@ -3,31 +3,34 @@ using Microsoft.AspNetCore.Authorization;
 using ExerciseAPI.Interfaces;
 using ExerciseAPI.DTOs;
 using ExerciseAPI.Models;
+using FitnessApp.Core.Interfaces;
 
 namespace ExerciseAPI.Controllers
 {
     [ApiController]
     [Route("api/templates")]
     [Authorize]
-    public class TemplateController : FitnessControllerBase
+    public class TemplateController : ControllerBase
     {
         private readonly ITemplateService _templateService;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public TemplateController(ITemplateService templateService, IHttpContextAccessor httpContextAccessor)
-            : base(httpContextAccessor)
+        public TemplateController(ITemplateService templateService, ICurrentUserAccessor currentUserAccessor)
         {
             _templateService = templateService;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateTemplate([FromBody] CreateTemplateDto dto)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             try
             {
-                var template = await _templateService.CreateTemplate(CurrentUserId, dto.Name, dto.ExerciseIds);
+                var template = await _templateService.CreateTemplate(currentUser.Id, dto.Name, dto.ExerciseIds);
                 var response = MapToResponseDto(template);
                 return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, response);
             }
@@ -40,10 +43,11 @@ namespace ExerciseAPI.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTemplate(int id)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var template = await _templateService.GetTemplateById(id, CurrentUserId);
+            var template = await _templateService.GetTemplateById(id, currentUser.Id);
             if (template == null)
                 return NotFound();
 
@@ -54,10 +58,11 @@ namespace ExerciseAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUserTemplates()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var templates = await _templateService.GetUserTemplates(CurrentUserId);
+            var templates = await _templateService.GetUserTemplates(currentUser.Id);
             var response = templates.Select(MapToResponseDto).ToList();
             return Ok(response);
         }
@@ -65,12 +70,13 @@ namespace ExerciseAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateTemplate(int id, [FromBody] UpdateTemplateDto dto)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             try
             {
-                var template = await _templateService.UpdateTemplate(id, CurrentUserId, dto.Name, dto.ExerciseIds);
+                var template = await _templateService.UpdateTemplate(id, currentUser.Id, dto.Name, dto.ExerciseIds);
                 var response = MapToResponseDto(template);
                 return Ok(response);
             }
@@ -87,10 +93,11 @@ namespace ExerciseAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTemplate(int id)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var deleted = await _templateService.DeleteTemplate(id, CurrentUserId);
+            var deleted = await _templateService.DeleteTemplate(id, currentUser.Id);
             if (!deleted)
                 return NotFound();
 

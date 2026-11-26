@@ -14,6 +14,9 @@ namespace AuthAPI.Models
         public string SessionToken { get; set; } = "";
 
         [Required]
+        public Guid SessionId { get; set; } = Guid.NewGuid();
+
+        [Required]
         [MaxLength(200)]
         public string Device { get; set; } = "";
 

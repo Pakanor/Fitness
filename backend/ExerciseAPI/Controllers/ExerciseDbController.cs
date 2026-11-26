@@ -8,24 +8,29 @@ using ExerciseAPI.Models;
 using ExerciseAPI.DTOs;
 using ExerciseAPI.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Models;
+
 namespace ExerciseAPI.Controllers
 {
     [ApiController]
 
     [Route("api/[controller]")]
-    public class ExerciseDbController : FitnessControllerBase
+    public class ExerciseDbController : ControllerBase
     {
         private readonly ExerciseDbImportService _importService;
         private readonly AppDbContext _context;
         private readonly IMemoryCache _cache;
+        private readonly PersonalRecordsService _personalRecords;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-
-        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, IHttpContextAccessor httpContextAccessor, IMemoryCache cache)
-            : base(httpContextAccessor)
+        public ExerciseDbController(ExerciseDbImportService importService, AppDbContext context, ICurrentUserAccessor currentUserAccessor, IMemoryCache cache, PersonalRecordsService personalRecords)
         {
             _importService = importService;
             _context = context;
             _cache = cache;
+            _personalRecords = personalRecords;
+            _currentUserAccessor = currentUserAccessor;
         }
         [Authorize(Roles = "Admin")]
 
@@ -188,12 +193,12 @@ namespace ExerciseAPI.Controllers
             await _context.SaveChangesAsync();
             return Ok("Zapisano");
         }
-
         [HttpPost("userexercise/add")]
         [Authorize]
         public async Task<IActionResult> AddUserExercise([FromBody] AddUserExerciseDto dto)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             var exerciseExists = await _context.Exercises.AnyAsync(e => e.Id == dto.ExerciseId);
@@ -209,7 +214,7 @@ namespace ExerciseAPI.Controllers
                 : DateTime.UtcNow;
 
             var session = await _context.WorkoutSessions
-                .FirstOrDefaultAsync(s => s.UserId == CurrentUserId && s.Date == date);
+                .FirstOrDefaultAsync(s => s.UserId == currentUser.Id && s.Date == date);
 
             if (session != null)
                 return Conflict(session.Status == WorkoutStatus.Planned
@@ -218,7 +223,7 @@ namespace ExerciseAPI.Controllers
 
             var entity = new UserExercise
             {
-                UserId = CurrentUserId,
+                UserId = currentUser.Id,
                 ExerciseId = dto.ExerciseId,
                 Date = date,
                 SupersetGroupId = dto.SupersetGroupId
@@ -267,49 +272,28 @@ namespace ExerciseAPI.Controllers
                     Weight = setDto.Weight,
                     Reps = setDto.Reps,
                     RPE = setDto.RPE,
-                    SetType = setDto.SetType
+                    SetType = setDto.SetType,
+                    DurationSeconds = setDto.DurationSeconds
                 };
                 _context.WorkoutSets.Add(workoutSet);
             }
 
             await _context.SaveChangesAsync();
 
-            // Update personal record based on best set
-            var bestSet = setsToCreate
-                .Where(s => s.SetType != Models.SetType.Warmup && s.Weight > 0 && s.Reps > 0)
-                .OrderByDescending(s => s.Weight * (1 + s.Reps / 30.0m))
-                .FirstOrDefault();
+            var userWeight = currentUser.Profile?.Weight ?? UserProfile.Default.Weight;
 
-            if (bestSet != null)
-            {
-                var previousRecord = await _context.PersonalRecords
-                    .Where(pr => pr.UserId == entity.UserId && pr.ExerciseId == entity.ExerciseId && pr.Reps == bestSet.Reps)
-                    .OrderByDescending(pr => pr.Weight)
-                    .FirstOrDefaultAsync();
-
-                if (previousRecord == null || bestSet.Weight > previousRecord.Weight)
+            await _personalRecords.RecordAsync(
+                entity.UserId,
+                entity.ExerciseId,
+                setsToCreate.Select(s => new WorkingSetInput
                 {
-                    decimal userWeight = (decimal)UserWeight;
-                    int? userAge = null;
-
-                    var pr = new PersonalRecord
-                    {
-                        UserId = entity.UserId,
-                        ExerciseId = entity.ExerciseId,
-                        Weight = bestSet.Weight,
-                        Reps = bestSet.Reps,
-                        Date = entity.Date,
-                        UserWeightAtTime = userWeight,
-                        UserAgeAtTime = userAge,
-                        StrengthToWeightRatio = userWeight > 0
-                            ? Math.Round(bestSet.Weight / userWeight, 2)
-                            : null
-                    };
-
-                    _context.PersonalRecords.Add(pr);
-                    await _context.SaveChangesAsync();
-                }
-            }
+                    Weight = s.Weight,
+                    Reps = s.Reps,
+                    Rpe = s.RPE,
+                    SetType = s.SetType
+                }),
+                entity.Date,
+                userWeight);
 
             var firstSet = setsToCreate.OrderBy(s => s.SetNumber).FirstOrDefault();
             var response = new UserExerciseResponseDto
@@ -322,7 +306,8 @@ namespace ExerciseAPI.Controllers
                     Weight = s.Weight,
                     Reps = s.Reps,
                     RPE = s.RPE,
-                    SetType = s.SetType
+                    SetType = s.SetType,
+                    DurationSeconds = s.DurationSeconds
                 }).ToList(),
                 SetsCount = setsToCreate.Count,
                 Reps = firstSet?.Reps,
@@ -342,7 +327,8 @@ namespace ExerciseAPI.Controllers
         [Authorize]
         public async Task<IActionResult> GetExercisesByDate([FromQuery] string date)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             if (!DateTime.TryParse(date, out var parsedDate))
@@ -352,7 +338,7 @@ namespace ExerciseAPI.Controllers
             var endUtc = startUtc.AddDays(1);
 
             var filtered = await _context.UserExercise
-                .Where(ue => ue.UserId == CurrentUserId && ue.Date >= startUtc && ue.Date < endUtc)
+                .Where(ue => ue.UserId == currentUser.Id && ue.Date >= startUtc && ue.Date < endUtc)
                 .Include(ue => ue.Sets)
                 .ToListAsync();
 
@@ -363,7 +349,7 @@ namespace ExerciseAPI.Controllers
                 .ToListAsync();
 
             var daySession = await _context.WorkoutSessions
-                .FirstOrDefaultAsync(s => s.UserId == CurrentUserId
+                .FirstOrDefaultAsync(s => s.UserId == currentUser.Id
                                           && s.Date == startUtc
                                           && s.Exercises.Any());
 
@@ -427,11 +413,12 @@ namespace ExerciseAPI.Controllers
         [Authorize]
         public async Task<IActionResult> GetUserExercises()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             var exercises = await _context.UserExercise
-                .Where(ue => ue.UserId == CurrentUserId)
+                .Where(ue => ue.UserId == currentUser.Id)
                 .Where(ue => ue.SessionId == null
                     || _context.WorkoutSessions.Any(session =>
                         session.Id == ue.SessionId.Value
@@ -442,16 +429,153 @@ namespace ExerciseAPI.Controllers
             return Ok(exercises);
         }
 
-       [HttpDelete("userexercise/{id}")]
+        [HttpGet("userexercise/detail")]
+        [Authorize]
+        public async Task<IActionResult> GetUserExercisesDetail()
+        {
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
+                return Unauthorized();
+
+            var userExercises = await _context.UserExercise
+                .Where(ue => ue.UserId == currentUser.Id)
+                .Where(ue => ue.SessionId == null
+                    || _context.WorkoutSessions.Any(session =>
+                        session.Id == ue.SessionId.Value
+                        && session.Status != WorkoutStatus.Planned))
+                .Include(ue => ue.Sets)
+                .OrderByDescending(ue => ue.Date)
+                .ToListAsync();
+
+            var exerciseIds = userExercises.Select(ue => ue.ExerciseId).Distinct().ToList();
+            var exercises = await _context.Exercises
+                .Where(e => exerciseIds.Contains(e.Id))
+                .ToListAsync();
+
+            var result = userExercises.Select(ue => {
+                var exercise = exercises.FirstOrDefault(e => e.Id == ue.ExerciseId);
+                var sets = ue.Sets.OrderBy(s => s.SetNumber).ToList();
+                var firstSet = sets.FirstOrDefault();
+
+                string primaryMuscles = "";
+                if (exercise != null)
+                {
+                    var engaged = new List<string>();
+                    void AddIf(decimal v, string name) { if (v >= 0.4m) engaged.Add(name); }
+                    AddIf(exercise.Quadriceps, "Czwórki");
+                    AddIf(exercise.Hamstrings, "Dwugłowe uda");
+                    AddIf(exercise.Glutes, "Pośladki");
+                    AddIf(exercise.ChestMain, "Klatka");
+                    AddIf(exercise.Lats, "Plecy szerokie");
+                    AddIf(exercise.DeltoidAnterior, "Bark przedni");
+                    AddIf(exercise.DeltoidLateral, "Bark boczny");
+                    AddIf(exercise.DeltoidPosterior, "Bark tylny");
+                    AddIf(exercise.Biceps, "Biceps");
+                    AddIf(exercise.Triceps, "Triceps");
+                    AddIf(exercise.Forearms, "Przedramiona");
+                    AddIf(exercise.Abs, "Brzuch");
+                    AddIf(exercise.CoreStabilizers, "Stabilizatory");
+                    AddIf(exercise.LowerBack, "Dolny pleców");
+                    AddIf(exercise.Rhomboids, "Romby");
+                    AddIf(exercise.Calves, "Łydki");
+                    if (engaged.Count > 0) primaryMuscles = string.Join(", ", engaged);
+                }
+
+                return new {
+                    userExerciseId = ue.Id,
+                    exerciseId = ue.ExerciseId,
+                    name = exercise?.Name ?? "Nieznane",
+                    category = exercise?.Category ?? "",
+                    primaryMuscles,
+                    gifUrl = exercise?.GifUrl ?? "",
+                    sets = sets.Select(s => new {
+                        s.Id,
+                        s.SetNumber,
+                        s.Weight,
+                        s.Reps,
+                        s.RPE,
+                        SetType = s.SetType.ToString(),
+                        s.DurationSeconds,
+                        Volume = s.Weight * s.Reps
+                    }).ToList(),
+                    totalVolume = sets.Sum(s => s.Weight * s.Reps),
+                    notes = ue.Notes,
+                    supersetGroupId = ue.SupersetGroupId,
+                    templateId = ue.TemplateId,
+                    sessionId = ue.SessionId,
+                    date = ue.Date
+                };
+            }).ToList();
+
+            return Ok(result);
+        }
+
+        [HttpGet("userexercise/public/{userId}")]
+        public async Task<IActionResult> GetPublicUserExercises(int userId)
+        {
+            var userExists = await _context.UserExercise.AnyAsync(ue => ue.UserId == userId);
+            if (!userExists)
+                return NotFound("Użytkownik nie istnieje lub nie ma zapisanych ćwiczeń.");
+
+            var userExercises = await _context.UserExercise
+                .Where(ue => ue.UserId == userId)
+                .Where(ue => ue.SessionId == null
+                    || _context.WorkoutSessions.Any(session =>
+                        session.Id == ue.SessionId.Value
+                        && session.Status != WorkoutStatus.Planned))
+                .Include(ue => ue.Sets)
+                .OrderByDescending(ue => ue.Date)
+                .ToListAsync();
+
+            var exerciseIds = userExercises.Select(ue => ue.ExerciseId).Distinct().ToList();
+            var exercises = await _context.Exercises
+                .Where(e => exerciseIds.Contains(e.Id))
+                .ToListAsync();
+
+            var result = userExercises.Select(ue => {
+                var exercise = exercises.FirstOrDefault(e => e.Id == ue.ExerciseId);
+                var sets = ue.Sets.OrderBy(s => s.SetNumber).ToList();
+                var firstSet = sets.FirstOrDefault();
+
+                return new {
+                    userExerciseId = ue.Id,
+                    exerciseId = ue.ExerciseId,
+                    name = exercise?.Name ?? "Nieznane",
+                    category = exercise?.Category ?? "",
+                    gifUrl = exercise?.GifUrl ?? "",
+                    sets = sets.Select(s => new {
+                        s.Id,
+                        s.SetNumber,
+                        s.Weight,
+                        s.Reps,
+                        s.RPE,
+                        SetType = s.SetType.ToString(),
+                        s.DurationSeconds,
+                        Volume = s.Weight * s.Reps
+                    }).ToList(),
+                    totalVolume = sets.Sum(s => s.Weight * s.Reps),
+                    notes = ue.Notes,
+                    supersetGroupId = ue.SupersetGroupId,
+                    templateId = ue.TemplateId,
+                    sessionId = ue.SessionId,
+                    date = ue.Date
+                };
+            }).ToList();
+
+            return Ok(result);
+        }
+
+        [HttpDelete("userexercise/{id}")]
         [Authorize]
         public async Task<IActionResult> DeleteUserExercise(int id)
         {
-                if (!HasCurrentUser)
+                var currentUser = _currentUserAccessor.Get();
+                if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
                 var entry = await _context.UserExercise.FindAsync(id);
 
-                if (entry == null || entry.UserId != CurrentUserId)
+                if (entry == null || entry.UserId != currentUser.Id)
                 return NotFound();
 
             WorkoutSession? sessionToRemove = null;
@@ -471,7 +595,7 @@ namespace ExerciseAPI.Controllers
             if (sessionToRemove != null)
                 _context.WorkoutSessions.Remove(sessionToRemove);
 
-await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }

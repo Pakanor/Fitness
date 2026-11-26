@@ -7,23 +7,18 @@ using System.Linq.Expressions;
 
 namespace ExerciseAPI.Services
 {
-    public class RecordsService
+    /// <summary>
+    /// Thin adapter over records data. Owns EF I/O, time-zone conversion,
+    /// the <see cref="CountsTowardsStats"/> filter and benchmark/stale/plateau
+    /// lookups, then delegates all mathematical analysis to <see cref="RecordsAnalysis"/>.
+    /// </summary>
+    public class RecordsService : IRecordsService
     {
         private readonly AppDbContext _context;
-        private readonly OneRepMaxCalculator _calculator;
-        private readonly IE1RMCalculatorService _e1rmCalculator;
 
-        private static readonly string[] MainCompoundLifts = new[]
-        {
-            "squat", "bench press", "deadlift", "overhead press",
-            "przysiad", "wyciskanie sztangi", "martwy ciąg", "wyciskanie nad głowę"
-        };
-
-        public RecordsService(AppDbContext context, OneRepMaxCalculator calculator, IE1RMCalculatorService e1rmCalculator)
+        public RecordsService(AppDbContext context)
         {
             _context = context;
-            _calculator = calculator;
-            _e1rmCalculator = e1rmCalculator;
         }
 
         /// <summary>
@@ -34,90 +29,12 @@ namespace ExerciseAPI.Services
             ue.SessionId == null
             || _context.WorkoutSessions.Any(s => s.Id == ue.SessionId && s.Status != WorkoutStatus.Planned);
 
+        // ---------- Analytics (delegate to RecordsAnalysis) ----------
+
         public async Task<OneRepMaxProgressionResponseDto> Get1RMProgression(int userId)
         {
-            var userExercises = await _context.UserExercise
-                .Where(ue => ue.UserId == userId)
-                .Where(CountsTowardsStats)
-                .Include(ue => ue.Sets)
-                .Join(_context.Exercises,
-                    ue => ue.ExerciseId,
-                    e => e.Id,
-                    (ue, e) => new
-                    {
-                        ue.Date,
-                        Sets = ue.Sets,
-                        e.Name,
-                        e.Category,
-                        e.IsBenchmark
-                    })
-                .OrderBy(x => x.Date)
-                .ToListAsync();
-
-            var setRecords = userExercises
-                .SelectMany(x => x.Sets
-                    .Where(s => s.Weight > 0 && s.Reps > 0)
-                    .Select(s => new
-                    {
-                        x.Date,
-                        Weight = s.Weight,
-                        Reps = s.Reps,
-                        x.Name,
-                        x.Category,
-                        x.IsBenchmark
-                    }))
-                .ToList();
-
-            var exercisesByName = setRecords
-                .GroupBy(x => x.Name.ToLower())
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.First()
-                );
-
-            var benchmarkExercises = setRecords
-                .Where(x => x.IsBenchmark)
-                .GroupBy(x => x.Name.ToLower())
-                .ToList();
-
-            var lifts = new List<OneRepMaxLiftDto>();
-
-            foreach (var exGroup in benchmarkExercises)
-            {
-                var exName = exGroup.Key;
-                var firstEntry = exGroup.First();
-
-                var history = exGroup
-                    .GroupBy(x => x.Date.Date)
-                    .Select(g =>
-                    {
-                        var bestSet = g.OrderByDescending(x =>
-                            _calculator.CalculateEpley(x.Weight, x.Reps))
-                            .First();
-                        return new OneRepMaxDataPointDto
-                        {
-                            Date = g.Key,
-                            Estimated1RM = _calculator.CalculateEpley(
-                                bestSet.Weight, bestSet.Reps)
-                        };
-                    })
-                    .OrderBy(h => h.Date)
-                    .ToList();
-
-                var latest1RM = history.LastOrDefault()?.Estimated1RM ?? 0;
-
-                lifts.Add(new OneRepMaxLiftDto
-                {
-                    LiftName = firstEntry.Name,
-                    ExerciseCategory = firstEntry.Category,
-                    Current1RM = latest1RM,
-                    History = history
-                });
-            }
-
-            lifts = lifts.OrderByDescending(l => l.Current1RM).ToList();
-
-            return new OneRepMaxProgressionResponseDto { Lifts = lifts };
+            var sets = await FetchSets(userId, exerciseId: null, startUtc: null, endUtc: null, endExclusive: false, localTimeZone: null);
+            return RecordsAnalysis.Analyze1RMProgression(sets);
         }
 
         public async Task<ExerciseProgressResponseDto> GetExerciseProgress(
@@ -131,176 +48,15 @@ namespace ExerciseAPI.Services
                 .Select(e => e.Name)
                 .FirstOrDefaultAsync() ?? "";
 
-            var query = _context.UserExercise
-                .Where(ue => ue.UserId == userId
-                    && ue.ExerciseId == exerciseId)
-                .Where(CountsTowardsStats);
+            DateTime? startUtc = startDate.HasValue
+                ? DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc)
+                : null;
+            DateTime? endUtc = endDate.HasValue
+                ? DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc)
+                : null;
 
-            if (startDate.HasValue)
-            {
-                var startUtc = DateTime.SpecifyKind(startDate.Value.Date, DateTimeKind.Utc);
-                query = query.Where(ue => ue.Date >= startUtc);
-            }
-
-            if (endDate.HasValue)
-            {
-                var endUtc = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-                query = query.Where(ue => ue.Date <= endUtc);
-            }
-
-            var entries = await query
-                .Include(ue => ue.Exercise)
-                .ThenInclude(e => e!.MuscleGroupMappings)
-                .ThenInclude(mapping => mapping.MuscleGroup)
-                .Include(ue => ue.Sets)
-                .ToListAsync();
-
-            var setRecords = entries
-                .SelectMany(entry => entry.Sets
-                    .Select(set => new SetRecord
-                    {
-                        Date = entry.Date,
-                        Weight = set.Weight,
-                        Reps = set.Reps,
-                        Rpe = set.RPE,
-                        SetType = set.SetType,
-                        Exercise = entry.Exercise
-                    }))
-                .ToList();
-
-            var dataPoints = new List<ExerciseProgressPointDto>();
-            var allTimeMax = 0m;
-
-            var validEntries = setRecords
-                .Where(x => _e1rmCalculator.IsValidSet(x.Weight, x.Reps))
-                .ToList();
-
-            var bestExerciseE1Rm = validEntries
-                .Where(x => x.SetType != Models.SetType.Warmup)
-                .Select(x => _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe))
-                .DefaultIfEmpty(0m)
-                .Max();
-
-            var days = validEntries.GroupBy(x => x.Date.Date);
-
-            foreach (var day in days)
-            {
-                var best = day
-                    .Select(x => new
-                    {
-                        Weight = x.Weight,
-                        Reps = x.Reps,
-                        Rpe = x.Rpe,
-                        E1RM = _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe)
-                    })
-                    .Where(x => x.E1RM > 0)
-                    .OrderByDescending(x => x.E1RM)
-                    .ThenByDescending(x => x.Weight)
-                    .FirstOrDefault();
-
-                if (best == null) continue;
-
-                var topSet = day
-                    .OrderByDescending(x => x.Weight)
-                    .ThenByDescending(x => x.Reps)
-                    .First();
-
-                dataPoints.Add(new ExerciseProgressPointDto
-                {
-                    Date = day.Key.ToString("yyyy-MM-dd"),
-                    MaxE1RM = best.E1RM,
-                    TopSetWeight = topSet.Weight,
-                    TopSetReps = topSet.Reps,
-                    TopSetRpe = topSet.Rpe,
-                    HasRpe = best.Rpe.HasValue
-                });
-
-                allTimeMax = _e1rmCalculator.CalculateBest(best.Weight, best.Reps, best.Rpe, allTimeMax);
-            }
-
-            var hardEntries = validEntries
-                .Where(x => IsHardSet(x, bestExerciseE1Rm))
-                .ToList();
-
-            var muscleAnalytics = hardEntries
-                .SelectMany(x => GetMuscleWeights(x.Exercise),
-                    (entry, mapping) => new
-                    {
-                        MuscleGroupKey = mapping.Key,
-                        mapping.Name,
-                        Week = GetWeekStart(entry.Date),
-                        HardSets = mapping.Weight,
-                        Reps = entry.Reps
-                    })
-                .GroupBy(x => new { x.MuscleGroupKey, x.Name })
-                .Select(group => new MuscleAnalyticsDto
-                {
-                    Key = group.Key.MuscleGroupKey,
-                    Name = group.Key.Name,
-                    WeeklyHardSets = group
-                        .GroupBy(x => x.Week)
-                        .OrderBy(x => x.Key)
-                        .Select(week => new WeeklyHardSetsDto
-                        {
-                            Week = week.Key.ToString("yyyy-MM-dd"),
-                            HardSets = week.Sum(x => x.HardSets)
-                        })
-                        .ToList(),
-                    RepRanges = group
-                        .GroupBy(x => GetRepRange(x.Reps))
-                        .OrderBy(x => x.Key)
-                        .Select(range => new RepRangeDistributionDto
-                        {
-                            Range = range.Key,
-                            HardSets = range.Sum(x => x.HardSets)
-                        })
-                        .ToList()
-                })
-                .OrderBy(x => x.Name)
-                .ToList();
-
-            var workload = validEntries
-                .GroupBy(x => x.Date.Date)
-                .OrderBy(x => x.Key)
-                .Select(day => new ExerciseWorkloadPointDto
-                {
-                    Date = day.Key.ToString("yyyy-MM-dd"),
-                    Tonnage = day.Sum(x => x.Weight * x.Reps),
-                    Repetitions = day.Sum(x => x.Reps),
-                    AverageReps = (decimal)Math.Round(day.Average(x => x.Reps), 2),
-                    HardSets = hardEntries.Where(x => x.Date.Date == day.Key).Sum(x => 1m)
-                })
-                .ToList();
-
-            var repRanges = validEntries
-                .GroupBy(x => GetRepRange(x.Reps))
-                .OrderBy(x => x.Key)
-                .Select(group => new ExerciseRepRangeDto
-                {
-                    Range = group.Key,
-                    Sets = group.Sum(x => 1m)
-                })
-                .ToList();
-
-            var allTimePr = validEntries
-                .OrderByDescending(x => x.Weight)
-                .ThenByDescending(x => x.Reps)
-                .FirstOrDefault();
-
-            return new ExerciseProgressResponseDto
-            {
-                ExerciseId = exerciseId,
-                ExerciseName = exerciseName,
-                DataPoints = dataPoints.OrderBy(p => p.Date, StringComparer.Ordinal).ToList(),
-                AllTimeMaxE1RM = allTimeMax,
-                MuscleAnalytics = muscleAnalytics,
-                Workload = workload,
-                RepRanges = repRanges,
-                AllTimePrWeight = allTimePr?.Weight ?? 0m,
-                AllTimePrReps = allTimePr?.Reps ?? 0,
-                TotalSets = validEntries.Count,
-                LastPerformedDate = validEntries.OrderByDescending(x => x.Date).FirstOrDefault()?.Date.ToString("yyyy-MM-dd")
-            };
+            var sets = await FetchSets(userId, exerciseId, startUtc, endUtc, endExclusive: false, localTimeZone: null);
+            return RecordsAnalysis.AnalyzeExerciseProgress(sets, exerciseId, exerciseName);
         }
 
         public async Task<GlobalAnalyticsResponseDto> GetOverview(
@@ -310,270 +66,290 @@ namespace ExerciseAPI.Services
             string? timeZoneId = null)
         {
             var timeZone = ResolveTimeZone(timeZoneId);
+
+            DateTime? startUtc = startDate.HasValue
+                ? ConvertLocalDateToUtc(startDate.Value.Date, timeZone)
+                : null;
+            DateTime? endUtc = endDate.HasValue
+                ? ConvertLocalDateToUtc(endDate.Value.Date.AddDays(1), timeZone)
+                : null;
+
+            var sets = await FetchSets(userId, exerciseId: null, startUtc, endUtc, endExclusive: true, localTimeZone: timeZone);
+
+            var insights = await ComputeInsights(userId);
+            var weeklyStreak = await ComputeWeeklyStreak(userId, timeZone);
+
+            var result = RecordsAnalysis.AnalyzeOverview(sets, startDate, endDate, insights);
+            result.WeeklyStreak = weeklyStreak;
+            return result;
+        }
+
+        // ---------- Controller-direct (simple lookups) ----------
+
+        public async Task<IReadOnlyList<PersonalRecordDto>> GetHistory(int userId)
+        {
+            var rows = await _context.PersonalRecords
+                .Where(pr => pr.UserId == userId)
+                .Join(_context.Exercises,
+                    pr => pr.ExerciseId,
+                    e => e.Id,
+                    (pr, e) => new { pr, e })
+                .OrderByDescending(x => x.pr.Weight)
+                .ToListAsync();
+
+            return rows.Select(x => new PersonalRecordDto(
+                x.pr.Id,
+                x.pr.ExerciseId,
+                x.e.Name,
+                x.e.Category,
+                x.pr.Weight,
+                x.pr.Reps,
+                x.pr.Date,
+                x.pr.UserWeightAtTime,
+                x.pr.UserAgeAtTime,
+                x.pr.DietStatusAtTime,
+                x.pr.StrengthToWeightRatio)).ToList();
+        }
+
+        public async Task<IReadOnlyList<ExerciseSearchDto>> SearchExercises(int userId, string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<ExerciseSearchDto>();
+
+            var rows = await _context.Exercises
+                .Where(e => EF.Functions.ILike(e.Name, $"%{query}%"))
+                .Take(20)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.Name,
+                    e.Category,
+                    HasPR = _context.PersonalRecords.Any(pr => pr.UserId == userId && pr.ExerciseId == e.Id)
+                })
+                .ToListAsync();
+
+            return rows
+                .Select(r => new ExerciseSearchDto(r.Id, r.Name, r.Category, r.HasPR))
+                .ToList();
+        }
+
+        public async Task<IReadOnlyList<PersonalRecordDto>> GetExerciseHistory(int userId, int exerciseId)
+        {
+            var rows = await _context.PersonalRecords
+                .Where(pr => pr.UserId == userId && pr.ExerciseId == exerciseId)
+                .Join(_context.Exercises,
+                    pr => pr.ExerciseId,
+                    e => e.Id,
+                    (pr, e) => new { pr, e })
+                .OrderByDescending(x => x.pr.Date)
+                .ToListAsync();
+
+            return rows.Select(x => new PersonalRecordDto(
+                x.pr.Id,
+                x.pr.ExerciseId,
+                x.e.Name,
+                x.e.Category,
+                x.pr.Weight,
+                x.pr.Reps,
+                x.pr.Date,
+                x.pr.UserWeightAtTime,
+                x.pr.UserAgeAtTime,
+                x.pr.DietStatusAtTime,
+                x.pr.StrengthToWeightRatio)).ToList();
+        }
+
+        // ---------- Fetch / DB helpers ----------
+
+        private async Task<List<SetRecord>> FetchSets(
+            int userId,
+            int? exerciseId,
+            DateTime? startUtc,
+            DateTime? endUtc,
+            bool endExclusive,
+            TimeZoneInfo? localTimeZone)
+        {
             var query = _context.UserExercise
                 .Where(ue => ue.UserId == userId)
                 .Where(CountsTowardsStats)
                 .Include(ue => ue.Exercise)
-                .ThenInclude(e => e!.MuscleGroupMappings)
-                .ThenInclude(mapping => mapping.MuscleGroup)
+                    .ThenInclude(e => e!.MuscleGroupMappings)
+                    .ThenInclude(mapping => mapping.MuscleGroup)
                 .Include(ue => ue.Sets)
                 .AsQueryable();
 
-            if (startDate.HasValue)
-            {
-                var startUtc = ConvertLocalDateToUtc(startDate.Value.Date, timeZone);
-                query = query.Where(ue => ue.Date >= startUtc);
-            }
+            if (exerciseId.HasValue)
+                query = query.Where(ue => ue.ExerciseId == exerciseId.Value);
 
-            if (endDate.HasValue)
-            {
-                var endExclusiveUtc = ConvertLocalDateToUtc(endDate.Value.Date.AddDays(1), timeZone);
-                query = query.Where(ue => ue.Date < endExclusiveUtc);
-            }
+            if (startUtc.HasValue)
+                query = query.Where(ue => ue.Date >= startUtc.Value);
+
+            if (endUtc.HasValue)
+                query = endExclusive
+                    ? query.Where(ue => ue.Date < endUtc.Value)
+                    : query.Where(ue => ue.Date <= endUtc.Value);
 
             var entries = await query.ToListAsync();
-            var setRecords = entries
-                .SelectMany(entry => entry.Sets
-                    .Select(set => new SetRecord
-                    {
-                        Date = entry.Date,
-                        ExerciseId = entry.ExerciseId,
-                        Weight = set.Weight,
-                        Reps = set.Reps,
-                        Rpe = set.RPE,
-                        SetType = set.SetType,
-                        Exercise = entry.Exercise
-                    }))
-                .ToList();
 
-            var validEntries = setRecords
-                .Where(x => _e1rmCalculator.IsValidSet(x.Weight, x.Reps))
-                .ToList();
-
-            var bestByExercise = validEntries
-                .Where(x => !x.IsWarmup)
-                .GroupBy(x => x.ExerciseId)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.Max(x => _e1rmCalculator.CalculateBrzycki(x.Weight, x.Reps, x.Rpe)));
-
-            var hardEntries = validEntries
-                .Where(x => bestByExercise.TryGetValue(x.ExerciseId, out var best) && IsHardSet(x, best))
-                .ToList();
-
-            var periodStart = startDate?.Date
-                ?? (validEntries.Count > 0
-                    ? ToUserLocalDate(validEntries.Min(x => x.Date), timeZone)
-                    : DateTime.Today);
-            var periodEnd = endDate?.Date
-                ?? (validEntries.Count > 0
-                    ? ToUserLocalDate(validEntries.Max(x => x.Date), timeZone)
-                    : periodStart);
-            var weekCount = GetCalendarWeekCount(periodStart, periodEnd);
-
-            var muscleVolume = hardEntries
-                .SelectMany(x => GetMuscleWeights(x.Exercise),
-                    (entry, mapping) => new
-                    {
-                        mapping.Key,
-                        mapping.Name,
-                        HardSets = mapping.Weight
-                    })
-                .GroupBy(x => new { x.Key, x.Name })
-                .OrderBy(x => x.Key.Name)
-                .Select(group => new GlobalMuscleVolumeDto
-                {
-                    Key = group.Key.Key,
-                    Name = group.Key.Name,
-                    HardSets = Math.Round(group.Sum(x => x.HardSets) / weekCount, 2)
-                })
-                .ToList();
-
-            var activity = hardEntries
-                .GroupBy(x => ToUserLocalDate(x.Date, timeZone))
-                .OrderBy(x => x.Key)
-                .Select(day => new TrainingActivityDayDto
-                {
-                    Date = day.Key.ToString("yyyy-MM-dd"),
-                    HardSets = day.Sum(x => 1m)
-                })
-                .ToList();
-
-            var weeklyTrend = hardEntries
-                .GroupBy(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)))
-                .OrderBy(x => x.Key)
-                .Select(week => new WeeklyTrainingTrendDto
-                {
-                    Week = week.Key.ToString("yyyy-MM-dd"),
-                    HardSets = week.Sum(x => 1m),
-                    AverageRpe = setRecords
-                        .Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key && x.Rpe.HasValue)
-                        .Any()
-                        ? (decimal?)Math.Round(setRecords
-                            .Where(x => GetWeekStart(ToUserLocalDate(x.Date, timeZone)) == week.Key && x.Rpe.HasValue)
-                            .Select(x => (double)x.Rpe!.Value)
-                            .Average(), 2)
-                        : null
-                })
-                .ToList();
-
-            // Weekly streak: count consecutive weeks with >= 3 completed sessions (Monday start)
-            int? weeklyStreak = null;
-            try
+            var records = new List<SetRecord>();
+            foreach (var entry in entries)
             {
-                var completedSessions = await _context.WorkoutSessions
-                    .Where(s => s.UserId == userId && s.Status == WorkoutStatus.Completed)
-                    .ToListAsync();
+                var date = localTimeZone != null ? ToUserLocalDate(entry.Date, localTimeZone) : entry.Date;
+                var name = entry.Exercise?.Name ?? "";
+                var category = entry.Exercise?.Category ?? "";
+                var isBenchmark = entry.Exercise?.IsBenchmark ?? false;
+                var muscleWeights = GetMuscleWeights(entry.Exercise).ToList();
 
-                if (completedSessions.Any())
+                foreach (var set in entry.Sets)
                 {
-                    var allQualifyingSet = completedSessions
-                        .Select(s => GetWeekStart(ToUserLocalDate(s.Date, timeZone)))
-                        .GroupBy(d => d)
-                        .Where(g => g.Count() >= 3)
-                        .Select(g => g.Key)
-                        .ToHashSet();
-
-                    if (allQualifyingSet.Any())
-                    {
-                        var currentWeekStart = GetWeekStart(ToUserLocalDate(DateTime.UtcNow, timeZone));
-                        int consecutive = 0;
-                        var cw = currentWeekStart;
-                        for (int i = 0; i < 200; i++)
-                        {
-                            var tw = cw.AddDays(-7 * i);
-                            if (allQualifyingSet.Contains(tw))
-                                consecutive++;
-                            else
-                                break;
-                        }
-                        weeklyStreak = consecutive;
-                    }
+                    records.Add(new SetRecord(
+                        date,
+                        entry.ExerciseId,
+                        set.Weight,
+                        set.Reps,
+                        set.RPE,
+                        set.SetType,
+                        name,
+                        category,
+                        isBenchmark,
+                        muscleWeights));
                 }
             }
-            catch { }
 
-            // Generate insights
+            return records;
+        }
+
+        private async Task<List<InsightDto>> ComputeInsights(int userId)
+        {
             var insights = new List<InsightDto>();
-            try
+
+            var benchmarkExercises = await _context.Exercises
+                .Where(e => e.IsBenchmark)
+                .ToListAsync();
+
+            if (benchmarkExercises.Count == 0)
+                return insights;
+
+            var benchmarkIds = benchmarkExercises.Select(e => e.Id).ToList();
+
+            // Single query for all of the user's benchmark history (avoids the old N+1).
+            var userBenchEntries = await _context.UserExercise
+                .Where(ue => ue.UserId == userId && benchmarkIds.Contains(ue.ExerciseId))
+                .Where(CountsTowardsStats)
+                .Include(ue => ue.Sets)
+                .OrderByDescending(ue => ue.Date)
+                .ToListAsync();
+
+            var byExercise = userBenchEntries
+                .GroupBy(ue => ue.ExerciseId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var threeWeeksAgo = DateTime.UtcNow.AddDays(-21);
+
+            foreach (var bench in benchmarkExercises)
             {
-                if (muscleVolume != null && muscleVolume.Any())
+                byExercise.TryGetValue(bench.Id, out var entries);
+                entries ??= new List<UserExercise>();
+                var lastPerf = entries.FirstOrDefault();
+
+                if (lastPerf == null || lastPerf.Date < threeWeeksAgo)
                 {
-                    var avg = muscleVolume.Average(m => (double)m.HardSets);
-                    foreach (var mv in muscleVolume)
+                    insights.Add(new InsightDto
                     {
-                        if ((double)mv.HardSets < 10 && avg > 12)
-                        {
-                            insights.Add(new InsightDto
+                        Type = "StaleBenchmark",
+                        Title = $"Brak wykonania: {bench.Name}",
+                        Description = lastPerf == null
+                            ? "Ćwiczenie benchmarkowe nie było jeszcze wykonywane."
+                            : $"Nie wykonywane od {Math.Round((DateTime.UtcNow - lastPerf.Date.ToUniversalTime()).TotalDays, 0)} dni (ponad 3 tygodnie).",
+                        Severity = "info",
+                        ExerciseId = bench.Id
+                    });
+                }
+            }
+
+            foreach (var bench in benchmarkExercises)
+            {
+                byExercise.TryGetValue(bench.Id, out var entries);
+                entries ??= new List<UserExercise>();
+
+                if (entries.Count < 4)
+                    continue;
+
+                var sessionE1RMs = entries
+                    .Take(4)
+                    .Select(ue =>
+                    {
+                        var ws = ue.Sets
+                            .Select(s => new WorkingSetInput
                             {
-                                Type = "UnderTrainedMuscle",
-                                Title = $"Niedostateczna objętość: {mv.Name}",
-                                Description = $"Średnia {mv.HardSets} hard sets/tydzień przy średniej dla pozostałych partii ~{Math.Round(avg, 1)}. Rozważ zwiększenie objętości.",
-                                Severity = "warn",
-                                MuscleKey = mv.Key
-                            });
-                        }
-                    }
-                }
-
-                var benchmarkExercises = await _context.Exercises
-                    .Where(e => e.IsBenchmark)
-                    .ToListAsync();
-                var threeWeeksAgo = DateTime.UtcNow.AddDays(-21);
-                foreach (var bench in benchmarkExercises)
-                {
-                    var lastPerf = await _context.UserExercise
-                        .Where(ue => ue.UserId == userId && ue.ExerciseId == bench.Id)
-                        .Where(CountsTowardsStats)
-                        .OrderByDescending(ue => ue.Date)
-                        .FirstOrDefaultAsync();
-                    if (lastPerf == null || lastPerf.Date < threeWeeksAgo)
-                    {
-                        insights.Add(new InsightDto
-                        {
-                            Type = "StaleBenchmark",
-                            Title = $"Brak wykonania: {bench.Name}",
-                            Description = lastPerf == null 
-                                ? "Ćwiczenie benchmarkowe nie było jeszcze wykonywane." 
-                                : $"Nie wykonywane od {Math.Round((DateTime.UtcNow - lastPerf.Date.ToUniversalTime()).TotalDays, 0)} dni (ponad 3 tygodnie).",
-                            Severity = "info",
-                            ExerciseId = bench.Id
-                        });
-                    }
-                }
-
-                foreach (var bench in benchmarkExercises)
-                {
-                    var benchEntries = await _context.UserExercise
-                        .Where(ue => ue.UserId == userId && ue.ExerciseId == bench.Id)
-                        .Where(CountsTowardsStats)
-                        .Include(ue => ue.Sets)
-                        .OrderByDescending(ue => ue.Date)
-                        .Take(10)
-                        .ToListAsync();
-                    
-                    if (benchEntries.Count >= 4)
-                    {
-                        var sessionE1RMs = benchEntries
-                            .Take(4)
-                            .Select(ue => {
-                                var best = ue.Sets
-                                    .Where(s => s.Weight > 0 && s.Reps > 0 && s.SetType != Models.SetType.Warmup)
-                                    .Select(s => _e1rmCalculator.CalculateBrzycki(s.Weight, s.Reps, s.RPE))
-                                    .DefaultIfEmpty(0)
-                                    .Max();
-                                return best;
+                                Weight = s.Weight,
+                                Reps = s.Reps,
+                                Rpe = s.RPE,
+                                SetType = s.SetType
                             })
                             .ToList();
-                        
-                        bool noGrowth = sessionE1RMs[0] <= sessionE1RMs[1] && sessionE1RMs[1] <= sessionE1RMs[2] && sessionE1RMs[2] <= sessionE1RMs[3];
-                        if (noGrowth && sessionE1RMs[0] > 0)
-                        {
-                            insights.Add(new InsightDto
-                            {
-                                Type = "Plateau",
-                                Title = $"Plateau: {bench.Name}",
-                                Description = "e1RM nie rośnie przez ostatnie 4 sesje. Rozważ zmianę programu, objętości lub intensywności.",
-                                Severity = "warn",
-                                ExerciseId = bench.Id
-                            });
-                        }
-                    }
+                        return WorkingSet.GetBestE1RM(WorkingSet.Select(ws));
+                    })
+                    .ToList();
+
+                var noGrowth = sessionE1RMs[0] <= sessionE1RMs[1]
+                    && sessionE1RMs[1] <= sessionE1RMs[2]
+                    && sessionE1RMs[2] <= sessionE1RMs[3];
+
+                if (noGrowth && sessionE1RMs[0] > 0)
+                {
+                    insights.Add(new InsightDto
+                    {
+                        Type = "Plateau",
+                        Title = $"Plateau: {bench.Name}",
+                        Description = "e1RM nie rośnie przez ostatnie 4 sesje. Rozważ zmianę programu, objętości lub intensywności.",
+                        Severity = "warn",
+                        ExerciseId = bench.Id
+                    });
                 }
             }
-            catch { }
 
-            return new GlobalAnalyticsResponseDto
-            {
-                MuscleVolume = muscleVolume,
-                Activity = activity,
-                WeeklyTrend = weeklyTrend,
-                WeeklyStreak = weeklyStreak,
-                Insights = insights
-            };
+            return insights;
         }
 
-        private static bool IsHardSet(SetRecord entry, decimal bestE1Rm)
+        private async Task<int?> ComputeWeeklyStreak(int userId, TimeZoneInfo timeZone)
         {
-            if (entry.SetType == Models.SetType.Warmup)
-                return false;
-            if (entry.SetType == Models.SetType.Dropset)
-                return true;
-            return bestE1Rm <= 0m || entry.Weight >= bestE1Rm * 0.5m;
+            var completedSessions = await _context.WorkoutSessions
+                .Where(s => s.UserId == userId && s.Status == WorkoutStatus.Completed)
+                .ToListAsync();
+
+            if (completedSessions.Count == 0)
+                return null;
+
+            var qualifyingWeeks = completedSessions
+                .Select(s => GetWeekStart(ToUserLocalDate(s.Date, timeZone)))
+                .GroupBy(d => d)
+                .Where(g => g.Count() >= 3)
+                .Select(g => g.Key)
+                .ToHashSet();
+
+            if (qualifyingWeeks.Count == 0)
+                return null;
+
+            var currentWeekStart = GetWeekStart(ToUserLocalDate(DateTime.UtcNow, timeZone));
+            var consecutive = 0;
+            for (var i = 0; i < 200; i++)
+            {
+                if (qualifyingWeeks.Contains(currentWeekStart.AddDays(-7 * i)))
+                    consecutive++;
+                else
+                    break;
+            }
+
+            return consecutive;
         }
+
+        // ---------- Pure/stateless helpers ----------
 
         private static DateTime GetWeekStart(DateTime date)
         {
             var day = date.Date;
             var offset = ((int)day.DayOfWeek + 6) % 7;
             return day.AddDays(-offset);
-        }
-
-        private static int GetCalendarWeekCount(DateTime periodStart, DateTime periodEnd)
-        {
-            var firstWeek = GetWeekStart(periodStart);
-            var lastWeek = GetWeekStart(periodEnd);
-            return Math.Max(1, (int)((lastWeek - firstWeek).TotalDays / 7) + 1);
         }
 
         private static TimeZoneInfo ResolveTimeZone(string? timeZoneId)
@@ -605,24 +381,6 @@ namespace ExerciseAPI.Services
         {
             var utcValue = DateTime.SpecifyKind(value, DateTimeKind.Utc);
             return TimeZoneInfo.ConvertTimeFromUtc(utcValue, timeZone).Date;
-        }
-
-        private static string GetRepRange(int reps) => reps <= 5 ? "1-5" : reps <= 10 ? "6-10" : "11-15";
-
-        /// <summary>
-        /// Flattened record of a single workout set with its owning exercise context.
-        /// Used by analytics queries that previously consumed aggregated UserExercise rows.
-        /// </summary>
-        private class SetRecord
-        {
-            public DateTime Date { get; set; }
-            public decimal Weight { get; set; }
-            public int Reps { get; set; }
-            public decimal? Rpe { get; set; }
-            public Models.SetType SetType { get; set; }
-            public bool IsWarmup { get; set; } // legacy for compatibility
-            public Exercise? Exercise { get; set; }
-            public int ExerciseId { get; set; }
         }
 
         private static IEnumerable<(string Key, string Name, decimal Weight)> GetMuscleWeights(Exercise? exercise)

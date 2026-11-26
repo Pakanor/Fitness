@@ -87,5 +87,18 @@ namespace AuthAPI.DataAccess
             await _context.SaveChangesAsync();
             return true;
         }
+
+        public async Task<UserSession?> GetSessionByTokenAsync(string sessionToken)
+        {
+            if (string.IsNullOrEmpty(sessionToken)) return null;
+            return await _context.UserSessions
+                .FirstOrDefaultAsync(s => s.SessionToken == sessionToken && s.IsActive);
+        }
+
+        public async Task<UserSession?> GetSessionBySessionIdAsync(Guid sessionId)
+        {
+            return await _context.UserSessions
+                .FirstOrDefaultAsync(s => s.SessionId == sessionId && s.IsActive);
+        }
     }
 }

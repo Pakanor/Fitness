@@ -25,7 +25,6 @@ namespace BackendLogicApi.Services
         public async Task AddUserLogAsync(Product product, double grams, Nutriments calculated)
         {
             
-
             var entry = new ProductLogEntry
             {
                 ProductName = product.ProductName,
@@ -33,7 +32,7 @@ namespace BackendLogicApi.Services
                 Grams = grams,
                 Energy = calculated.Energy,
                 Fat = calculated.Fat,
-                Sugars = calculated.Carbs, 
+                Sugars = calculated.Sugars,
                 Proteins = calculated.Proteins,
                 Salt = calculated.Salt,
                 EnergyUnit = calculated.EnergyUnit,
@@ -41,7 +40,6 @@ namespace BackendLogicApi.Services
             };
             await _repository.AddLogEntryAsync(entry);
         }
-
 
 
         public async Task DeleteUserLogAsync(int id)
@@ -65,6 +63,11 @@ namespace BackendLogicApi.Services
         public async Task UpdateUserLogAsync(ProductLogEntry updatedEntry)
         {
             await _repository.UpdateAsync(updatedEntry);
+        }
+
+        public async Task<Product?> GetProductByIdAsync(int id)
+        {
+            return await _repository.GetProductByIdAsync(id);
         }
 
     }

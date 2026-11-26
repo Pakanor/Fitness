@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 
 
-
 namespace BackendLogicApi.DataAccess
 {
     public class ProductLogRepository
@@ -16,6 +15,11 @@ namespace BackendLogicApi.DataAccess
         public async Task<ProductLogEntry?> GetByIdAsync(int id)
         {
             return await _context.ProductLogEntries.FindAsync(id);
+        }
+
+        public async Task<Product?> GetProductByIdAsync(int id)
+        {
+            return await _context.Products.FindAsync(id);
         }
 
         public async Task AddLogEntryAsync(ProductLogEntry entry)

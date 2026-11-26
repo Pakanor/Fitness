@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using BackendLogicApi.Models;
 using Microsoft.EntityFrameworkCore;
 using BackendLogicApi.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BackendLogicApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProductsOperationController : ControllerBase
     {
         private readonly IProductOperationsService _productsOperationService;
@@ -37,27 +39,50 @@ namespace BackendLogicApi.Controllers
         }
 
 
-        [HttpPost("add")]
+[HttpPost("add")]
         public async Task<IActionResult> AddUserLog([FromBody] AddLogRequest request)
         {
-                var calculated = _caloreieCalculatorService.CalculateForWeight(request.Product, request.Grams);
-
-                if (calculated == null)
+            Product product = request.Product;
+            
+            if (product == null && request.ProductId.HasValue)
+            {
+                product = await _productsOperationService.GetProductByIdAsync(request.ProductId.Value);
+                if (product == null)
                 {
-                    
-                return BadRequest(new { message = "Brak wartości odżywczych błąd." });
+                    return NotFound(new { message = "Produkt nie znaleziony." });
+                }
             }
 
-             await _productsOperationService.AddUserLogAsync(request.Product, request.Grams, calculated);
+            if (product == null)
+            {
+                return BadRequest(new { message = "Produkt jest wymagany." });
+            }
+
+            var calculated = _caloreieCalculatorService.CalculateForWeight(product, request.Grams);
+
+            if (calculated == null)
+            {
+                
+            return BadRequest(new { message = "Brak wartości odżywczych błąd." });
+        }
+
+         await _productsOperationService.AddUserLogAsync(product, request.Grams, calculated);
 
 
-            return Ok("Produkt dodany");
+        return Ok("Produkt dodany");
         }
         [HttpDelete("delete/{id}")]
         public async Task<IActionResult> DeleteUserLog(int id)
         {
-            await _productsOperationService.DeleteUserLogAsync(id);
-            return Ok("Produkt usunięty");
+            try
+            {
+                await _productsOperationService.DeleteUserLogAsync(id);
+                return Ok("Produkt usunięty");
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
         [HttpPut("update")]
         public async Task<IActionResult> UpdateUserLog([FromBody] ProductLogEntry updatedEntry)

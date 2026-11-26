@@ -21,10 +21,7 @@ namespace ExerciseAPI.Tests.Services
                 .Options;
 
             _context = new AppDbContext(options);
-            _recordsService = new RecordsService(
-                _context,
-                new OneRepMaxCalculator(),
-                new E1RMCalculatorService());
+            _recordsService = new RecordsService(_context);
         }
 
         private void SeedExercise(string name = "Bench Press")
@@ -58,7 +55,7 @@ namespace ExerciseAPI.Tests.Services
             }
         }
 
-        private void SeedLogWithSets(DateTime date, params (decimal weight, int reps, decimal? rpe, bool isWarmup)[] sets)
+        private void SeedLogWithSets(DateTime date, params (decimal weight, int reps, decimal? rpe, SetType setType)[] sets)
         {
             var ue = new UserExercise
             {
@@ -79,7 +76,7 @@ namespace ExerciseAPI.Tests.Services
                     Weight = s.weight,
                     Reps = s.reps,
                     RPE = s.rpe,
-                    IsWarmup = s.isWarmup
+                    SetType = s.setType
                 });
             }
             _context.SaveChanges();
@@ -152,10 +149,10 @@ namespace ExerciseAPI.Tests.Services
             SeedExercise();
             SeedMuscleMapping();
             SeedLogWithSets(new DateTime(2026, 10, 2),
-                (100m, 5, null, false),
-                (100m, 5, null, false),
-                (100m, 5, null, false),
-                (100m, 5, null, false));
+                (100m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Normal));
 
             var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
 
@@ -169,20 +166,20 @@ namespace ExerciseAPI.Tests.Services
             SeedMuscleMapping();
             var date = new DateTime(2026, 10, 2);
             SeedLogWithSets(date,
-                (100m, 5, null, false),
-                (100m, 5, null, false),
-                (100m, 5, null, false),
-                (100m, 5, null, false),
-                (40m, 5, null, false),
-                (40m, 5, null, false),
-                (40m, 5, null, false),
-                (40m, 5, null, false),
-                (40m, 5, null, false),
-                (100m, 5, null, true),
-                (100m, 5, null, true),
-                (100m, 5, null, true),
-                (100m, 5, null, true),
-                (100m, 5, null, true));
+                (100m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Normal),
+                (40m, 5, null, SetType.Normal),
+                (40m, 5, null, SetType.Normal),
+                (40m, 5, null, SetType.Normal),
+                (40m, 5, null, SetType.Normal),
+                (40m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Warmup),
+                (100m, 5, null, SetType.Warmup),
+                (100m, 5, null, SetType.Warmup),
+                (100m, 5, null, SetType.Warmup),
+                (100m, 5, null, SetType.Warmup));
 
             var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
 
@@ -195,14 +192,14 @@ namespace ExerciseAPI.Tests.Services
             SeedExercise();
             SeedMuscleMapping();
             SeedLogWithSets(new DateTime(2026, 10, 5),
-                (100m, 5, null, false),
-                (100m, 5, null, false),
-                (100m, 5, null, false),
-                (100m, 5, null, false));
+                (100m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Normal),
+                (100m, 5, null, SetType.Normal));
             SeedLogWithSets(new DateTime(2026, 10, 6),
-                (80m, 8, 8m, false),
-                (80m, 8, 8m, false),
-                (80m, 8, 8m, false));
+                (80m, 8, 8m, SetType.Normal),
+                (80m, 8, 8m, SetType.Normal),
+                (80m, 8, 8m, SetType.Normal));
 
             var result = await _recordsService.GetOverview(UserId, new DateTime(2026, 10, 1), new DateTime(2026, 10, 7));
 
@@ -243,7 +240,7 @@ namespace ExerciseAPI.Tests.Services
 
             var result = await _recordsService.GetExerciseProgress(UserId, ExerciseId, null, null);
 
-            Assert.Equal(112.51m, result.AllTimeMaxE1RM);
+            Assert.Equal(116.67m, result.AllTimeMaxE1RM);
         }
 
         [Fact]

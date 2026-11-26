@@ -312,7 +312,8 @@ namespace ExerciseAPI.Services
                     Weight = setDto.Weight,
                     Reps = setDto.Reps,
                     RPE = setDto.RPE,
-                    SetType = setDto.SetType
+                    SetType = setDto.SetType,
+                    DurationSeconds = setDto.DurationSeconds
                 };
                 _context.WorkoutSets.Add(workoutSet);
                 entry.Sets.Add(workoutSet);
@@ -368,7 +369,15 @@ namespace ExerciseAPI.Services
         private static decimal CalculateVolume(WorkoutSession session)
         {
             return session.Exercises.Sum(e =>
-                e.Sets.Where(s => s.SetType != Models.SetType.Warmup).Sum(s => s.Weight * s.Reps)
+                e.Sets
+                    .Where(s => WorkingSet.Counts(new WorkingSetInput
+                    {
+                        Weight = s.Weight,
+                        Reps = s.Reps,
+                        Rpe = s.RPE,
+                        SetType = s.SetType
+                    }))
+                    .Sum(s => s.Weight * s.Reps)
             );
         }
 

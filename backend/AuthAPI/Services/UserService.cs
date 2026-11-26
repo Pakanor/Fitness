@@ -2,6 +2,7 @@
 using AuthAPI.Interfaces;
 using AuthAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 
 namespace AuthAPI.Services
@@ -13,14 +14,16 @@ namespace AuthAPI.Services
         private readonly IEmailService _emailService;
         private readonly IConfiguration _configuration;
         private readonly AppDbContext _dbContext;
+        private readonly ILogger<UserService> _logger;
 
-        public UserService(UserLogrepository userRepo, JwtService jwtService, IEmailService emailService, IConfiguration configuration, AppDbContext dbContext)
+        public UserService(UserLogrepository userRepo, JwtService jwtService, IEmailService emailService, IConfiguration configuration, AppDbContext dbContext, ILogger<UserService> logger)
         {
             _userRepo = userRepo;
             _jwtService = jwtService;
             _emailService = emailService;
             _configuration = configuration;
             _dbContext = dbContext;
+            _logger = logger;
         }
 
         public async Task<User?> GetCurrentUserAsync(int userId)
@@ -111,7 +114,14 @@ namespace AuthAPI.Services
             string subject = "Resetowanie hasła";
             string body = $"Kliknij <a href=\"{resetLink}\">tutaj</a>, aby zresetować swoje hasło. Link ważny przez 15 minut.";
 
-            await _emailService.SendEmailAsync(user.Email, subject, body);
+            try
+            {
+                await _emailService.SendEmailAsync(user.Email, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send password reset email to {Email}. Reset link generated but email not sent.", user.Email);
+            }
         }
 
         public async Task<object> ExportUserDataAsync(int userId)

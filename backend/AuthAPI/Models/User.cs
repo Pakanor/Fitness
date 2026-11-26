@@ -36,6 +36,8 @@ namespace AuthAPI.Models
         public string? WeightUnit { get; set; }
         public decimal? DefaultWeightIncrement { get; set; }
         public int? DefaultRestTimerSeconds { get; set; }
+        
+        public string Role { get; set; } = "User";
 
         public decimal GetPalMultiplier()
         {

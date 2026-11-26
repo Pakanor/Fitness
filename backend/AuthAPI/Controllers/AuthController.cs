@@ -2,6 +2,8 @@
 using AuthAPI.Interfaces;
 using AuthAPI.Models;
 using AuthAPI.Services;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -10,24 +12,25 @@ namespace AuthAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController : FitnessControllerBase
+    public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
         private readonly JwtService _jwtService;
         private readonly UserLogrepository _userRepo;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IWebHostEnvironment _env;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
+        private readonly IUserService _userService;
 
-
-        public AuthController(IAuthService authService, JwtService jwtService, UserLogrepository userRepo, IHttpContextAccessor httpContextAccessor, IWebHostEnvironment env)
-            : base(httpContextAccessor)
+        public AuthController(IAuthService authService, JwtService jwtService, UserLogrepository userRepo, IHttpContextAccessor httpContextAccessor, IWebHostEnvironment env, ICurrentUserAccessor currentUserAccessor, IUserService userService)
         {
             _authService = authService;
             _jwtService = jwtService;
             _userRepo = userRepo;
             _httpContextAccessor = httpContextAccessor;
             _env = env;
-
+            _currentUserAccessor = currentUserAccessor;
+            _userService = userService;
         }
 
         [HttpPost("register")]
@@ -38,18 +41,28 @@ namespace AuthAPI.Controllers
         }
 
         [HttpGet("me")]
-        public IActionResult Me()
+        public async Task<IActionResult> Me()
         {
-            if (!HasCurrentUser) return Ok(new { authenticated = false });
+            CurrentUser currentUser;
+            try
+            {
+                currentUser = await _currentUserAccessor.GetFreshAsync();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized();
+            }
+
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
             return Ok(new
             {
                 authenticated = true,
-                id = CurrentUserId,
-                username = CurrentUserName,
-                email = CurrentUserEmail,
-                weight = UserWeight,
-                trainingExperience = UserExperience
+                id = currentUser.Id,
+                username = currentUser.Name,
+                email = currentUser.Email,
+                weight = currentUser.Profile?.Weight ?? UserProfile.Default.Weight,
+                trainingExperience = currentUser.Profile?.TrainingExperience ?? UserProfile.Default.TrainingExperience
             });
         }
 
@@ -78,10 +91,14 @@ namespace AuthAPI.Controllers
                 var (device, browser, os) = UserAgentParser.Parse(Request.Headers.UserAgent.ToString());
                 var ip = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
+                var sessionId = Guid.NewGuid();
+                var tokenWithSession = _jwtService.GenerateToken(user, sessionId);
+
                 var session = new UserSession
                 {
                     UserId = user.ID,
-                    SessionToken = tokenString,
+                    SessionToken = tokenWithSession,
+                    SessionId = sessionId,
                     Device = device,
                     Browser = browser,
                     Os = os,
@@ -92,7 +109,7 @@ namespace AuthAPI.Controllers
                 };
                 await _userRepo.AddSessionAsync(session);
 
-                Response.Cookies.Append("FitnessApp-Auth", tokenString, new CookieOptions
+                Response.Cookies.Append("FitnessApp-Auth", tokenWithSession, new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = !_env.IsDevelopment(),
@@ -125,8 +142,6 @@ namespace AuthAPI.Controllers
             user.IsEmailVerified = true;
             var result = _userRepo.UpdateUserAsync(user);
 
-            
-            
 
             return Ok(new { message = "Email został zweryfikowany." });
 
@@ -134,6 +149,29 @@ namespace AuthAPI.Controllers
 
         }
 
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] EmailDto dto)
+        {
+            await _userService.SendPasswordResetLinkAsync(dto.Email);
+            return Ok(new { message = "Wysłano wiadomość z linkiem do resetu hasła." });
+        }
 
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromQuery] string token, [FromBody] ResetPasswordDto dto)
+        {
+            await _userService.ResetPasswordAsync(token, dto.NewPassword);
+            return Ok(new { message = "Hasło zostało zresetowane." });
+        }
+
+        [HttpGet("sessions/validate/{sessionId:guid}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ValidateSession(Guid sessionId)
+        {
+            var session = await _userRepo.GetSessionBySessionIdAsync(sessionId);
+            if (session == null || !session.IsActive)
+                return NotFound();
+
+            return Ok(new { valid = true, userId = session.UserId });
+        }
     }
 }

@@ -12,7 +12,8 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddNewtonsoftJson();
 
 builder.Services.AddScoped<IProductOperationsService, ProductOperationsService>();
 builder.Services.AddScoped<ICalorieCalculatorService, CalorieCalculatorService>();
@@ -74,13 +75,10 @@ builder.Services.AddAuthentication("Bearer")
 var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD")
                  ?? throw new InvalidOperationException(
                      "DB_PASSWORD is not set. Provide it as an environment variable.");
-
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql($"Host=localhost;Port=5444;Database=products;Username=fitnessapp;Password={dbPassword}"));
+    options.UseNpgsql($"Host={Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost"};Port={Environment.GetEnvironmentVariable("DB_PORT") ?? "5444"};Database=products;Username=fitnessapp;Password={dbPassword}"));
 
 
-
-builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 
 

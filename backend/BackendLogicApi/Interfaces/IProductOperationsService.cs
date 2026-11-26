@@ -11,6 +11,6 @@ namespace BackendLogicApi.Interfaces
         Task<List<ProductLogEntry>> GetRecentLogsAsync();
         Task<bool> HasAnyLogsAsync();
         Task UpdateUserLogAsync(ProductLogEntry updatedEntry);
-
+        Task<Product?> GetProductByIdAsync(int id);
     }
 }

@@ -2,7 +2,7 @@ namespace ExerciseAPI.DTOs
 {
     public class ExerciseProgressPointDto
     {
-        public string Date { get; set; } = "";
+        public DateTime Date { get; set; }
         public decimal MaxE1RM { get; set; }
         public decimal TopSetWeight { get; set; }
         public int TopSetReps { get; set; }
@@ -12,7 +12,7 @@ namespace ExerciseAPI.DTOs
 
     public class WeeklyHardSetsDto
     {
-        public string Week { get; set; } = "";
+        public DateTime Week { get; set; }
         public decimal HardSets { get; set; }
     }
 
@@ -32,7 +32,7 @@ namespace ExerciseAPI.DTOs
 
     public class ExerciseWorkloadPointDto
     {
-        public string Date { get; set; } = "";
+        public DateTime Date { get; set; }
         public decimal Tonnage { get; set; }
         public int Repetitions { get; set; }
         public decimal AverageReps { get; set; }
@@ -57,7 +57,7 @@ namespace ExerciseAPI.DTOs
         public decimal AllTimePrWeight { get; set; }
         public int AllTimePrReps { get; set; }
         public decimal TotalSets { get; set; }
-        public string? LastPerformedDate { get; set; }
+        public DateTime? LastPerformedDate { get; set; }
     }
 
     public class GlobalMuscleVolumeDto
@@ -69,13 +69,13 @@ namespace ExerciseAPI.DTOs
 
     public class TrainingActivityDayDto
     {
-        public string Date { get; set; } = "";
+        public DateTime Date { get; set; }
         public decimal HardSets { get; set; }
     }
 
     public class WeeklyTrainingTrendDto
     {
-        public string Week { get; set; } = "";
+        public DateTime Week { get; set; }
         public decimal HardSets { get; set; }
         public decimal? AverageRpe { get; set; }
     }
@@ -98,4 +98,23 @@ namespace ExerciseAPI.DTOs
         public int? WeeklyStreak { get; set; }
         public List<InsightDto> Insights { get; set; } = new();
     }
+
+    public record PersonalRecordDto(
+        int Id,
+        int ExerciseId,
+        string ExerciseName,
+        string ExerciseCategory,
+        decimal Weight,
+        int Reps,
+        DateTime Date,
+        decimal? UserWeightAtTime,
+        int? UserAgeAtTime,
+        int? DietStatusAtTime,
+        decimal? StrengthToWeightRatio);
+
+    public record ExerciseSearchDto(
+        int Id,
+        string Name,
+        string Category,
+        bool HasPR);
 }

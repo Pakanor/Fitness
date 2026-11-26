@@ -3,31 +3,35 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using ExerciseAPI.Interfaces;
 using ExerciseAPI.DTOs;
+using FitnessApp.Core.Interfaces;
+using FitnessApp.Core.Models;
 
 namespace ExerciseAPI.Controllers
 {
     [ApiController]
     [Route("api/workout-start")]
     [Authorize]
-    public class WorkoutStartController : FitnessControllerBase
+    public class WorkoutStartController : ControllerBase
     {
         private readonly IWorkoutStartModeService _workoutStartModeService;
         private readonly ITemplateService _templateService;
+        private readonly ICurrentUserAccessor _currentUserAccessor;
 
-        public WorkoutStartController(IWorkoutStartModeService workoutStartModeService, ITemplateService templateService, IHttpContextAccessor httpContextAccessor)
-            : base(httpContextAccessor)
+        public WorkoutStartController(IWorkoutStartModeService workoutStartModeService, ITemplateService templateService, ICurrentUserAccessor currentUserAccessor)
         {
             _workoutStartModeService = workoutStartModeService;
             _templateService = templateService;
+            _currentUserAccessor = currentUserAccessor;
         }
 
         [HttpGet("previous")]
         public async Task<IActionResult> GetPreviousWorkout()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var exercises = await _workoutStartModeService.GetPreviousWorkoutExercises(CurrentUserId);
+            var exercises = await _workoutStartModeService.GetPreviousWorkoutExercises(currentUser.Id);
             if (!exercises.Any())
                 return NotFound("No previous workouts to copy");
 
@@ -54,10 +58,11 @@ namespace ExerciseAPI.Controllers
         [HttpGet("previous-by-template/{templateId}")]
         public async Task<IActionResult> GetPreviousWorkoutByTemplate(int templateId)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var exercises = await _workoutStartModeService.GetPreviousWorkoutByTemplate(CurrentUserId, templateId);
+            var exercises = await _workoutStartModeService.GetPreviousWorkoutByTemplate(currentUser.Id, templateId);
             if (!exercises.Any())
                 return NotFound("No previous workouts for this template");
 
@@ -82,12 +87,13 @@ namespace ExerciseAPI.Controllers
         [HttpPost("from-template/{templateId}")]
         public async Task<IActionResult> StartFromTemplate(int templateId)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             try
             {
-                var exercises = await _workoutStartModeService.CreateWorkoutFromTemplate(CurrentUserId, templateId);
+                var exercises = await _workoutStartModeService.CreateWorkoutFromTemplate(currentUser.Id, templateId);
                 return Ok(new { message = "Workout created from template", exerciseCount = exercises.Count });
             }
             catch (InvalidOperationException ex)
@@ -99,12 +105,13 @@ namespace ExerciseAPI.Controllers
         [HttpPost("copy-previous")]
         public async Task<IActionResult> CopyPreviousWorkout()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             try
             {
-                var exercises = await _workoutStartModeService.CopyPreviousWorkout(CurrentUserId);
+                var exercises = await _workoutStartModeService.CopyPreviousWorkout(currentUser.Id);
                 return Ok(new { message = "Workout copied from previous session", exerciseCount = exercises.Count });
             }
             catch (InvalidOperationException ex)
@@ -117,12 +124,13 @@ namespace ExerciseAPI.Controllers
         [HttpPost("copy-previous/{templateId}")]
         public async Task<IActionResult> CopyPreviousWorkoutByTemplate(int templateId)
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
             try
             {
-                var exercises = await _workoutStartModeService.CopyPreviousWorkout(CurrentUserId, templateId);
+                var exercises = await _workoutStartModeService.CopyPreviousWorkout(currentUser.Id, templateId);
                 return Ok(new { message = "Workout copied from previous session for template", exerciseCount = exercises.Count });
             }
             catch (InvalidOperationException ex)
@@ -134,10 +142,11 @@ namespace ExerciseAPI.Controllers
         [HttpGet("templates")]
         public async Task<IActionResult> GetUserTemplates()
         {
-            if (!HasCurrentUser)
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
                 return Unauthorized();
 
-            var templates = await _templateService.GetUserTemplates(CurrentUserId);
+            var templates = await _templateService.GetUserTemplates(currentUser.Id);
             var response = templates.Select(t => new
             {
                 t.Id,

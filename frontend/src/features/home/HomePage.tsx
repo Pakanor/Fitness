@@ -1,8 +1,3 @@
-/**
- * Home
- * Scaffold placeholder (ticket 01). Implemented in 03.
- * Podsumowanie dnia: trening, zmęczenie partii, progres 1RM, objętość i kalendarz aktywności.
- */
 export default function Page() {
   return (
     <section className="space-y-4">

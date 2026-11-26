@@ -14,11 +14,12 @@ import type { AuthMe, LoginDto } from '@/types'
 interface AuthContextValue {
   user: AuthMe | null
   loading: boolean
-  /** Authenticate with email/login + password. */
+  isAuthenticated: boolean
+  
   login: (body: LoginDto) => Promise<void>
-  /** Clear the session cookie and drop the cached user. */
+  
   logout: () => Promise<void>
-  /** Re-fetch the current user (e.g. after profile edits). */
+  
   refresh: () => Promise<void>
 }
 
@@ -34,9 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await getMe()
       setUser(me)
     } catch (err) {
-      // 401 → unauthenticated; anything else also leaves us logged out.
-      if (!(err instanceof ApiError) || err.status === 401) {
-        // swallow — treat as logged out
+      
+      if (err instanceof ApiError && err.status !== 401) {
+        console.error('Nie udało się pobrać użytkownika:', err.message)
       }
       setUser(null)
     } finally {
@@ -48,21 +49,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refresh()
   }, [refresh])
 
-  const login = useCallback(async (body: LoginDto) => {
-    await loginRequest(body)
-    await refresh()
-  }, [refresh])
+  const login = useCallback(
+    async (body: LoginDto) => {
+      await loginRequest(body)
+      await refresh()
+    },
+    [refresh],
+  )
 
   const logout = useCallback(async () => {
     try {
       await logoutRequest()
+    } catch (err) {
+      
+      console.error('Błąd wylogowania:', err)
     } finally {
       setUser(null)
     }
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, login, logout, refresh }),
+    () => ({
+      user,
+      loading,
+      isAuthenticated: user !== null,
+      login,
+      logout,
+      refresh,
+    }),
     [user, loading, login, logout, refresh],
   )
 

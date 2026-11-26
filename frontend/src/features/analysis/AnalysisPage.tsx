@@ -1,8 +1,3 @@
-/**
- * Analiza
- * Scaffold placeholder (ticket 01). Implemented in 05.
- * Wykresy postępu, 1RM progression oraz makieta zmęczenia (przód/tył).
- */
 export default function Page() {
   return (
     <section className="space-y-4">

@@ -16,7 +16,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected app shell (UI-SPEC 2.1: 4 routes) */}
+        {}
         <Route element={<ProtectedLayout />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />

@@ -1,16 +1,5 @@
-/**
- * API client — every call goes through the Gateway (UI-SPEC 2.2, API-CONTRACT 2.1).
- *
- * - `credentials: 'include'` sends the HttpOnly `FitnessApp-Auth` cookie.
- * - The frontend NEVER sets `Authorization`; the Gateway injects it after
- *   reading the cookie.
- * - Base URL is the Gateway. In dev, Vite proxies `/api` to the Gateway so the
- *   cookie stays same-origin; in prod the app is served behind the same origin.
- */
-
 const BASE_URL = import.meta.env.VITE_GATEWAY_URL ?? ''
 
-/** Error thrown for non-2xx responses, carrying the HTTP status. */
 export class ApiError extends Error {
   readonly status: number
   readonly body: unknown
@@ -52,20 +41,28 @@ async function parseBody(res: Response): Promise<unknown> {
 }
 
 function extractMessage(body: unknown, fallback: string): string {
+  if (typeof body === 'string' && body.length) return body
   if (body && typeof body === 'object') {
     const record = body as Record<string, unknown>
     for (const key of ['message', 'title', 'detail', 'error']) {
       const value = record[key]
       if (typeof value === 'string' && value.length) return value
     }
+    
+    const errors = record.errors
+    if (errors && typeof errors === 'object') {
+      const messages = Object.values(errors as Record<string, unknown>)
+        .flatMap((v) => (Array.isArray(v) ? v : [v]))
+        .filter((v): v is string => typeof v === 'string' && v.length > 0)
+      if (messages.length) return [...new Set(messages)].join(' ')
+    }
   }
-  if (typeof body === 'string' && body.length) return body
   return fallback
 }
 
 export interface RequestOptions {
   query?: QueryParams
-  /** JSON body — serialized automatically; sets Content-Type. */
+  
   body?: unknown
   signal?: AbortSignal
 }
@@ -79,7 +76,7 @@ async function request<T>(
 
   const init: RequestInit = {
     method,
-    credentials: 'include', // send HttpOnly FitnessApp-Auth cookie — UI-SPEC 2.2
+    credentials: 'include', 
     headers: {},
     signal,
   }
@@ -100,7 +97,7 @@ async function request<T>(
   const parsed = await parseBody(res)
 
   if (!res.ok) {
-    // 401 is handled globally by callers (redirect to login); surface status.
+    
     throw new ApiError(
       res.status,
       extractMessage(parsed, `Błąd ${res.status}.`),

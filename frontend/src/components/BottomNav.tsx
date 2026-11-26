@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { NAV_ITEMS } from './navItems'
 
-/** Mobile bottom navigation (UI-SPEC 1.3 / 2.1). Hidden ≥1024px. */
 export function BottomNav() {
   return (
     <nav

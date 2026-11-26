@@ -1,8 +1,3 @@
-/**
- * Ustawienia
- * Scaffold placeholder (ticket 01). Implemented in 07.
- * Profil, pomiary ciała, sesje, zmiana hasła, eksport i usunięcie konta.
- */
 export default function Page() {
   return (
     <section className="space-y-4">

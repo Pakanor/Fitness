@@ -1,12 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { register } from '@/lib/api/auth'
 import { ApiError } from '@/lib/api/client'
+import type { RegisterDto } from '@/types'
 
-/**
- * Public registration screen (ticket 02). POST /api/auth/register does NOT set
- * the auth cookie, so on success we send the user to /login to sign in.
- */
 export default function RegisterPage() {
   const navigate = useNavigate()
 
@@ -16,22 +13,53 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
+  const passwordChecks = useMemo(
+    () => [
+      { label: 'min. 8 znaków', ok: password.length >= 8 },
+      { label: 'wielka litera', ok: /[A-Z]/.test(password) },
+      { label: 'mała litera', ok: /[a-z]/.test(password) },
+      { label: 'cyfra', ok: /[0-9]/.test(password) },
+      { label: 'znak specjalny', ok: /[^a-zA-Z0-9]/.test(password) },
+    ],
+    [password],
+  )
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
+
+    if (username.trim().length < 3 || username.trim().length > 20) {
+      setError('Nazwa użytkownika musi mieć od 3 do 20 znaków.')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Niepoprawny format adresu email.')
+      return
+    }
+    if (passwordChecks.some((c) => !c.ok)) {
+      setError('Hasło nie spełnia wymagań (patrz listę poniżej).')
+      return
+    }
+
+    const body: RegisterDto = { username: username.trim(), email: email.trim(), password }
+
     setSubmitting(true)
     try {
-      await register({ username, email, password })
+      await register(body)
       navigate('/login', { replace: true, state: { registered: true } })
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Nie udało się utworzyć konta.')
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Nie udało się utworzyć konta. Spróbuj ponownie.',
+      )
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="grid min-h-screen place-items-center px-4">
+    <div className="grid min-h-screen place-items-center px-4 py-8">
       <form onSubmit={onSubmit} className="card w-full max-w-sm space-y-4 p-6">
         <div className="space-y-1 text-center">
           <span className="mx-auto grid h-12 w-12 place-items-center rounded-inner bg-primary font-display text-xl font-bold text-primary-ink">
@@ -42,13 +70,15 @@ export default function RegisterPage() {
         </div>
 
         <label className="block space-y-1 text-sm">
-          <span className="text-ink-dim">Nazwa użytkownika</span>
+          <span className="text-ink-dim">Nazwa użytkownika (3–20 znaków)</span>
           <input
             type="text"
             autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            minLength={3}
+            maxLength={20}
             className="w-full rounded-inner border border-rule bg-surface-2 px-3 py-2 outline-none focus:border-primary"
           />
         </label>
@@ -77,8 +107,22 @@ export default function RegisterPage() {
           />
         </label>
 
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+          {passwordChecks.map((c) => (
+            <li
+              key={c.label}
+              className={c.ok ? 'text-primary' : 'text-ink-dim'}
+            >
+              {c.ok ? '✓' : '○'} {c.label}
+            </li>
+          ))}
+        </ul>
+
         {error && (
-          <p role="alert" className="text-sm text-muscle-primary">
+          <p
+            role="alert"
+            className="rounded-inner bg-muscle-primary/10 px-3 py-2 text-sm text-muscle-primary"
+          >
             {error}
           </p>
         )}

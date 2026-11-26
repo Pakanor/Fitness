@@ -3,15 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { ApiError } from '@/lib/api/client'
 
-/**
- * Minimal login screen so the protected layout has a redirect target
- * (ticket 01). Full register/login UX is built out in ticket 02.
- */
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
+  const state = location.state as { from?: string; registered?: boolean } | null
+  const from = state?.from ?? '/'
 
   const [emailOrLogin, setEmailOrLogin] = useState('')
   const [password, setPassword] = useState('')
@@ -26,7 +23,11 @@ export default function LoginPage() {
       await login({ emailOrLogin, password })
       navigate(from, { replace: true })
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Nie udało się zalogować.')
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'Nie udało się zalogować. Spróbuj ponownie.',
+      )
     } finally {
       setSubmitting(false)
     }
@@ -42,6 +43,15 @@ export default function LoginPage() {
           <h1 className="pt-2 font-display text-xl font-bold">Zaloguj się</h1>
           <p className="text-sm text-ink-dim">FitnessApp</p>
         </div>
+
+        {state?.registered && (
+          <p
+            role="status"
+            className="rounded-inner bg-primary/10 px-3 py-2 text-sm text-primary"
+          >
+            Konto utworzone. Zaloguj się, aby kontynuować.
+          </p>
+        )}
 
         <label className="block space-y-1 text-sm">
           <span className="text-ink-dim">Email lub login</span>
@@ -68,7 +78,10 @@ export default function LoginPage() {
         </label>
 
         {error && (
-          <p role="alert" className="text-sm text-muscle-primary">
+          <p
+            role="alert"
+            className="rounded-inner bg-muscle-primary/10 px-3 py-2 text-sm text-muscle-primary"
+          >
             {error}
           </p>
         )}

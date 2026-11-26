@@ -1,8 +1,3 @@
-/**
- * Trening
- * Scaffold placeholder (ticket 01). Implemented in 04A / 04B.
- * Szablony treningowe, edytor dni oraz aktywna sesja i logowanie serii.
- */
 export default function Page() {
   return (
     <section className="space-y-4">

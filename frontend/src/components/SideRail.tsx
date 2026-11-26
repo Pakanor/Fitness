@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { NAV_ITEMS } from './navItems'
 
-/** Desktop left rail (≥1024px) — replaces bottom nav (UI-SPEC 1.3). */
 export function SideRail() {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-rule bg-surface lg:flex">

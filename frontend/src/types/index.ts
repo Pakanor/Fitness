@@ -1,10 +1,3 @@
-/**
- * Shared types aligned with API-CONTRACT.md.
- * Only the types needed by the scaffold (ticket 01) are defined here;
- * later tickets extend these as their endpoints are wired up.
- */
-
-// --- Auth (API-CONTRACT 3.7, GET /api/auth/me) ---
 export interface AuthMe {
   authenticated: true
   id: number
@@ -34,5 +27,4 @@ export interface LoginDto {
   password: string
 }
 
-// --- Navigation ---
 export type AppRoute = 'home' | 'plans' | 'analysis' | 'settings'

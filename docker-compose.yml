@@ -9,6 +9,11 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is not set - copy .env.example to .env}
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${Jwt__Issuer}
+      - Jwt__Audience=${Jwt__Audience}
+      - DB_HOST=db_auth
+      - DB_PORT=5432
     depends_on:
       - db_auth
 
@@ -23,6 +28,11 @@ services:
       - RAPIDAPI_KEY=${RAPIDAPI_KEY:?RAPIDAPI_KEY is not set - copy .env.example to .env}
       - OpenRouter__ApiKey=${OPENROUTER_API_KEY:?OPENROUTER_API_KEY is not set - copy .env.example to .env}
       - OpenRouter__Model=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct:free}
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${Jwt__Issuer}
+      - Jwt__Audience=${Jwt__Audience}
+      - DB_HOST=db_exercise
+      - DB_PORT=5432
     depends_on:
       - db_exercise
 
@@ -34,8 +44,28 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is not set - copy .env.example to .env}
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${Jwt__Issuer}
+      - Jwt__Audience=${Jwt__Audience}
+      - DB_HOST=db_products
+      - DB_PORT=5432
     depends_on:
       - db_products
+
+  gateway:
+    build:
+      context: ./backend/Gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${Jwt__Issuer}
+      - Jwt__Audience=${Jwt__Audience}
+    depends_on:
+      - authapi
+      - exerciseapi
+      - backendlogicapi
 
   frontend:
     build:

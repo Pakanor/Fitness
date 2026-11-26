@@ -61,7 +61,7 @@ var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD")
                      "DB_PASSWORD is not set. Provide it as an environment variable.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql($"Host=localhost;Port=5443;Database=exercise;Username=fitnessapp;Password={dbPassword}"));
+    options.UseNpgsql($"Host={Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost"};Port={Environment.GetEnvironmentVariable("DB_PORT") ?? "5443"};Database=exercise;Username=fitnessapp;Password={dbPassword}"));
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {

@@ -74,7 +74,7 @@ var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD")
                      "DB_PASSWORD is not set. Provide it as an environment variable.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql($"Host=localhost;Port=5442;Database=auth;Username=fitnessapp;Password={dbPassword}"));
+    options.UseNpgsql($"Host={Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost"};Port={Environment.GetEnvironmentVariable("DB_PORT") ?? "5442"};Database=auth;Username=fitnessapp;Password={dbPassword}"));
     /*tu w dockerze pozniej host=db-auth*/
 
 var app = builder.Build();

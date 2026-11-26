@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { ApiError } from '@/lib/api/client'
 
@@ -80,6 +80,13 @@ export default function LoginPage() {
         >
           {submitting ? 'Logowanie…' : 'Zaloguj się'}
         </button>
+
+        <p className="text-center text-sm text-ink-dim">
+          Nie masz konta?{' '}
+          <Link to="/register" className="font-medium text-primary hover:underline">
+            Utwórz konto
+          </Link>
+        </p>
       </form>
     </div>
   )

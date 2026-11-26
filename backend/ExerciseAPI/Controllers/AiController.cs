@@ -63,18 +63,19 @@ namespace ExerciseAPI.Controllers
 
         private int GetCurrentUserId()
         {
-            var headers = _httpContextAccessor.HttpContext?.Request.Headers;
-            if (headers == null || !int.TryParse(headers["X-User-Id"], out var userId))
+            var user = _httpContextAccessor.HttpContext?.User;
+            if (user?.Identity?.IsAuthenticated != true)
             {
-                var user = _httpContextAccessor.HttpContext?.User;
-                var claim = user?.FindFirst("sub") ?? user?.FindFirst("userId") ?? user?.FindFirst("id");
-                if (claim != null && int.TryParse(claim.Value, out var claimUserId))
-                {
-                    return claimUserId;
-                }
                 return -1;
             }
-            return userId;
+
+            var claim = user.FindFirst("sub") ?? user.FindFirst("userId") ?? user.FindFirst("id");
+            if (claim != null && int.TryParse(claim.Value, out var claimUserId))
+            {
+                return claimUserId;
+            }
+
+            return -1;
         }
 
         private string GetUserLanguage()

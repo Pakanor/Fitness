@@ -30,8 +30,16 @@ namespace ExerciseAPI.Controllers
             var targetDate = date ?? DateTime.UtcNow.Date;
 
             var status = await _workoutStatusService.GetWorkoutStatus(currentUser.Id, targetDate);
-            return Ok(new { status = status?.ToString() ?? "None" });
+            return Ok(new { status = status.HasValue ? ToStatusString(status.Value) : "none" });
         }
+
+        private static string ToStatusString(WorkoutStatus status) => status switch
+        {
+            WorkoutStatus.Planned => "planned",
+            WorkoutStatus.InProgress => "in_progress",
+            WorkoutStatus.Completed => "completed",
+            _ => status.ToString().ToLowerInvariant()
+        };
 
         [HttpPut]
         public async Task<IActionResult> UpdateWorkoutStatus([FromBody] UpdateWorkoutStatusDto dto)

@@ -24,10 +24,6 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-    })
-    .ConfigureApiBehaviorOptions(options =>
-    {
-        options.SuppressModelStateInvalidFilter = true;
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -47,6 +43,7 @@ builder.Services.AddScoped<ExerciseAPI.Interfaces.ITemplateService, ExerciseAPI.
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutStartModeService, ExerciseAPI.Services.WorkoutStartModeService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutStatusService, ExerciseAPI.Services.WorkoutStatusService>();
 builder.Services.AddScoped<ExerciseAPI.Interfaces.IWorkoutSessionService, ExerciseAPI.Services.WorkoutSessionService>();
+builder.Services.AddScoped<ExerciseAPI.Interfaces.IFatigueAnalysisService, ExerciseAPI.Services.FatigueAnalysisService>();
 builder.Services.AddSingleton<ExerciseAPI.Services.AnalyticsQueue>();
 builder.Services.AddSingleton<ExerciseAPI.Services.IAnalyticsQueue>(sp => sp.GetRequiredService<ExerciseAPI.Services.AnalyticsQueue>());
 builder.Services.AddHostedService<ExerciseAPI.Services.AnalyticsBackgroundService>();

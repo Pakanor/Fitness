@@ -253,6 +253,97 @@ namespace ExerciseAPI.Controllers
             }
         }
 
+        [HttpPut("sets/{setId}")]
+        public async Task<IActionResult> UpdateSet(int setId, [FromBody] LogSingleSetDto dto)
+        {
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
+                return Unauthorized();
+
+            if (dto == null)
+                return BadRequest("Brak danych.");
+
+            var set = await _context.WorkoutSets
+                .Include(s => s.UserExercise)
+                    .ThenInclude(ue => ue.Session)
+                .FirstOrDefaultAsync(s => s.Id == setId && s.UserExercise.UserId == currentUser.Id);
+
+            if (set == null)
+                return NotFound("Seria nie znaleziona.");
+
+            var session = set.UserExercise.Session;
+            if (session.Status == WorkoutStatus.Completed)
+                return Conflict("Zakończony trening jest zablokowany do edycji. Użyj opcji 'Wznów trening'.");
+
+            if (session.Status == WorkoutStatus.Planned && session.Date.Date > DateTime.UtcNow.Date)
+                return Conflict("Najpierw rozpocznij trening, aby edytować serie.");
+
+            if (dto.SetNumber < 1 || dto.SetNumber > 100)
+                return BadRequest("Numer serii poza zakresem 1-100.");
+
+            if (dto.Reps < 0 || dto.Reps > 1000)
+                return BadRequest("Nieprawidłowa liczba powtórzeń.");
+
+            if (dto.Weight < 0 || dto.Weight > 1000)
+                return BadRequest("Nieprawidłowy ciężar.");
+
+            if (dto.RPE.HasValue && (dto.RPE < 1 || dto.RPE > 10))
+                return BadRequest("RPE musi być w zakresie 1-10.");
+
+            if (dto.SetType == Models.SetType.Warmup && dto.Weight == 0 && dto.Reps == 0)
+                return BadRequest("Seria musi mieć ciężar lub powtórzenia.");
+
+            var existingSet = await _context.WorkoutSets
+                .Where(s => s.UserExerciseId == set.UserExerciseId && s.Id != setId)
+                .FirstOrDefaultAsync(s => s.SetNumber == dto.SetNumber);
+
+            if (existingSet != null)
+                return Conflict($"Seria o numerze {dto.SetNumber} już istnieje.");
+
+            set.SetNumber = dto.SetNumber;
+            set.Weight = dto.Weight;
+            set.Reps = dto.Reps;
+            set.RPE = dto.RPE;
+            set.SetType = dto.SetType;
+            set.DurationSeconds = dto.DurationSeconds;
+
+            session.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var response = await MapToResponseAsync(session);
+            return Ok(response);
+        }
+
+        [HttpDelete("sets/{setId}")]
+        public async Task<IActionResult> DeleteSet(int setId)
+        {
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
+                return Unauthorized();
+
+            var set = await _context.WorkoutSets
+                .Include(s => s.UserExercise)
+                    .ThenInclude(ue => ue.Session)
+                .FirstOrDefaultAsync(s => s.Id == setId && s.UserExercise.UserId == currentUser.Id);
+
+            if (set == null)
+                return NotFound("Seria nie znaleziona.");
+
+            var session = set.UserExercise.Session;
+            if (session.Status == WorkoutStatus.Completed)
+                return Conflict("Zakończony trening jest zablokowany do edycji. Użyj opcji 'Wznów trening'.");
+
+            if (session.Status == WorkoutStatus.Planned && session.Date.Date > DateTime.UtcNow.Date)
+                return Conflict("Najpierw rozpocznij trening, aby usunąć serie.");
+
+            _context.WorkoutSets.Remove(set);
+            session.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var response = await MapToResponseAsync(session);
+            return Ok(response);
+        }
+
         private async Task<WorkoutSessionResponseDto> MapToResponseAsync(WorkoutSession session)
         {
             var exerciseIds = session.Exercises.Select(e => e.ExerciseId).Distinct().ToList();

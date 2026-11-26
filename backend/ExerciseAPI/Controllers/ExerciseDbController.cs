@@ -429,7 +429,143 @@ namespace ExerciseAPI.Controllers
             return Ok(exercises);
         }
 
-       [HttpDelete("userexercise/{id}")]
+        [HttpGet("userexercise/detail")]
+        [Authorize]
+        public async Task<IActionResult> GetUserExercisesDetail()
+        {
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated)
+                return Unauthorized();
+
+            var userExercises = await _context.UserExercise
+                .Where(ue => ue.UserId == currentUser.Id)
+                .Where(ue => ue.SessionId == null
+                    || _context.WorkoutSessions.Any(session =>
+                        session.Id == ue.SessionId.Value
+                        && session.Status != WorkoutStatus.Planned))
+                .Include(ue => ue.Sets)
+                .OrderByDescending(ue => ue.Date)
+                .ToListAsync();
+
+            var exerciseIds = userExercises.Select(ue => ue.ExerciseId).Distinct().ToList();
+            var exercises = await _context.Exercises
+                .Where(e => exerciseIds.Contains(e.Id))
+                .ToListAsync();
+
+            var result = userExercises.Select(ue => {
+                var exercise = exercises.FirstOrDefault(e => e.Id == ue.ExerciseId);
+                var sets = ue.Sets.OrderBy(s => s.SetNumber).ToList();
+                var firstSet = sets.FirstOrDefault();
+
+                string primaryMuscles = "";
+                if (exercise != null)
+                {
+                    var engaged = new List<string>();
+                    void AddIf(decimal v, string name) { if (v >= 0.4m) engaged.Add(name); }
+                    AddIf(exercise.Quadriceps, "Czwórki");
+                    AddIf(exercise.Hamstrings, "Dwugłowe uda");
+                    AddIf(exercise.Glutes, "Pośladki");
+                    AddIf(exercise.ChestMain, "Klatka");
+                    AddIf(exercise.Lats, "Plecy szerokie");
+                    AddIf(exercise.DeltoidAnterior, "Bark przedni");
+                    AddIf(exercise.DeltoidLateral, "Bark boczny");
+                    AddIf(exercise.DeltoidPosterior, "Bark tylny");
+                    AddIf(exercise.Biceps, "Biceps");
+                    AddIf(exercise.Triceps, "Triceps");
+                    AddIf(exercise.Forearms, "Przedramiona");
+                    AddIf(exercise.Abs, "Brzuch");
+                    AddIf(exercise.CoreStabilizers, "Stabilizatory");
+                    AddIf(exercise.LowerBack, "Dolny pleców");
+                    AddIf(exercise.Rhomboids, "Romby");
+                    AddIf(exercise.Calves, "Łydki");
+                    if (engaged.Count > 0) primaryMuscles = string.Join(", ", engaged);
+                }
+
+                return new {
+                    userExerciseId = ue.Id,
+                    exerciseId = ue.ExerciseId,
+                    name = exercise?.Name ?? "Nieznane",
+                    category = exercise?.Category ?? "",
+                    primaryMuscles,
+                    gifUrl = exercise?.GifUrl ?? "",
+                    sets = sets.Select(s => new {
+                        s.Id,
+                        s.SetNumber,
+                        s.Weight,
+                        s.Reps,
+                        s.RPE,
+                        SetType = s.SetType.ToString(),
+                        s.DurationSeconds,
+                        Volume = s.Weight * s.Reps
+                    }).ToList(),
+                    totalVolume = sets.Sum(s => s.Weight * s.Reps),
+                    notes = ue.Notes,
+                    supersetGroupId = ue.SupersetGroupId,
+                    templateId = ue.TemplateId,
+                    sessionId = ue.SessionId,
+                    date = ue.Date
+                };
+            }).ToList();
+
+            return Ok(result);
+        }
+
+        [HttpGet("userexercise/public/{userId}")]
+        public async Task<IActionResult> GetPublicUserExercises(int userId)
+        {
+            var userExists = await _context.UserExercise.AnyAsync(ue => ue.UserId == userId);
+            if (!userExists)
+                return NotFound("Użytkownik nie istnieje lub nie ma zapisanych ćwiczeń.");
+
+            var userExercises = await _context.UserExercise
+                .Where(ue => ue.UserId == userId)
+                .Where(ue => ue.SessionId == null
+                    || _context.WorkoutSessions.Any(session =>
+                        session.Id == ue.SessionId.Value
+                        && session.Status != WorkoutStatus.Planned))
+                .Include(ue => ue.Sets)
+                .OrderByDescending(ue => ue.Date)
+                .ToListAsync();
+
+            var exerciseIds = userExercises.Select(ue => ue.ExerciseId).Distinct().ToList();
+            var exercises = await _context.Exercises
+                .Where(e => exerciseIds.Contains(e.Id))
+                .ToListAsync();
+
+            var result = userExercises.Select(ue => {
+                var exercise = exercises.FirstOrDefault(e => e.Id == ue.ExerciseId);
+                var sets = ue.Sets.OrderBy(s => s.SetNumber).ToList();
+                var firstSet = sets.FirstOrDefault();
+
+                return new {
+                    userExerciseId = ue.Id,
+                    exerciseId = ue.ExerciseId,
+                    name = exercise?.Name ?? "Nieznane",
+                    category = exercise?.Category ?? "",
+                    gifUrl = exercise?.GifUrl ?? "",
+                    sets = sets.Select(s => new {
+                        s.Id,
+                        s.SetNumber,
+                        s.Weight,
+                        s.Reps,
+                        s.RPE,
+                        SetType = s.SetType.ToString(),
+                        s.DurationSeconds,
+                        Volume = s.Weight * s.Reps
+                    }).ToList(),
+                    totalVolume = sets.Sum(s => s.Weight * s.Reps),
+                    notes = ue.Notes,
+                    supersetGroupId = ue.SupersetGroupId,
+                    templateId = ue.TemplateId,
+                    sessionId = ue.SessionId,
+                    date = ue.Date
+                };
+            }).ToList();
+
+            return Ok(result);
+        }
+
+        [HttpDelete("userexercise/{id}")]
         [Authorize]
         public async Task<IActionResult> DeleteUserExercise(int id)
         {

@@ -104,7 +104,7 @@ namespace ExerciseAPI.Services
 
                 dataPoints.Add(new ExerciseProgressPointDto
                 {
-                    Date = day.Key.ToString("yyyy-MM-dd"),
+                    Date = day.Key,
                     MaxE1RM = best.E1RM!.Value,
                     TopSetWeight = topSet.Weight,
                     TopSetReps = topSet.Reps,
@@ -139,7 +139,7 @@ namespace ExerciseAPI.Services
                         .OrderBy(x => x.Key)
                         .Select(week => new WeeklyHardSetsDto
                         {
-                            Week = week.Key.ToString("yyyy-MM-dd"),
+                            Week = week.Key,
                             HardSets = week.Sum(x => x.HardSets)
                         })
                         .ToList(),
@@ -161,7 +161,7 @@ namespace ExerciseAPI.Services
                 .OrderBy(g => g.Key)
                 .Select(day => new ExerciseWorkloadPointDto
                 {
-                    Date = day.Key.ToString("yyyy-MM-dd"),
+                    Date = day.Key,
                     Tonnage = day.Sum(s => s.Weight * s.Reps),
                     Repetitions = day.Sum(s => s.Reps),
                     AverageReps = (decimal)Math.Round(day.Average(s => s.Reps), 2),
@@ -195,7 +195,7 @@ namespace ExerciseAPI.Services
             {
                 ExerciseId = exerciseId,
                 ExerciseName = exerciseName,
-                DataPoints = dataPoints.OrderBy(p => p.Date, StringComparer.Ordinal).ToList(),
+                DataPoints = dataPoints.OrderBy(p => p.Date).ToList(),
                 AllTimeMaxE1RM = allTimeMax,
                 MuscleAnalytics = muscleAnalytics,
                 Workload = workload,
@@ -203,7 +203,7 @@ namespace ExerciseAPI.Services
                 AllTimePrWeight = allTimePr?.Weight ?? 0m,
                 AllTimePrReps = allTimePr?.Reps ?? 0,
                 TotalSets = validEntries.Count,
-                LastPerformedDate = validEntries.OrderByDescending(s => s.Date).FirstOrDefault()?.Date.ToString("yyyy-MM-dd")
+                LastPerformedDate = validEntries.OrderByDescending(s => s.Date).FirstOrDefault()?.Date
             };
         }
 
@@ -256,7 +256,7 @@ namespace ExerciseAPI.Services
                 .OrderBy(g => g.Key)
                 .Select(day => new TrainingActivityDayDto
                 {
-                    Date = day.Key.ToString("yyyy-MM-dd"),
+                    Date = day.Key,
                     HardSets = day.Sum(x => 1m)
                 })
                 .ToList();
@@ -266,7 +266,7 @@ namespace ExerciseAPI.Services
                 .OrderBy(g => g.Key)
                 .Select(week => new WeeklyTrainingTrendDto
                 {
-                    Week = week.Key.ToString("yyyy-MM-dd"),
+                    Week = week.Key,
                     HardSets = week.Sum(x => 1m),
                     AverageRpe = ComputeAverageRpe(all, week.Key)
                 })

@@ -1,0 +1,49 @@
+/*
+ * UI-SPEC 1.1 — design tokens.
+ * Colors are stored as space-separated RGB channels so Tailwind can apply
+ * opacity via `rgb(var(--token) / <alpha-value>)`.
+ *
+ * The app supports both dark (base) and light (preview) themes. Light is the
+ * default for preview per UI-SPEC decision 8.1; dark is the working theme.
+ * Toggle by setting `class="dark"` or `class="light"` on <html>.
+ */
+
+:root,
+:root.light {
+  /* Light (preview) — UI-SPEC 1.1 --bg-light / --ink */
+  --bg: 245 245 240; /* #F5F5F0 */
+  --surface: 255 255 255; /* #FFFFFF */
+  --surface-2: 239 239 234; /* #EFEFEA */
+  --ink: 26 26 26; /* #1A1A1A */
+  --ink-dim: 107 107 107; /* #6B6B6B */
+  --primary: 108 92 231; /* #6C5CE7 */
+  --primary-ink: 255 255 255; /* #FFFFFF */
+  --rule: 216 216 211; /* #D8D8D3 */
+  --muscle-primary: 255 71 87; /* #FF4757 */
+  --muscle-secondary: 255 212 59; /* #FFD43B */
+}
+
+:root.dark {
+  /* Dark (working) — UI-SPEC 1.1 --bg-dark / --ink */
+  --bg: 10 10 10; /* #0A0A0A */
+  --surface: 17 17 17; /* #111111 */
+  --surface-2: 26 26 26; /* #1A1A1A */
+  --ink: 245 245 245; /* #F5F5F5 */
+  --ink-dim: 160 160 160; /* #A0A0A0 */
+  --primary: 124 92 255; /* #7C5CFF */
+  --primary-ink: 255 255 255; /* #FFFFFF */
+  --rule: 42 42 42; /* #2A2A2A */
+  --muscle-primary: 255 107 107; /* #FF6B6B */
+  --muscle-secondary: 255 238 153; /* #FFEE99 */
+}
+
+/* Typography roles — UI-SPEC 1.2 */
+:root {
+  --font-display: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Layout rhythm — UI-SPEC 1.3 */
+  --radius-card: 16px;
+  --radius-inner: 12px;
+}

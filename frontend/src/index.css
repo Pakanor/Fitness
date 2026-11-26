@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg text-ink font-body antialiased;
+    /* safe-area padding for notched mobile devices */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Metric numbers use tabular figures — UI-SPEC 1.2 */
+  .tabular-nums,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--primary));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Card surface shared by bento tiles and sheets */
+  .card {
+    @apply rounded-card border border-rule bg-surface;
+  }
+}

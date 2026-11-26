@@ -40,6 +40,9 @@ namespace BackendLogicApi.Models
 
         [JsonProperty("salt")]
         public double Salt { get; set; }
+
+        [JsonProperty("sugars")]
+        public double Sugars { get; set; }
     }
 
 
@@ -67,16 +70,17 @@ namespace BackendLogicApi.Models
 }
     public class CalculationRequest
     {
+        public int? ProductId { get; set; }
         public Product Product { get; set; }
         public double Grams { get; set; }
     }
 
     public class AddLogRequest
     {
+        public int? ProductId { get; set; }
         public Product Product { get; set; }
         public double Grams { get; set; }
     }
-
 
    
 }

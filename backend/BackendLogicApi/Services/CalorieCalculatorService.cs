@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BackendLogicApi.Services
 {
-
    
     public class CalorieCalculatorService : ICalorieCalculatorService
     {
@@ -37,6 +36,7 @@ namespace BackendLogicApi.Services
                 Carbs = Math.Round((double)product.Nutriments.Carbs * factor, 2),
                 Proteins = Math.Round((double)product.Nutriments.Proteins * factor, 2),
                 Salt = Math.Round((double)product.Nutriments.Salt * factor, 2),
+                Sugars = Math.Round((double)product.Nutriments.Sugars * factor, 2),
                 EnergyUnit = energyUnit
             };
         }

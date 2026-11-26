@@ -20,8 +20,9 @@ namespace AuthAPI.Controllers
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IWebHostEnvironment _env;
         private readonly ICurrentUserAccessor _currentUserAccessor;
+        private readonly IUserService _userService;
 
-        public AuthController(IAuthService authService, JwtService jwtService, UserLogrepository userRepo, IHttpContextAccessor httpContextAccessor, IWebHostEnvironment env, ICurrentUserAccessor currentUserAccessor)
+        public AuthController(IAuthService authService, JwtService jwtService, UserLogrepository userRepo, IHttpContextAccessor httpContextAccessor, IWebHostEnvironment env, ICurrentUserAccessor currentUserAccessor, IUserService userService)
         {
             _authService = authService;
             _jwtService = jwtService;
@@ -29,6 +30,7 @@ namespace AuthAPI.Controllers
             _httpContextAccessor = httpContextAccessor;
             _env = env;
             _currentUserAccessor = currentUserAccessor;
+            _userService = userService;
         }
 
         [HttpPost("register")]
@@ -48,10 +50,10 @@ namespace AuthAPI.Controllers
             }
             catch (UnauthorizedAccessException)
             {
-                return Ok(new { authenticated = false });
+                return Unauthorized();
             }
 
-            if (!currentUser.IsAuthenticated) return Ok(new { authenticated = false });
+            if (!currentUser.IsAuthenticated) return Unauthorized();
 
             return Ok(new
             {
@@ -145,6 +147,20 @@ namespace AuthAPI.Controllers
 
 
 
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] EmailDto dto)
+        {
+            await _userService.SendPasswordResetLinkAsync(dto.Email);
+            return Ok(new { message = "Wysłano wiadomość z linkiem do resetu hasła." });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromQuery] string token, [FromBody] ResetPasswordDto dto)
+        {
+            await _userService.ResetPasswordAsync(token, dto.NewPassword);
+            return Ok(new { message = "Hasło zostało zresetowane." });
         }
 
         [HttpGet("sessions/validate/{sessionId:guid}")]

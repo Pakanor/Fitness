@@ -35,7 +35,7 @@ namespace AuthAPI.Services
                 new Claim("training_experience", trainingExperience),
                 new Claim("caloric_target", caloricTarget.ToString(CultureInfo.InvariantCulture)),
                 new Claim("isEmailVerified", user.IsEmailVerified.ToString().ToLower()),
-                new Claim(ClaimTypes.Role, "User")
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
             };
 
             if (sessionId.HasValue)

@@ -127,18 +127,25 @@ namespace AuthAPI.Controllers
             return Ok(new { message = "Sesję unieważniono." });
         }
 
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword([FromQuery] string token, [FromBody] ResetPasswordDto dto)
+        [HttpPut("admin/{userId}/role")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SetUserRole(int userId, [FromBody] SetRoleDto dto)
         {
-            await _userService.ResetPasswordAsync(token, dto.NewPassword);
-            return Ok("Hasło zostało zresetowane.");
+            var currentUser = _currentUserAccessor.Get();
+            if (!currentUser.IsAuthenticated) return Unauthorized();
+
+            var user = await _userService.GetCurrentUserAsync(userId);
+            if (user == null) return NotFound("Użytkownik nie istnieje.");
+
+            user.Role = dto.Role;
+            await _userRepo.UpdateUserAsync(user);
+
+            return Ok(new { message = $"Rola użytkownika ustawiona na {dto.Role}." });
         }
 
-        [HttpPost("forgot-password")]
-        public async Task<IActionResult> SendResetPasswordEmail([FromBody] EmailDto dto)
+        public class SetRoleDto
         {
-            await _userService.SendPasswordResetLinkAsync(dto.Email);
-            return Ok("Wysłano wiadomość z linkiem do resetu hasła.");
+            public string Role { get; set; } = "User";
         }
 
     }

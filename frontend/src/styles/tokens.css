@@ -1,0 +1,38 @@
+
+:root,
+:root.light {
+  
+  --bg: 245 245 240; 
+  --surface: 255 255 255; 
+  --surface-2: 239 239 234; 
+  --ink: 26 26 26; 
+  --ink-dim: 107 107 107; 
+  --primary: 108 92 231; 
+  --primary-ink: 255 255 255; 
+  --rule: 216 216 211; 
+  --muscle-primary: 255 71 87; 
+  --muscle-secondary: 255 212 59; 
+}
+
+:root.dark {
+  
+  --bg: 10 10 10; 
+  --surface: 17 17 17; 
+  --surface-2: 26 26 26; 
+  --ink: 245 245 245; 
+  --ink-dim: 160 160 160; 
+  --primary: 124 92 255; 
+  --primary-ink: 255 255 255; 
+  --rule: 42 42 42; 
+  --muscle-primary: 255 107 107; 
+  --muscle-secondary: 255 238 153; 
+}
+
+:root {
+  --font-display: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --radius-card: 16px;
+  --radius-inner: 12px;
+}

@@ -56,3 +56,9 @@ docs/adr/
 cookies.txt
 frontend/docs/
 backend/logs/
+
+# Ignore markdown and image files
+*.md
+*.jpg
+*.jpeg
+*.png

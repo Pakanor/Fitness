@@ -14,7 +14,6 @@ export function UserMenu() {
   return (
     <div className="flex items-center gap-3">
       <div className="text-right leading-tight">
-        <p className="text-[11px] text-ink-dim">Welcome back</p>
         <p className="text-sm font-semibold">{user?.username ?? ''}</p>
       </div>
       <Avatar name={user?.username} size={36} />

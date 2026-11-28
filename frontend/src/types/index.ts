@@ -29,6 +29,8 @@ export interface LoginDto {
 
 export type AppRoute = 'home' | 'plans' | 'analysis' | 'settings'
 
+export type SessionStatus = 'planned' | 'in_progress' | 'completed'
+
 export interface TemplateExercise {
   exerciseId: number
   exerciseName: string
@@ -101,7 +103,7 @@ export interface WorkoutSessionResponseDto {
   id: number
   userId: number
   date: string
-  status: string
+  status: SessionStatus
   templateId?: number | null
   templateName?: string | null
   startMode: string

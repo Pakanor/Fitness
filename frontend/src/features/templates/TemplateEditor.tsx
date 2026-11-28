@@ -167,7 +167,6 @@ export function TemplateEditor() {
       const cats = await getExerciseCategories()
       setCategories(cats)
     } catch {
-      console.error('Failed to load categories')
     }
   }
 
@@ -242,7 +241,8 @@ export function TemplateEditor() {
       if (isNew) {
         await templatesApi.createTemplate(dto)
       } else {
-        await templatesApi.updateTemplate(templateId!, dto)
+        if (!templateId || templateId <= 0) return
+        await templatesApi.updateTemplate(templateId, dto)
       }
 
       navigate('/trening/szablony')

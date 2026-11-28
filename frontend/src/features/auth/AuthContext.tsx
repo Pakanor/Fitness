@@ -35,9 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await getMe()
       setUser(me)
     } catch (err) {
-      
       if (err instanceof ApiError && err.status !== 401) {
-        console.error('Nie udało się pobrać użytkownika:', err.message)
       }
       setUser(null)
     } finally {
@@ -60,9 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await logoutRequest()
-    } catch (err) {
-      
-      console.error('Błąd wylogowania:', err)
+    } catch {
     } finally {
       setUser(null)
     }

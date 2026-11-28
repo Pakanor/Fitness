@@ -10,6 +10,7 @@ import AnalysisPage from './features/analysis/AnalysisPage'
 import SettingsPage from './features/settings/SettingsPage'
 import { TemplateList } from './features/templates/TemplateList'
 import { TemplateEditor } from './features/templates/TemplateEditor'
+import SessionPage from './features/session/SessionPage'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/trening/szablony" element={<TemplateList />} />
             <Route path="/trening/szablony/nowy" element={<TemplateEditor />} />
             <Route path="/trening/szablony/:id" element={<TemplateEditor />} />
+            <Route path="/trening/sesja/:id" element={<SessionPage />} />
             <Route path="/analiza" element={<AnalysisPage />} />
             <Route path="/ustawienia" element={<SettingsPage />} />
           </Route>

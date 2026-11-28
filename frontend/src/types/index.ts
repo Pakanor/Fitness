@@ -122,3 +122,37 @@ export interface WorkoutTemplatesForStartDto {
   exerciseCount: number
   createdAt: string
 }
+
+export interface LogSetDto {
+  sessionId: number
+  userExerciseId?: number | null
+  exerciseId: number
+  set?: number | null
+  sets?: { setNumber: number; weight: number; reps: number; rpe: number; setType: string }[] | null
+  setType: string
+  supersetGroupId?: string | null
+  notes?: string | null
+}
+
+export interface LogSingleSetDto {
+  setNumber: number
+  reps: number
+  weight: number
+  rpe: number
+  setType: string
+  durationSeconds?: number | null
+}
+
+export interface LogSetResponse {
+  entry: SessionExerciseDto
+  session: WorkoutSessionResponseDto
+  isPr: boolean
+}
+
+export interface IncompleteSessionDto {
+  id: number
+  date: string
+  templateName?: string | null
+  exerciseCount: number
+  status: string
+}

@@ -1,18 +1,51 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useEffect, useState } from 'react'
 import { fetchTopFatigue, fetchCurrent1Rm } from '@/lib/api/home'
+import { getWorkoutsByDate } from '@/lib/api/workouts'
+import type { WorkoutSessionResponseDto } from '@/types'
+import { ApiError } from '@/lib/api/client'
 
 export default function Page() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [selectedDay, setSelectedDay] = useState(new Date().getDate())
   const [fatigue, setFatigue] = useState<{ name: string; value: number }[]>([])
   const [oneRm, setOneRm] = useState<string>('—')
+  const [workout, setWorkout] = useState<WorkoutSessionResponseDto | null>(null)
+  const [workoutLoading, setWorkoutLoading] = useState(true)
+  const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     fetchTopFatigue().then(setFatigue).catch(() => setFatigue([]))
     fetchCurrent1Rm().then(setOneRm).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    let mounted = true
+    getWorkoutsByDate(today)
+      .then(res => {
+        if (mounted) setWorkout(res)
+      })
+      .catch((e: ApiError) => {
+        if (mounted && e.status !== 404) {
+          console.error('Failed to load workout:', e)
+        }
+        if (mounted) setWorkout(null)
+      })
+      .finally(() => {
+        if (mounted) setWorkoutLoading(false)
+      })
+    return () => { mounted = false }
+  }, [today])
+
+  const handleStartWorkout = () => {
+    if (workout) {
+      navigate(`/trening/sesja/${workout.id}`)
+    } else {
+      navigate('/trening/szablony')
+    }
+  }
 
   return (
     <section className="space-y-4 pb-4">
@@ -59,11 +92,27 @@ export default function Page() {
         <article className="card col-span-1 flex flex-col gap-3 p-4 md:col-span-2 lg:col-span-2">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-bold">Trening dnia</h2>
-            <span className="rounded-inner bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Push</span>
+            {workout && (
+              <span className="rounded-inner bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                {workout.templateName ?? 'Trening dnia'}
+              </span>
+            )}
           </div>
-          <p className="text-sm text-ink-dim">Push day · 7 ćwiczeń · ~1h 15m</p>
-          <button type="button" className="mt-auto w-full rounded-inner bg-primary px-4 py-2.5 text-sm font-semibold text-primary-ink shadow-active sm:w-auto">
-            Rozpocznij trening
+          {workoutLoading ? (
+            <p className="text-sm text-ink-dim">Ładowanie...</p>
+          ) : workout ? (
+            <p className="text-sm text-ink-dim">
+              {workout.templateName ?? 'Trening dnia'} · {workout.exerciseCount} ćwiczeń
+            </p>
+          ) : (
+            <p className="text-sm text-ink-dim">Brak zaplanowanego treningu na dziś</p>
+          )}
+          <button
+            type="button"
+            onClick={handleStartWorkout}
+            className="mt-auto w-full rounded-inner bg-primary px-4 py-2.5 text-sm font-semibold text-primary-ink shadow-active sm:w-auto"
+          >
+            {workout ? 'Rozpocznij trening' : 'Wybierz szablon'}
           </button>
         </article>
 

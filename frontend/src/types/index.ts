@@ -28,3 +28,48 @@ export interface LoginDto {
 }
 
 export type AppRoute = 'home' | 'plans' | 'analysis' | 'settings'
+
+export interface TemplateExercise {
+  exerciseId: number
+  exerciseName: string
+  gifUrl?: string | null
+  category: string
+  order: number
+}
+
+export interface WorkoutTemplate {
+  id: number
+  name: string
+  createdAt: string
+  updatedAt: string
+  exercises: TemplateExercise[]
+}
+
+export interface CreateTemplateDto {
+  name: string
+  exerciseIds: number[]
+}
+
+export interface UpdateTemplateDto {
+  name: string
+  exerciseIds: number[]
+}
+
+export interface ExerciseSearchResult {
+  id: number
+  name: string
+  gifUrl?: string | null
+}
+
+export interface ExerciseCategory {
+  category: string
+}
+
+export interface ExerciseByBodyPart {
+  id: number
+  name: string
+  category: string
+  imageUrl?: string | null
+  gifUrl?: string | null
+  muscleMappings: { muscleGroupKey: string; weightPercentage: number }[]
+}

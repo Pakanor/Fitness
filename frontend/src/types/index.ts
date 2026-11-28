@@ -27,7 +27,7 @@ export interface LoginDto {
   password: string
 }
 
-export type AppRoute = 'home' | 'plans' | 'analysis' | 'settings'
+export type AppRoute = 'home' | 'plans' | 'analysis' | 'settings' | 'ai-trainer'
 
 export interface TemplateExercise {
   exerciseId: number
@@ -167,3 +167,38 @@ export interface IncompleteSessionDto {
 }
 
 export type SessionStatus = 'planned' | 'in_progress' | 'completed'
+
+export interface SuggestedSet {
+  weight: number
+  reps: number
+  rpe?: number | null
+}
+
+export interface ExerciseMatch {
+  dbId: number
+  name: string
+  category: string
+  confidence: number
+  suggestedSets: SuggestedSet[]
+  gifUrl?: string | null
+  nameLocalized?: string | null
+}
+
+export interface ResolveExercisesResponse {
+  matches: ExerciseMatch[]
+  unmatched: string[]
+}
+
+export interface ResolveExercisesRequest {
+  text: string
+  domain?: string
+}
+
+export interface AITrainerState {
+  inputText: string
+  isLoading: boolean
+  error?: string
+  response?: ResolveExercisesResponse
+  selectedDay?: Date
+  selectedSessionId?: number
+}

@@ -11,6 +11,7 @@ import SettingsPage from './features/settings/SettingsPage'
 import { TemplateList } from './features/templates/TemplateList'
 import { TemplateEditor } from './features/templates/TemplateEditor'
 import SessionPage from './features/session/SessionPage'
+import AITrainerPage from './features/ai-trainer/AITrainerPage'
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/trening/sesja/:id" element={<SessionPage />} />
             <Route path="/analiza" element={<AnalysisPage />} />
             <Route path="/ustawienia" element={<SettingsPage />} />
+            <Route path="/ai-trainer" element={<AITrainerPage />} />
           </Route>
         </Route>
 

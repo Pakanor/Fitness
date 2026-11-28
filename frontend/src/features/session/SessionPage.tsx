@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useLocation } from 'react-router-dom'
+import { useParams, useLocation, Link } from 'react-router-dom'
 import type { WorkoutSessionResponseDto, SessionExerciseDto, ExerciseSearchResult, ExerciseByBodyPart, SessionStatus } from '@/types'
 import * as W from '@/lib/api/workouts'
 import { ExercisePicker } from '@/components/ExercisePicker'
@@ -212,6 +212,7 @@ export default function SessionPage() {
         >
           Z szablonu
         </button>
+        <Link to="/trening/szablony/nowy" className="rounded-inner bg-muscle-secondary px-3 py-1.5">Dodaj szablon</Link>
       </div>
 
       <ExercisePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={handlePickerSelect} />

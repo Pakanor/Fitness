@@ -1,8 +1,107 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import * as templatesApi from '../../lib/api/templates'
-import type { CreateTemplateDto, UpdateTemplateDto, TemplateExercise, ExerciseSearchResult, ExerciseByBodyPart } from '../../lib/api/templates'
+import type {
+  CreateTemplateDto,
+  UpdateTemplateDto,
+  TemplateExercise,
+  ExerciseSearchResult,
+  ExerciseByBodyPart,
+} from '../../lib/api/templates'
 import { searchExercises, getExerciseCategories, getExercisesByBodyPart } from '../../lib/api/templates'
+import { ApiError } from '../../lib/api/client'
+
+interface ExerciseItemProps {
+  exercise: TemplateExercise
+  index: number
+  totalCount: number
+  onMoveUp: () => void
+  onMoveDown: () => void
+  onRemove: () => void
+}
+
+function ExerciseItem({ exercise, index, totalCount, onMoveUp, onMoveDown, onRemove }: ExerciseItemProps) {
+  return (
+    <li
+      key={`${exercise.exerciseId}-${index}`}
+      className="card flex items-center justify-between p-3 gap-2"
+    >
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <span className="text-ink-dim font-mono text-sm w-6 text-center">{index + 1}</span>
+        {exercise.gifUrl && (
+          <img
+            src={exercise.gifUrl}
+            alt=""
+            className="h-10 w-10 rounded-inner object-cover bg-surface-2"
+            loading="lazy"
+          />
+        )}
+        <div className="min-w-0">
+          <p className="font-medium truncate">{exercise.exerciseName}</p>
+          <p className="text-xs text-ink-dim">{exercise.category}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        {index > 0 && (
+          <button
+            onClick={onMoveUp}
+            className="p-1 text-ink-dim hover:text-ink transition-colors"
+            aria-label="Przenieś w górę"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 15l-6-6-6 6" />
+            </svg>
+          </button>
+        )}
+        {index < totalCount - 1 && (
+          <button
+            onClick={onMoveDown}
+            className="p-1 text-ink-dim hover:text-ink transition-colors"
+            aria-label="Przenieś w dół"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        )}
+        <button
+          onClick={onRemove}
+          className="p-1 text-red-500 hover:bg-red-50 rounded-inner transition-colors"
+          aria-label={`Usuń ${exercise.exerciseName}`}
+        >
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+        </button>
+      </div>
+    </li>
+  )
+}
+
+interface SearchResultItemProps {
+  exercise: ExerciseSearchResult | ExerciseByBodyPart
+  onAdd: () => void
+  hasGif: boolean
+  gifUrl?: string | null
+}
+
+function SearchResultItem({ exercise, onAdd, hasGif, gifUrl }: SearchResultItemProps) {
+  return (
+    <li key={exercise.id}>
+      <button
+        onClick={onAdd}
+        className="w-full flex items-center gap-3 p-2 text-left hover:bg-surface-2 rounded-inner transition-colors"
+      >
+        {hasGif && gifUrl && (
+          <img src={gifUrl} alt="" className="h-10 w-10 rounded-inner object-cover bg-surface-2" loading="lazy" />
+        )}
+        <div>
+          <p className="font-medium">{exercise.name}</p>
+        </div>
+      </button>
+    </li>
+  )
+}
 
 export function TemplateEditor() {
   const { id } = useParams<{ id: string }>()
@@ -27,7 +126,7 @@ export function TemplateEditor() {
 
   // Load template if editing
   useEffect(() => {
-    if (!isNew && templateId) {
+    if (!isNew && templateId && templateId > 0) {
       loadTemplate()
     }
   }, [templateId, isNew])
@@ -50,9 +149,10 @@ export function TemplateEditor() {
   }, [searchQuery])
 
   const loadTemplate = async () => {
+    if (!templateId || templateId <= 0) return
     try {
       setLoading(true)
-      const template = await templatesApi.getTemplate(templateId!)
+      const template = await templatesApi.getTemplate(templateId)
       setName(template.name)
       setExercises(template.exercises.map((e, i) => ({ ...e, order: i + 1 })))
     } catch {
@@ -93,7 +193,7 @@ export function TemplateEditor() {
     }
   }
 
-  const handleAddExercise = (exercise: ExerciseSearchResult | ExerciseByBodyPart) => {
+  const handleAddExercise = useCallback((exercise: ExerciseSearchResult | ExerciseByBodyPart) => {
     const newExercise: TemplateExercise = {
       exerciseId: exercise.id,
       exerciseName: exercise.name,
@@ -105,20 +205,20 @@ export function TemplateEditor() {
     setSearchQuery('')
     setSearchResults([])
     setShowSearch(false)
-  }
+  }, [exercises.length])
 
-  const handleRemoveExercise = (index: number) => {
+  const handleRemoveExercise = useCallback((index: number) => {
     setExercises(prev => prev.filter((_, i) => i !== index).map((e, i) => ({ ...e, order: i + 1 })))
-  }
+  }, [])
 
-  const handleReorder = (fromIndex: number, toIndex: number) => {
+  const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
     setExercises(prev => {
       const newExercises = [...prev]
       const [removed] = newExercises.splice(fromIndex, 1)
       newExercises.splice(toIndex, 0, removed)
       return newExercises.map((e, i) => ({ ...e, order: i + 1 }))
     })
-  }
+  }, [])
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -146,8 +246,35 @@ export function TemplateEditor() {
       }
 
       navigate('/trening/szablony')
-    } catch {
-      setError('Nie udało się zapisać szablonu')
+    } catch (err) {
+      const apiError = err as ApiError
+      if (apiError.status === 409) {
+        setError('Konflikt: szablon został zmodyfikowany przez inną sesję. Odśwież i spróbuj ponownie.')
+      } else {
+        setError('Nie udało się zapisać szablonu')
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleStartWorkout = async () => {
+    if (!templateId || templateId <= 0) return
+    try {
+      setSaving(true)
+      setError(null)
+      const today = new Date().toISOString().split('T')[0]
+      await templatesApi.startWorkoutFromTemplate(templateId, today)
+      navigate('/trening')
+    } catch (err) {
+      const apiError = err as ApiError
+      if (apiError.status === 409) {
+        setError('Nie można rozpocząć treningu: istnieje już aktywny lub zaplanowany trening na dziś.')
+      } else if (apiError.status === 404) {
+        setError('Szablon nie został znaleziony')
+      } else {
+        setError('Nie udało się rozpocząć treningu')
+      }
     } finally {
       setSaving(false)
     }
@@ -204,59 +331,14 @@ export function TemplateEditor() {
           ) : (
             <ul className="space-y-2" role="list">
               {exercises.map((exercise, index) => (
-                <li
-                  key={`${exercise.exerciseId}-${index}`}
-                  className="card flex items-center justify-between p-3 gap-2"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="text-ink-dim font-mono text-sm w-6 text-center">{index + 1}</span>
-                    {exercise.gifUrl && (
-                      <img
-                        src={exercise.gifUrl}
-                        alt=""
-                        className="h-10 w-10 rounded-inner object-cover bg-surface-2"
-                        loading="lazy"
-                      />
-                    )}
-                    <div className="min-w-0">
-                      <p className="font-medium truncate">{exercise.exerciseName}</p>
-                      <p className="text-xs text-ink-dim">{exercise.category}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {index > 0 && (
-                      <button
-                        onClick={() => handleReorder(index, index - 1)}
-                        className="p-1 text-ink-dim hover:text-ink transition-colors"
-                        aria-label="Przenieś w górę"
-                      >
-                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M18 15l-6-6-6 6" />
-                        </svg>
-                      </button>
-                    )}
-                    {index < exercises.length - 1 && (
-                      <button
-                        onClick={() => handleReorder(index, index + 1)}
-                        className="p-1 text-ink-dim hover:text-ink transition-colors"
-                        aria-label="Przenieś w dół"
-                      >
-                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleRemoveExercise(index)}
-                      className="p-1 text-red-500 hover:bg-red-50 rounded-inner transition-colors"
-                      aria-label={`Usuń ${exercise.exerciseName}`}
-                    >
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
-                  </div>
-                </li>
+                <ExerciseItem
+                  exercise={exercise}
+                  index={index}
+                  totalCount={exercises.length}
+                  onMoveUp={() => handleReorder(index, index - 1)}
+                  onMoveDown={() => handleReorder(index, index + 1)}
+                  onRemove={() => handleRemoveExercise(index)}
+                />
               ))}
             </ul>
           )}
@@ -266,6 +348,15 @@ export function TemplateEditor() {
           <Link to="/trening/szablony" className="rounded-inner border border-rule bg-surface-2 px-4 py-2 font-medium text-ink hover:bg-surface transition-colors">
             Anuluj
           </Link>
+          {!isNew && (
+            <button
+              onClick={handleStartWorkout}
+              disabled={saving}
+              className="rounded-inner bg-muscle-secondary px-4 py-2 font-medium text-ink shadow-active transition-opacity disabled:opacity-60"
+            >
+              {saving ? 'Trwa...' : 'Rozpocznij trening'}
+            </button>
+          )}
           <button
             onClick={handleSave}
             disabled={saving}
@@ -333,19 +424,13 @@ export function TemplateEditor() {
                   <h3 className="font-mono text-xs uppercase tracking-wide text-ink-dim mb-2">Wyniki wyszukiwania</h3>
                   <ul className="space-y-2 max-h-60 overflow-y-auto">
                     {searchResults.map(ex => (
-                      <li key={ex.id}>
-                        <button
-                          onClick={() => handleAddExercise(ex)}
-                          className="w-full flex items-center gap-3 p-2 text-left hover:bg-surface-2 rounded-inner transition-colors"
-                        >
-                          {ex.gifUrl && (
-                            <img src={ex.gifUrl} alt="" className="h-10 w-10 rounded-inner object-cover bg-surface-2" loading="lazy" />
-                          )}
-                          <div>
-                            <p className="font-medium">{ex.name}</p>
-                          </div>
-                        </button>
-                      </li>
+                      <SearchResultItem
+                        key={ex.id}
+                        exercise={ex}
+                        onAdd={() => handleAddExercise(ex)}
+                        hasGif={!!ex.gifUrl}
+                        gifUrl={ex.gifUrl}
+                      />
                     ))}
                   </ul>
                 </div>
@@ -357,19 +442,13 @@ export function TemplateEditor() {
                   <h3 className="font-mono text-xs uppercase tracking-wide text-ink-dim mb-2">{selectedCategory}</h3>
                   <ul className="space-y-2 max-h-60 overflow-y-auto">
                     {bodyPartExercises.map(ex => (
-                      <li key={ex.id}>
-                        <button
-                          onClick={() => handleAddExercise(ex)}
-                          className="w-full flex items-center gap-3 p-2 text-left hover:bg-surface-2 rounded-inner transition-colors"
-                        >
-                          {ex.gifUrl && (
-                            <img src={ex.gifUrl} alt="" className="h-10 w-10 rounded-inner object-cover bg-surface-2" loading="lazy" />
-                          )}
-                          <div>
-                            <p className="font-medium">{ex.name}</p>
-                          </div>
-                        </button>
-                      </li>
+                      <SearchResultItem
+                        key={ex.id}
+                        exercise={ex}
+                        onAdd={() => handleAddExercise(ex)}
+                        hasGif={!!ex.gifUrl}
+                        gifUrl={ex.gifUrl}
+                      />
                     ))}
                   </ul>
                 </div>

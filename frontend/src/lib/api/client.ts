@@ -67,11 +67,16 @@ export interface RequestOptions {
   signal?: AbortSignal
 }
 
+export interface ApiResponse<T> {
+  data: T
+  location?: string
+}
+
 async function request<T>(
   method: string,
   path: string,
   options: RequestOptions = {},
-): Promise<T> {
+): Promise<ApiResponse<T>> {
   const { query, body, signal } = options
 
   const init: RequestInit = {
@@ -105,7 +110,8 @@ async function request<T>(
     )
   }
 
-  return parsed as T
+  const location = res.headers.get('location') ?? undefined
+  return { data: parsed as T, location }
 }
 
 export const api = {

@@ -61,10 +61,6 @@ export interface ExerciseSearchResult {
   gifUrl?: string | null
 }
 
-export interface ExerciseCategory {
-  category: string
-}
-
 export interface ExerciseByBodyPart {
   id: number
   name: string
@@ -72,4 +68,57 @@ export interface ExerciseByBodyPart {
   imageUrl?: string | null
   gifUrl?: string | null
   muscleMappings: { muscleGroupKey: string; weightPercentage: number }[]
+}
+
+export interface SessionSetDto {
+  id: number
+  setNumber: number
+  weight: number
+  reps: number
+  rpe?: number | null
+  setType: string
+  durationSeconds?: number | null
+}
+
+export interface SessionExerciseDto {
+  userExerciseId: number
+  exerciseId: number
+  exerciseName: string
+  category: string
+  gifUrl: string
+  supersetGroupId?: string | null
+  notes?: string | null
+  sets: SessionSetDto[]
+  setsCount?: number
+  reps?: number
+  weight?: number
+  rpe?: number | null
+  setType: string
+  volume: number
+}
+
+export interface WorkoutSessionResponseDto {
+  id: number
+  userId: number
+  date: string
+  status: string
+  templateId?: number | null
+  templateName?: string | null
+  startMode: string
+  totalVolume: number
+  exerciseCount: number
+  canLogSets: boolean
+  canReopen: boolean
+  createdAt: string
+  updatedAt: string
+  startedAt?: string | null
+  completedAt?: string | null
+  exercises: SessionExerciseDto[]
+}
+
+export interface WorkoutTemplatesForStartDto {
+  id: number
+  name: string
+  exerciseCount: number
+  createdAt: string
 }

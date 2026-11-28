@@ -123,12 +123,21 @@ export interface WorkoutTemplatesForStartDto {
   createdAt: string
 }
 
+export interface LogSetEntry {
+  setNumber: number
+  weight: number
+  reps: number
+  rpe: number | null
+  setType: string
+  durationSeconds?: number | null
+}
+
 export interface LogSetDto {
   sessionId: number
   userExerciseId?: number | null
   exerciseId: number
-  set?: number | null
-  sets?: { setNumber: number; weight: number; reps: number; rpe: number; setType: string }[] | null
+  set?: LogSetEntry | null
+  sets?: LogSetEntry[] | null
   setType: string
   supersetGroupId?: string | null
   notes?: string | null
@@ -138,7 +147,7 @@ export interface LogSingleSetDto {
   setNumber: number
   reps: number
   weight: number
-  rpe: number
+  rpe: number | null
   setType: string
   durationSeconds?: number | null
 }
@@ -156,3 +165,5 @@ export interface IncompleteSessionDto {
   exerciseCount: number
   status: string
 }
+
+export type SessionStatus = 'planned' | 'in_progress' | 'completed'

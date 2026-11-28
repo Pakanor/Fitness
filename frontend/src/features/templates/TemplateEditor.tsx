@@ -264,8 +264,8 @@ export function TemplateEditor() {
       setSaving(true)
       setError(null)
       const today = new Date().toISOString().split('T')[0]
-      await templatesApi.startWorkoutFromTemplate(templateId, today)
-      navigate('/trening')
+      const res = await templatesApi.startWorkoutFromTemplate(templateId, today)
+      navigate(`/trening/sesja/${res.id}`)
     } catch (err) {
       const apiError = err as ApiError
       if (apiError.status === 409) {

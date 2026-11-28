@@ -8,7 +8,7 @@ import type {
   ExerciseSearchResult,
   ExerciseByBodyPart,
 } from '../../lib/api/templates'
-import { searchExercises, getExerciseCategories, getExercisesByBodyPart } from '../../lib/api/templates'
+import { ExercisePicker } from '@/components/ExercisePicker'
 import { ApiError } from '../../lib/api/client'
 
 interface ExerciseItemProps {
@@ -78,31 +78,6 @@ function ExerciseItem({ exercise, index, totalCount, onMoveUp, onMoveDown, onRem
   )
 }
 
-interface SearchResultItemProps {
-  exercise: ExerciseSearchResult | ExerciseByBodyPart
-  onAdd: () => void
-  hasGif: boolean
-  gifUrl?: string | null
-}
-
-function SearchResultItem({ exercise, onAdd, hasGif, gifUrl }: SearchResultItemProps) {
-  return (
-    <li key={exercise.id}>
-      <button
-        onClick={onAdd}
-        className="w-full flex items-center gap-3 p-2 text-left hover:bg-surface-2 rounded-inner transition-colors"
-      >
-        {hasGif && gifUrl && (
-          <img src={gifUrl} alt="" className="h-10 w-10 rounded-inner object-cover bg-surface-2" loading="lazy" />
-        )}
-        <div>
-          <p className="font-medium">{exercise.name}</p>
-        </div>
-      </button>
-    </li>
-  )
-}
-
 export function TemplateEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -115,13 +90,6 @@ export function TemplateEditor() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Exercise search state
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<ExerciseSearchResult[]>([])
-  const [searchLoading, setSearchLoading] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  const [categories, setCategories] = useState<string[]>([])
-  const [bodyPartExercises, setBodyPartExercises] = useState<ExerciseByBodyPart[]>([])
   const [showSearch, setShowSearch] = useState(false)
 
   // Load template if editing
@@ -131,65 +99,16 @@ export function TemplateEditor() {
     }
   }, [templateId, isNew])
 
-  // Load categories on mount
-  useEffect(() => {
-    loadCategories()
-  }, [])
-
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchQuery.trim()) {
-        performSearch(searchQuery.trim())
-      } else {
-        setSearchResults([])
-      }
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
-
   const loadTemplate = async () => {
-    if (!templateId || templateId <= 0) return
     try {
       setLoading(true)
-      const template = await templatesApi.getTemplate(templateId)
+      const template = await templatesApi.getTemplate(templateId!)
       setName(template.name)
       setExercises(template.exercises.map((e, i) => ({ ...e, order: i + 1 })))
     } catch {
       setError('Nie udało się załadować szablonu')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const loadCategories = async () => {
-    try {
-      const cats = await getExerciseCategories()
-      setCategories(cats)
-    } catch {
-      console.error('Failed to load categories')
-    }
-  }
-
-  const performSearch = async (term: string) => {
-    try {
-      setSearchLoading(true)
-      const results = await searchExercises(term)
-      setSearchResults(results)
-    } catch {
-      setSearchResults([])
-    } finally {
-      setSearchLoading(false)
-    }
-  }
-
-  const loadBodyPart = async (bodyPart: string) => {
-    try {
-      const exercises = await getExercisesByBodyPart(bodyPart)
-      setBodyPartExercises(exercises)
-      setSelectedCategory(bodyPart)
-    } catch {
-      setBodyPartExercises([])
     }
   }
 
@@ -202,8 +121,6 @@ export function TemplateEditor() {
       order: exercises.length + 1,
     }
     setExercises(prev => [...prev, newExercise])
-    setSearchQuery('')
-    setSearchResults([])
     setShowSearch(false)
   }, [exercises.length])
 
@@ -367,100 +284,11 @@ export function TemplateEditor() {
         </div>
       </div>
 
-      {/* Exercise Search Modal */}
-      {showSearch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 lg:items-start lg:pt-16" role="dialog" aria-modal="true" aria-labelledby="search-title">
-          <div className="card w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden">
-            <header className="flex items-center justify-between p-4 border-b border-rule">
-              <h2 id="search-title" className="font-medium">Wyszukaj ćwiczenie</h2>
-              <button
-                onClick={() => setShowSearch(false)}
-                className="p-1 text-ink-dim hover:text-ink transition-colors"
-                aria-label="Zamknij"
-              >
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </header>
-
-            <div className="p-4 space-y-4 overflow-y-auto">
-              {/* Search input */}
-              <div>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Szukaj ćwiczenia..."
-                  className="w-full rounded-inner border border-rule bg-surface-2 px-3 py-2 outline-none focus:border-primary"
-                  autoFocus
-                />
-                {searchLoading && <p className="text-xs text-ink-dim mt-1">Szukanie...</p>}
-              </div>
-
-              {/* Categories */}
-              <div>
-                <h3 className="font-mono text-xs uppercase tracking-wide text-ink-dim mb-2">Kategorie</h3>
-                <div className="flex flex-wrap gap-2">
-                  {categories.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => loadBodyPart(cat)}
-                      className={`rounded-pill px-3 py-1.5 text-sm transition-colors ${
-                        selectedCategory === cat
-                          ? 'bg-primary text-primary-ink'
-                          : 'bg-surface-2 text-ink hover:bg-surface'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Search results */}
-              {searchQuery && searchResults.length > 0 && (
-                <div>
-                  <h3 className="font-mono text-xs uppercase tracking-wide text-ink-dim mb-2">Wyniki wyszukiwania</h3>
-                  <ul className="space-y-2 max-h-60 overflow-y-auto">
-                    {searchResults.map(ex => (
-                      <SearchResultItem
-                        key={ex.id}
-                        exercise={ex}
-                        onAdd={() => handleAddExercise(ex)}
-                        hasGif={!!ex.gifUrl}
-                        gifUrl={ex.gifUrl}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Body part exercises */}
-              {selectedCategory && !searchQuery && bodyPartExercises.length > 0 && (
-                <div>
-                  <h3 className="font-mono text-xs uppercase tracking-wide text-ink-dim mb-2">{selectedCategory}</h3>
-                  <ul className="space-y-2 max-h-60 overflow-y-auto">
-                    {bodyPartExercises.map(ex => (
-                      <SearchResultItem
-                        key={ex.id}
-                        exercise={ex}
-                        onAdd={() => handleAddExercise(ex)}
-                        hasGif={!!ex.gifUrl}
-                        gifUrl={ex.gifUrl}
-                      />
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {(!searchQuery || searchResults.length === 0) && !selectedCategory && (
-                <p className="text-center py-8 text-ink-dim">Wpisz nazwę ćwiczenia lub wybierz kategorię</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ExercisePicker
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        onSelect={handleAddExercise}
+      />
     </section>
   )
 }

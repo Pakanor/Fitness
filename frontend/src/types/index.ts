@@ -166,7 +166,7 @@ export interface IncompleteSessionDto {
   status: string
 }
 
-export type SessionStatus = 'planned' | 'in_progress' | 'completed'
+export type SessionStatus = 'planned' | 'in_progress' | 'completed' | 'none'
 
 export interface SuggestedSet {
   weight: number

@@ -4,7 +4,6 @@ import type { WorkoutSessionResponseDto, SessionExerciseDto, ExerciseSearchResul
 import * as W from '@/lib/api/workouts'
 import { ExercisePicker } from '@/components/ExercisePicker'
 import AITrainerDrawer from '@/features/ai-trainer/AITrainerDrawer'
-import { getWorkoutStartTemplates, getTemplate } from '@/lib/api/templates'
 import { ApiError } from '@/lib/api/client'
 
 interface Row {
@@ -30,8 +29,6 @@ export default function SessionPage() {
   const [editRow, setEditRow] = useState<Row>({ setNumber: 1, weight: '', reps: '', rpe: '', setType: 'Normal' })
   const [prExercises, setPrExercises] = useState<Set<number>>(new Set())
   const [aiOpen, setAiOpen] = useState(false)
-  const [tplPickerOpen, setTplPickerOpen] = useState(false)
-  const [templates, setTemplates] = useState<{id:number; name:string}[]>([])
   const [saveErrors, setSaveErrors] = useState<Record<number, string>>({})
 
   const mutate = async (fn: () => Promise<WorkoutSessionResponseDto>) => {
@@ -164,27 +161,6 @@ export default function SessionPage() {
     }
   }
 
-  const handleTemplateAdd = async (templateId: number) => {
-    try {
-      setError(null)
-      const tpl = await getTemplate(templateId)
-      for (const ex of tpl.exercises) {
-        const res = await W.logSet({
-          sessionId: session.id,
-          userExerciseId: null,
-          exerciseId: ex.exerciseId,
-          setType: 'Normal',
-          sets: [{ setNumber: 1, weight: 0, reps: 0, rpe: 8, setType: 'Normal' }]
-        })
-        setSession(res.session)
-        if (res.isPr) setPrExercises(prev => new Set(prev).add(res.entry.userExerciseId))
-      }
-      setTplPickerOpen(false)
-    } catch (e) {
-      setError((e as ApiError).message)
-    }
-  }
-
   return (
     <section className="p-4 space-y-4">
       {error && <div className="rounded-inner bg-red-100 text-red-700 p-2">{error}</div>}
@@ -200,18 +176,6 @@ export default function SessionPage() {
       </header>
 
       <div className="flex gap-2 flex-wrap">
-        <button className="rounded-inner bg-muscle-secondary px-3 py-1.5" onClick={() => setAiOpen(true)}>AI Trainer</button>
-        <button className="rounded-inner bg-muscle-secondary px-3 py-1.5" onClick={() => setPickerOpen(true)}>Ręcznie</button>
-        <button
-          className="rounded-inner bg-muscle-secondary px-3 py-1.5"
-          onClick={async () => {
-            const t = await getWorkoutStartTemplates()
-            setTemplates(t.map(x => ({ id: x.id, name: x.name })))
-            setTplPickerOpen(true)
-          }}
-        >
-          Z szablonu
-        </button>
         <Link to="/trening/szablony/nowy" className="rounded-inner bg-muscle-secondary px-3 py-1.5">Dodaj szablon</Link>
       </div>
 
@@ -223,18 +187,7 @@ export default function SessionPage() {
         initialDay={new Date()}
         onSave={handleAiSave}
       />
-      {tplPickerOpen && (
-        <div className="card p-3">
-          <ul className="space-y-2">
-            {templates.map(t => (
-              <li key={t.id} className="flex justify-between">
-                <span>{t.name}</span>
-                <button className="text-primary" onClick={() => handleTemplateAdd(t.id)}>Dodaj</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+
 
       <ul className="space-y-3">
         {session.exercises.map(ex => (

@@ -131,7 +131,10 @@ export default function PlansPage() {
       )}
 
       {!hasSession && templates.length === 0 && (
-        <p className="text-center py-8 text-ink-dim">Brak szablonów. Utwórz szablon, aby rozpocząć trening.</p>
+        <div className="text-center py-8 space-y-3">
+          <p className="text-ink-dim">Brak szablonów. Utwórz szablon, aby rozpocząć trening.</p>
+          <Link to="/trening/szablony/nowy" className="inline-block rounded-inner bg-primary px-3 py-1.5 text-sm font-medium text-primary-ink">Dodaj szablon</Link>
+        </div>
       )}
     </section>
   )

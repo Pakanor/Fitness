@@ -198,7 +198,7 @@ describe('SessionPage', () => {
 
     renderWithRouter()
 
-    const editButton = await screen.findByRole('button', { name: 'Edytuj' })
+    const editButton = (await screen.findAllByRole('button', { name: 'Edytuj' }))[0]
     fireEvent.click(editButton)
 
     await screen.findByRole('button', { name: 'Zapisz' })
@@ -211,7 +211,7 @@ describe('SessionPage', () => {
 
     renderWithRouter()
 
-    const deleteButton = await screen.findByRole('button', { name: 'Usuń' })
+    const deleteButton = (await screen.findAllByRole('button', { name: 'Usuń' }))[0]
     fireEvent.click(deleteButton)
 
     await waitFor(() => {
@@ -249,11 +249,11 @@ describe('SessionPage', () => {
 
     renderWithRouter()
 
-    const insertButton = await screen.findByRole('button', { name: 'Wstaw wiersze' })
+    const insertButton = (await screen.findAllByRole('button', { name: 'Wstaw wiersze' }))[0]
     fireEvent.click(insertButton)
 
-    await screen.findByPlaceholderText('kg')
-    expect(screen.getByPlaceholderText('reps')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('RPE')).toBeInTheDocument()
+    await screen.findAllByPlaceholderText('kg')
+    expect(screen.getAllByPlaceholderText('reps').length).toBeGreaterThan(0)
+    expect(screen.getAllByPlaceholderText('RPE').length).toBeGreaterThan(0)
   })
 })

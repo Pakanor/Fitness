@@ -35,10 +35,11 @@ export async function resolveExercises(
   request: ResolveExercisesRequest,
   signal?: AbortSignal
 ): Promise<ResolveExercisesResponse> {
-  return api.post<ResolveExercisesResponse>('/api/ai/resolve-exercises', {
+  const res = await api.post<ResolveExercisesResponse>('/api/ai/resolve-exercises', {
     body: request,
     signal,
   })
+  return res.data
 }
 
 export function isRateLimitError(error: unknown): error is RateLimitError {

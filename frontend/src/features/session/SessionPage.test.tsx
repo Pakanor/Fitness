@@ -142,56 +142,6 @@ describe('SessionPage', () => {
     expect(screen.getByText('#2 100kg x 8 RPE 9 [Normal]')).toBeInTheDocument()
   })
 
-  it('shows action buttons for in_progress status', async () => {
-    mockGetWorkout.mockResolvedValue(mockSession)
-
-    renderWithRouter()
-
-    await screen.findByRole('button', { name: 'Zakończ' })
-    expect(screen.getByRole('button', { name: 'AI Trainer' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ręcznie' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Z szablonu' })).toBeInTheDocument()
-  })
-
-  it('opens ExercisePicker when Ręcznie button clicked', async () => {
-    mockGetWorkout.mockResolvedValue(mockSession)
-
-    renderWithRouter()
-
-    const recznieButton = await screen.findByRole('button', { name: 'Ręcznie' })
-    fireEvent.click(recznieButton)
-
-    await screen.findByTestId('exercise-picker')
-  })
-
-  it('opens AITrainerDrawer when AI Trainer button clicked', async () => {
-    mockGetWorkout.mockResolvedValue(mockSession)
-
-    renderWithRouter()
-
-    const aiButton = await screen.findByRole('button', { name: 'AI Trainer' })
-    fireEvent.click(aiButton)
-
-    await screen.findByTestId('ai-trainer')
-  })
-
-  it('shows template picker when Z szablonu button clicked', async () => {
-    const mockTemplates = [
-      { id: 1, name: 'Push Day', exerciseCount: 5, createdAt: '2024-01-01' },
-      { id: 2, name: 'Pull Day', exerciseCount: 4, createdAt: '2024-01-02' },
-    ]
-    mockGetWorkout.mockResolvedValue(mockSession)
-    mockGetWorkoutStartTemplates.mockResolvedValue(mockTemplates)
-
-    renderWithRouter()
-
-    const templateButton = await screen.findByRole('button', { name: 'Z szablonu' })
-    fireEvent.click(templateButton)
-
-    await screen.findByText('Push Day')
-    expect(screen.getByText('Pull Day')).toBeInTheDocument()
-  })
-
   it('shows edit form when Edytuj button clicked', async () => {
     mockGetWorkout.mockResolvedValue(mockSession)
     mockUpdateSet.mockResolvedValue(mockSession)

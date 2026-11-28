@@ -16,14 +16,14 @@ export interface OneRmProgressionResponse {
 }
 
 export async function fetchTopFatigue(): Promise<{ name: string; value: number }[]> {
-  const data = await api.get<MuscleDamage[]>('/api/fatigue-analysis/muscle-damage')
-  return (data ?? [])
+  const res = await api.get<MuscleDamage[]>('/api/fatigue-analysis/muscle-damage')
+  return (res.data ?? [])
     .slice(0, 3)
     .map((x) => ({ name: x.muscleGroupName ?? x.muscleGroupKey ?? '—', value: Math.round(x.damagePercent ?? 0) }))
 }
 
 export async function fetchCurrent1Rm(): Promise<string> {
-  const data = await api.get<OneRmProgressionResponse>('/api/records/1rm-progression')
-  const lift = data?.lifts?.[0]
+  const res = await api.get<OneRmProgressionResponse>('/api/records/1rm-progression')
+  const lift = res.data?.lifts?.[0]
   return lift?.current1RM != null ? `${lift.current1RM} kg` : '—'
 }

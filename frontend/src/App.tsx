@@ -8,6 +8,8 @@ import HomePage from './features/home/HomePage'
 import PlansPage from './features/plans/PlansPage'
 import AnalysisPage from './features/analysis/AnalysisPage'
 import SettingsPage from './features/settings/SettingsPage'
+import { TemplateList } from './features/templates/TemplateList'
+import { TemplateEditor } from './features/templates/TemplateEditor'
 
 export default function App() {
   return (
@@ -21,6 +23,9 @@ export default function App() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<HomePage />} />
             <Route path="/trening" element={<PlansPage />} />
+            <Route path="/trening/szablony" element={<TemplateList />} />
+            <Route path="/trening/szablony/nowy" element={<TemplateEditor />} />
+            <Route path="/trening/szablony/:id" element={<TemplateEditor />} />
             <Route path="/analiza" element={<AnalysisPage />} />
             <Route path="/ustawienia" element={<SettingsPage />} />
           </Route>

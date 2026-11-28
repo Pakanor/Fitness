@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { BottomNav } from './BottomNav'
 import { SideRail } from './SideRail'
-import { UserMenu } from './UserMenu'
 
 export function AppLayout() {
   return (

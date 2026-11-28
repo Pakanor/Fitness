@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom'
 import type { WorkoutSessionResponseDto, SessionExerciseDto, ExerciseSearchResult, ExerciseByBodyPart, SessionStatus } from '@/types'
 import * as W from '@/lib/api/workouts'
 import { ExercisePicker } from '@/components/ExercisePicker'
+import AITrainerDrawer from '@/features/ai-trainer/AITrainerDrawer'
+import { getWorkoutStartTemplates, getTemplate } from '@/lib/api/templates'
 import { ApiError } from '@/lib/api/client'
 
 interface Row { setNumber: number; weight: string; reps: string; rpe: string; setType: string }
@@ -17,6 +19,9 @@ export default function SessionPage() {
   const [editingSet, setEditingSet] = useState<number | null>(null)
   const [editRow, setEditRow] = useState<Row>({ setNumber: 1, weight: '', reps: '', rpe: '', setType: 'Normal' })
   const [pr, setPr] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
+  const [tplPickerOpen, setTplPickerOpen] = useState(false)
+  const [templates, setTemplates] = useState<{id:number;name:string}[]>([])
 
   const mutate = async (fn: () => Promise<WorkoutSessionResponseDto>) => {
     try { setError(null); setSession(await fn()) } catch (e) {
@@ -71,8 +76,32 @@ export default function SessionPage() {
         </div>
       </header>
 
-      <button className="rounded-inner bg-muscle-secondary px-3 py-1.5" onClick={() => setPickerOpen(true)}>Dodaj ćwiczenie</button>
+      <div className="flex gap-2 flex-wrap">
+        <button className="rounded-inner bg-muscle-secondary px-3 py-1.5" onClick={() => setAiOpen(true)}>AI Trainer</button>
+        <button className="rounded-inner bg-muscle-secondary px-3 py-1.5" onClick={() => setPickerOpen(true)}>Ręcznie</button>
+        <button className="rounded-inner bg-muscle-secondary px-3 py-1.5" onClick={async () => { const t = await getWorkoutStartTemplates(); setTemplates(t.map(x=>({id:x.id,name:x.name}))); setTplPickerOpen(true) }}>Z szablonu</button>
+      </div>
       <ExercisePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={handlePickerSelect} />
+      <AITrainerDrawer isOpen={aiOpen} onClose={() => setAiOpen(false)} initialSessionId={session.id} initialDay={new Date()} onSave={async (matches:any) => { for (const m of matches) { const sets = (m.suggestedSets||[]).map((s:any,i:number)=>({setNumber:i+1,weight:s.weight,reps:s.reps,rpe:s.rpe??8,setType:'Normal'})); const res = await W.logSet({sessionId:session.id,userExerciseId:null,exerciseId:m.dbId,setType:'Normal',sets}); setSession(res.session); if(res.isPr) setPr(true) } }} />
+      {tplPickerOpen && (
+        <div className="card p-3">
+          <ul className="space-y-2">
+            {templates.map(t => (
+              <li key={t.id} className="flex justify-between">
+                <span>{t.name}</span>
+                <button className="text-primary" onClick={async () => {
+                  const tpl = await getTemplate(t.id)
+                  for (const ex of tpl.exercises) {
+                    const res = await W.logSet({sessionId:session.id,userExerciseId:null,exerciseId:ex.exerciseId,setType:'Normal',sets:[{setNumber:1,weight:0,reps:0,rpe:8,setType:'Normal'}]})
+                    setSession(res.session)
+                  }
+                  setTplPickerOpen(false)
+                }}>Dodaj</button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <ul className="space-y-3">
         {session.exercises.map(ex => (
